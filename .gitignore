@@ -1,0 +1,46 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Build artifacts
+/dist/
+/build/
+
+# Env & secrets
+.env
+.env.*
+!env
+
+# Composer
+composer.phar
+
+# IDE/OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.bak
+*.swp
+
+# PHPUnit caches & reports
+.phpunit.result.cache
+/tests/_output/
+/coverage/
+/reports/
+
+# Writable (CI4): ignore contents, keep folders and placeholder index.html
+writable/*
+!writable/**/
+writable/**/*
+!writable/**/index.html
+!writable/.htaccess
+
+# Public uploads: ignore contents, keep placeholders
+public/uploads/*
+!public/uploads/**/
+public/uploads/**/*
+!public/uploads/**/.gitkeep
+!public/uploads/**/index.html
+!public/uploads/**/.htaccess
