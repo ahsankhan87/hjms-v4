@@ -14,7 +14,9 @@
         "ext-intl": "*",
         "ext-mbstring": "*",
         "laminas/laminas-escaper": "^2.18",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "shuchkin/simplexls": "^1.0",
+        "shuchkin/simplexlsx": "^1.1"
     },
     "require-dev": {
         "codeigniter/coding-standard": "^1.7",

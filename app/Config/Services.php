@@ -19,14 +19,21 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
-     *
-     *     return new \CodeIgniter\Example();
-     * }
-     */
+    public static function authService(bool $getShared = true): \App\Services\AuthService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('authService');
+        }
+
+        return new \App\Services\AuthService();
+    }
+
+    public static function auditLogService(bool $getShared = true): \App\Services\AuditLogService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('auditLogService');
+        }
+
+        return new \App\Services\AuditLogService();
+    }
 }

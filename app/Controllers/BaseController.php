@@ -42,4 +42,15 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
     }
+
+    protected function activeSeasonId()
+    {
+        if (! function_exists('active_season_id')) {
+            return null;
+        }
+
+        $seasonId = active_season_id();
+
+        return $seasonId !== null && $seasonId > 0 ? (int) $seasonId : null;
+    }
 }

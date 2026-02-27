@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Al-Rihla - Hajj & Umrah Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #10B981;
+            --primary-dark: #059669;
+            --secondary: #F59E0B;
+            --accent: #1E40AF;
+            --gold: #D4AF37;
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .arabic-text {
+            font-family: 'Amiri', serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        }
+        
+        .gold-gradient {
+            background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-item {
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-item:hover,
+        .sidebar-item.active {
+            background: linear-gradient(90deg, rgba(16,185,129,0.1) 0%, transparent 100%);
+            border-left: 4px solid #10B981;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #FEF3C7;
+            color: #D97706;
+        }
+        
+        .status-approved {
+            background: #D1FAE5;
+            color: #059669;
+        }
+        
+        .status-rejected {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+        
+        .modal-overlay {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .kaaba-icon {
+            position: relative;
+        }
+        
+        .kaaba-icon::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 40px;
+            background: #D4AF37;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: #10B981;
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-white shadow-lg flex flex-col transition-all duration-300">
+            <div class="p-6 border-b border-gray-100">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center">
+                        <i class="ri-kabab-line text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Al-Rihla</h1>
+                        <p class="text-xs text-gray-500">Hajj & Umrah Management</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 overflow-y-auto scrollbar-thin py-4">
+                <div class="px-4 mb-2">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Main Menu</p>
+                </div>
+                
+                <a href="#" class="sidebar-item active flex items-center px-6 py-3 text-gray-700" data-page="dashboard">
+                    <i class="ri-dashboard-line text-lg mr-3"></i>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="packages">
+                    <i class="ri-package-line text-lg mr-3"></i>
+                    <span class="font-medium">Packages</span>
+                </a>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="pilgrims">
+                    <i class="ri-user-group-line text-lg mr-3"></i>
+                    <span class="font-medium">Pilgrims</span>
+                </a>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="visa">
+                    <i class="ri-passport-line text-lg mr-3"></i>
+                    <span class="font-medium">Visa Processing</span>
+                </a>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="accommodation">
+                    <i class="ri-hotel-line text-lg mr-3"></i>
+                    <span class="font-medium">Accommodation</span>
+                </a>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="transport">
+                    <i class="ri-flight-takeoff-line text-lg mr-3"></i>
+                    <span class="font-medium">Transport</span>
+                </a>
+                
+                <div class="px-4 mt-6 mb-2">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
+                </div>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="payments">
+                    <i class="ri-wallet-3-line text-lg mr-3"></i>
+                    <span class="font-medium">Payments</span>
+                </a>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="invoices">
+                    <i class="ri-file-list-3-line text-lg mr-3"></i>
+                    <span class="font-medium">Invoices</span>
+                </a>
+                
+                <div class="px-4 mt-6 mb-2">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Reports</p>
+                </div>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="analytics">
+                    <i class="ri-bar-chart-box-line text-lg mr-3"></i>
+                    <span class="font-medium">Analytics</span>
+                </a>
+                
+                <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-700" data-page="documents">
+                    <i class="ri-file-text-line text-lg mr-3"></i>
+                    <span class="font-medium">Documents</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-100">
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="w-10 h-10 gradient-bg rounded-full flex items-center justify-center">
+                        <span class="text-white font-semibold">AD</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-800">Admin User</p>
+                        <p class="text-xs text-gray-500">admin@alrihla.com</p>
+                    </div>
+                    <i class="ri-settings-4-line text-gray-400 cursor-pointer hover:text-gray-600"></i>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Header -->
+            <header class="bg-white shadow-sm border-b border-gray-100 px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button id="toggleSidebar" class="p-2 hover:bg-gray-100 rounded-lg">
+                            <i class="ri-menu-line text-xl text-gray-600"></i>
+                        </button>
+                        <div>
+                            <h2 id="pageTitle" class="text-2xl font-bold text-gray-800">Dashboard</h2>
+                            <p class="text-sm text-gray-500">Welcome back! Here's what's happening today.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <input type="text" placeholder="Search..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-64">
+                            <i class="ri-search-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        
+                        <button class="relative p-2 hover:bg-gray-100 rounded-lg">
+                            <i class="ri-notification-3-line text-xl text-gray-600"></i>
+                            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                        
+                        <button class="p-2 hover:bg-gray-100 rounded-lg">
+                            <i class="ri-question-line text-xl text-gray-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Content Area -->
+            <div id="contentArea" class="flex-1 overflow-y-auto scrollbar-thin p-8">
+                <!-- Dashboard Content -->
+                <div id="dashboardPage" class="page-content animate-fade-in">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white rounded-xl shadow-sm p-6 card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-user-group-fill text-green-600 text-xl"></i>
+                                </div>
+                                <span class="text-green-600 text-sm font-semibold">+12.5%</span>
+                            </div>
+                            <h3 class="text-3xl font-bold text-gray-800 mb-1">2,847</h3>
+                            <p class="text-gray-500 text-sm">Total Pilgrims</p>
+                            <div class="mt-4 flex items-center text-xs text-gray-400">
+                                <i class="ri-arrow-up-line text-green-500 mr-1"></i>
+                                <span>356 this month</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-flight-takeoff-fill text-blue-600 text-xl"></i>
+                                </div>
+                                <span class="text-blue-600 text-sm font-semibold">+8.2%</span>
+                            </div>
+                            <h3 class="text-3xl font-bold text-gray-800 mb-1">156</h3>
+                            <p class="text-gray-500 text-sm">Active Bookings</p>
+                            <div class="mt-4 flex items-center text-xs text-gray-400">
+                                <i class="ri-arrow-up-line text-green-500 mr-1"></i>
+                                <span>23 pending approval</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-wallet-3-fill text-amber-600 text-xl"></i>
+                                </div>
+                                <span class="text-amber-600 text-sm font-semibold">+15.3%</span>
+                            </div>
+                            <h3 class="text-3xl font-bold text-gray-800 mb-1">$4.2M</h3>
+                            <p class="text-gray-500 text-sm">Total Revenue</p>
+                            <div class="mt-4 flex items-center text-xs text-gray-400">
+                                <i class="ri-arrow-up-line text-green-500 mr-1"></i>
+                                <span>$520K this month</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 card-hover border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-check-double-fill text-purple-600 text-xl"></i>
+                                </div>
+                                <span class="text-purple-600 text-sm font-semibold">98.7%</span>
+                            </div>
+                            <h3 class="text-3xl font-bold text-gray-800 mb-1">1,423</h3>
+                            <p class="text-gray-500 text-sm">Completed Journeys</p>
+                            <div class="mt-4 flex items-center text-xs text-gray-400">
+                                <i class="ri-arrow-up-line text-green-500 mr-1"></i>
+                                <span>89 this week</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Content Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <!-- Chart Section -->
+                        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold text-gray-800">Booking Trends</h3>
+                                <div class="flex space-x-2">
+                                    <button class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg font-medium">Monthly</button>
+                                    <button class="px-3 py-1 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Yearly</button>
+                                </div>
+                            </div>
+                            <canvas id="bookingChart" height="300"></canvas>
+                        </div>
+                        
+                        <!-- Recent Activities -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold text-gray-800">Recent Activities</h3>
+                                <a href="#" class="text-green-600 text-sm font-medium hover:underline">View All</a>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex items-start space-x-3 pb-4 border-b border-gray-100">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-800">New Hajj package booking</p>
+                                        <p class="text-xs text-gray-500">Ahmed Hassan • 2 minutes ago</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3 pb-4 border-b border-gray-100">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-800">Visa approved for group #234</p>
+                                        <p class="text-xs text-gray-500">System • 15 minutes ago</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3 pb-4 border-b border-gray-100">
+                                    <div class="w-2 h-2 bg-amber-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-800">Payment received - $12,500</p>
+                                        <p class="text-xs text-gray-500">Fatima Ali • 1 hour ago</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3 pb-4 border-b border-gray-100">
+                                    <div class="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-800">Hotel booking confirmed - Makkah</p>
+                                        <p class="text-xs text-gray-500">System • 2 hours ago</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-800">Flight rescheduled - Group #189</p>
+                                        <p class="text-xs text-gray-500">Operations • 3 hours ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Package Overview & Visa Status -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Popular Packages -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold text-gray-800">Popular Packages</h3>
+                                <a href="#" class="text-green-600 text-sm font-medium hover:underline">Manage</a>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center">
+                                            <i class="ri-star-fill text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-800">Premium Hajj 2024</h4>
+                                            <p class="text-sm text-gray-500">15 Days • 5 Star Hotels</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold text-green-600">$12,500</p>
+                                        <p class="text-xs text-gray-500">234 bookings</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                                            <i class="ri-moon-fill text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-800">Umrah Plus Package</h4>
+                                            <p class="text-sm text-gray-500">10 Days • 4 Star Hotels</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold text-green-600">$4,800</p>
+                                        <p class="text-xs text-gray-500">567 bookings</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="w-12 h-12 bg-amber-500 rounded-lg flex items-center justify-center">
+                                            <i class="ri-crown-fill text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-800">VIP Hajj Experience</h4>
+                                            <p class="text-sm text-gray-500">20 Days • Luxury Hotels</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-bold text-green-600">$25,000</p>
+                                        <p class="text-xs text-gray-500">89 bookings</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Visa Processing Status -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold text-gray-800">Visa Processing Status</h3>
+                                <a href="#" class="text-green-600 text-sm font-medium hover:underline">View All</a>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                            <i class="ri-check-line text-green-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-800">Approved</p>
+                                            <p class="text-xs text-gray-500">Visas processed</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-2xl font-bold text-green-600">1,234</span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                            <i class="ri-time-line text-amber-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-800">In Process</p>
+                                            <p class="text-xs text-gray-500">Under review</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-2xl font-bold text-amber-600">456</span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <i class="ri-file-list-line text-blue-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-800">Pending Documents</p>
+                                            <p class="text-xs text-gray-500">Awaiting submission</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-2xl font-bold text-blue-600">123</span>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                            <i class="ri-close-line text-red-600"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-800">Rejected</p>
+                                            <p class="text-xs text-gray-500">Requires attention</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-2xl font-bold text-red-600">34</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 pt-6 border-t border-gray-100">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm text-gray-600">Overall Success Rate</span>
+                                    <span class="text-sm font-bold text-green-600">96.3%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="gradient-bg h-2 rounded-full" style="width: 96.3%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Packages Page -->
+                <div id="packagesPage" class="page-content hidden animate-fade-in">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex space-x-4">
+                            <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                <i class="ri-add-line mr-2"></i>Add Package
+                            </button>
+                            <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                <i class="ri-filter-line mr-2"></i>Filter
+                            </button>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium">All</button>
+                            <button class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Hajj</button>
+                            <button class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Umrah</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Package Card 1 -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden card-hover border border-gray-100">
+                            <div class="h-48 gradient-bg relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="ri-kabab-line text-white text-6xl opacity-30"></i>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="px-3 py-1 bg-white/20 backdrop-blur text-white text-sm rounded-full">Popular</span>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-xl font-bold text-gray-800">Premium Hajj 2024</h3>
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">Hajj</span>
+                                </div>
+                                <p class="text-gray-600 text-sm mb-4">Complete Hajj package with 5-star accommodation near Haram</p>
+                                <div class="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                                    <span><i class="ri-time-line mr-1"></i>15 Days</span>
+                                    <span><i class="ri-hotel-line mr-1"></i>5 Star</span>
+                                    <span><i class="ri-group-line mr-1"></i>Group</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Starting from</p>
+                                        <p class="text-2xl font-bold text-green-600">$12,500</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                        View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Package Card 2 -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden card-hover border border-gray-100">
+                            <div class="h-48 bg-blue-500 relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="ri-moon-line text-white text-6xl opacity-30"></i>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-xl font-bold text-gray-800">Umrah Plus Package</h3>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">Umrah</span>
+                                </div>
+                                <p class="text-gray-600 text-sm mb-4">Spiritual journey with comfortable accommodation and guidance</p>
+                                <div class="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                                    <span><i class="ri-time-line mr-1"></i>10 Days</span>
+                                    <span><i class="ri-hotel-line mr-1"></i>4 Star</span>
+                                    <span><i class="ri-group-line mr-1"></i>Group</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Starting from</p>
+                                        <p class="text-2xl font-bold text-green-600">$4,800</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                        View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Package Card 3 -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden card-hover border border-gray-100">
+                            <div class="h-48 gold-gradient relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="ri-crown-line text-white text-6xl opacity-30"></i>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="px-3 py-1 bg-white/20 backdrop-blur text-white text-sm rounded-full">VIP</span>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-xl font-bold text-gray-800">VIP Hajj Experience</h3>
+                                    <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-semibold">Hajj</span>
+                                </div>
+                                <p class="text-gray-600 text-sm mb-4">Luxury Hajj experience with premium services and private guidance</p>
+                                <div class="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                                    <span><i class="ri-time-line mr-1"></i>20 Days</span>
+                                    <span><i class="ri-hotel-line mr-1"></i>Luxury</span>
+                                    <span><i class="ri-user-line mr-1"></i>Private</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Starting from</p>
+                                        <p class="text-2xl font-bold text-green-600">$25,000</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                        View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pilgrims Page -->
+                <div id="pilgrimsPage" class="page-content hidden animate-fade-in">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex space-x-4">
+                            <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                <i class="ri-user-add-line mr-2"></i>Add Pilgrim
+                            </button>
+                            <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                <i class="ri-upload-line mr-2"></i>Import CSV
+                            </button>
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Search pilgrims..." class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <select class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option>All Status</option>
+                                <option>Registered</option>
+                                <option>Visa Approved</option>
+                                <option>Traveling</option>
+                                <option>Completed</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        <input type="checkbox" class="rounded">
+                                    </th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pilgrim</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Passport</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Package</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Travel Date</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4"><input type="checkbox" class="rounded"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                                <span class="text-green-600 font-semibold">AH</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Ahmed Hassan</p>
+                                                <p class="text-sm text-gray-500">ahmed@email.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">A12345678</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Premium Hajj 2024</td>
+                                    <td class="px-6 py-4">
+                                        <span class="status-badge status-approved">Visa Approved</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Jun 15, 2024</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                                                <i class="ri-eye-line"></i>
+                                            </button>
+                                            <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                                                <i class="ri-edit-line"></i>
+                                            </button>
+                                            <button class="p-2 hover:bg-red-50 rounded-lg text-red-600">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4"><input type="checkbox" class="rounded"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span class="text-blue-600 font-semibold">FA</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Fatima Ali</p>
+                                                <p class="text-sm text-gray-500">fatima@email.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">B87654321</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Umrah Plus Package</td>
+                                    <td class="px-6 py-4">
+                                        <span class="status-badge status-pending">Pending</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Jul 01, 2024</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                                                <i class="ri-eye-line"></i>
+                                            </button>
+                                            <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                                                <i class="ri-edit-line"></i>
+                                            </button>
+                                            <button class="p-2 hover:bg-red-50 rounded-lg text-red-600">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4"><input type="checkbox" class="rounded"></td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                                <span class="text-amber-600 font-semibold">MO</span>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Mohammed Omar</p>
+                                                <p class="text-sm text-gray-500">mohammed@email.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">C11223344</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">VIP Hajj Experience</td>
+                                    <td class="px-6 py-4">
+                                        <span class="status-badge status-approved">Traveling</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">May 20, 2024</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex space-x-2">
+                                            <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                                                <i class="ri-eye-line"></i>
+                                            </button>
+                                            <button class="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                                                <i class="ri-edit-line"></i>
+                                            </button>
+                                            <button class="p-2 hover:bg-red-50 rounded-lg text-red-600">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                            <p class="text-sm text-gray-500">Showing 1-10 of 2,847 pilgrims</p>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Previous</button>
+                                <button class="px-3 py-1 bg-green-600 text-white rounded-lg text-sm">1</button>
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">2</button>
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">3</button>
+                                <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Visa Processing Page -->
+                <div id="visaPage" class="page-content hidden animate-fade-in">
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Total Applications</p>
+                                    <p class="text-2xl font-bold text-gray-800">1,847</p>
+                                </div>
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-file-text-line text-blue-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Approved</p>
+                                    <p class="text-2xl font-bold text-green-600">1,234</p>
+                                </div>
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-check-line text-green-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">In Process</p>
+                                    <p class="text-2xl font-bold text-amber-600">456</p>
+                                </div>
+                                <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-time-line text-amber-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Rejected</p>
+                                    <p class="text-2xl font-bold text-red-600">34</p>
+                                </div>
+                                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <i class="ri-close-line text-red-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-6">Visa Application Timeline</h3>
+                        <div class="relative">
+                            <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                            <div class="space-y-6">
+                                <div class="relative flex items-start space-x-4 timeline-item">
+                                    <div class="w-16 text-right pr-4">
+                                        <p class="text-sm font-semibold text-gray-800">Step 1</p>
+                                        <p class="text-xs text-gray-500">Document Submission</p>
+                                    </div>
+                                    <div class="flex-1 bg-green-50 rounded-lg p-4 border border-green-200">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Upload Required Documents</p>
+                                                <p class="text-sm text-gray-600">Passport, Photos, Medical Certificate</p>
+                                            </div>
+                                            <span class="status-badge status-approved">Complete</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="relative flex items-start space-x-4 timeline-item">
+                                    <div class="w-16 text-right pr-4">
+                                        <p class="text-sm font-semibold text-gray-800">Step 2</p>
+                                        <p class="text-xs text-gray-500">Medical Examination</p>
+                                    </div>
+                                    <div class="flex-1 bg-green-50 rounded-lg p-4 border border-green-200">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Medical Check-up</p>
+                                                <p class="text-sm text-gray-600">Vaccination & Health Screening</p>
+                                            </div>
+                                            <span class="status-badge status-approved">Complete</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="relative flex items-start space-x-4 timeline-item">
+                                    <div class="w-16 text-right pr-4">
+                                        <p class="text-sm font-semibold text-gray-800">Step 3</p>
+                                        <p class="text-xs text-gray-500">Application Review</p>
+                                    </div>
+                                    <div class="flex-1 bg-amber-50 rounded-lg p-4 border border-amber-200">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Embassy Processing</p>
+                                                <p class="text-sm text-gray-600">Application under review</p>
+                                            </div>
+                                            <span class="status-badge status-pending">In Progress</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="relative flex items-start space-x-4 timeline-item">
+                                    <div class="w-16 text-right pr-4">
+                                        <p class="text-sm font-semibold text-gray-800">Step 4</p>
+                                        <p class="text-xs text-gray-500">Visa Issuance</p>
+                                    </div>
+                                    <div class="flex-1 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Visa Stamping</p>
+                                                <p class="text-sm text-gray-600">Awaiting approval</p>
+                                            </div>
+                                            <span class="status-badge" style="background: #F1F5F9; color: #64748B">Pending</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="relative flex items-start space-x-4 timeline-item">
+                                    <div class="w-16 text-right pr-4">
+                                        <p class="text-sm font-semibold text-gray-800">Step 5</p>
+                                        <p class="text-xs text-gray-500">Delivery</p>
+                                    </div>
+                                    <div class="flex-1 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="font-semibold text-gray-800">Passport Delivery</p>
+                                                <p class="text-sm text-gray-600">Ready for collection</p>
+                                            </div>
+                                            <span class="status-badge" style="background: #F1F5F9; color: #64748B">Pending</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Accommodation Page -->
+                <div id="accommodationPage" class="page-content hidden animate-fade-in">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex space-x-4">
+                            <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                <i class="ri-add-line mr-2"></i>Add Hotel
+                            </button>
+                            <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                <i class="ri-calendar-line mr-2"></i>View Calendar
+                            </button>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium">All</button>
+                            <button class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Makkah</button>
+                            <button class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Madinah</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Hotel Card 1 -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                            <div class="h-48 bg-gradient-to-r from-green-400 to-green-600 relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="ri-hotel-line text-white text-6xl opacity-30"></i>
+                                </div>
+                                <div class="absolute top-4 left-4">
+                                    <span class="px-3 py-1 bg-white/20 backdrop-blur text-white text-sm rounded-full">Makkah</span>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="px-3 py-1 bg-amber-400 text-white text-xs rounded-full font-semibold">5 Star</span>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">Fairmont Makkah Clock Royal Tower</h3>
+                                <p class="text-gray-600 text-sm mb-4">0.2 km from Haram • Premium view of Kaaba</p>
+                                <div class="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                                    <span><i class="ri-bed-line mr-1"></i>450 Rooms</span>
+                                    <span><i class="ri-user-line mr-1"></i>Capacity: 1,200</span>
+                                    <span><i class="ri-wifi-line mr-1"></i>Free WiFi</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Occupancy Rate</p>
+                                        <p class="text-lg font-bold text-green-600">87%</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                        Manage Booking
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hotel Card 2 -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                            <div class="h-48 bg-gradient-to-r from-blue-400 to-blue-600 relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="ri-hotel-line text-white text-6xl opacity-30"></i>
+                                </div>
+                                <div class="absolute top-4 left-4">
+                                    <span class="px-3 py-1 bg-white/20 backdrop-blur text-white text-sm rounded-full">Madinah</span>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="px-3 py-1 bg-amber-400 text-white text-xs rounded-full font-semibold">5 Star</span>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">Anwar Al Madinah Mövenpick</h3>
+                                <p class="text-gray-600 text-sm mb-4">0.1 km from Prophet's Mosque • Direct access</p>
+                                <div class="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                                    <span><i class="ri-bed-line mr-1"></i>380 Rooms</span>
+                                    <span><i class="ri-user-line mr-1"></i>Capacity: 950</span>
+                                    <span><i class="ri-wifi-line mr-1"></i>Free WiFi</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Occupancy Rate</p>
+                                        <p class="text-lg font-bold text-green-600">92%</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                        Manage Booking
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hotel Card 3 -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                            <div class="h-48 bg-gradient-to-r from-amber-400 to-amber-600 relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="ri-hotel-line text-white text-6xl opacity-30"></i>
+                                </div>
+                                <div class="absolute top-4 left-4">
+                                    <span class="px-3 py-1 bg-white/20 backdrop-blur text-white text-sm rounded-full">Makkah</span>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="px-3 py-1 bg-green-400 text-white text-xs rounded-full font-semibold">4 Star</span>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">Swissôtel Makkah</h3>
+                                <p class="text-gray-600 text-sm mb-4">0.5 km from Haram • Shuttle service available</p>
+                                <div class="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                                    <span><i class="ri-bed-line mr-1"></i>320 Rooms</span>
+                                    <span><i class="ri-user-line mr-1"></i>Capacity: 800</span>
+                                    <span><i class="ri-wifi-line mr-1"></i>Free WiFi</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Occupancy Rate</p>
+                                        <p class="text-lg font-bold text-green-600">78%</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                        Manage Booking
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hotel Card 4 -->
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                            <div class="h-48 bg-gradient-to-r from-purple-400 to-purple-600 relative">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="ri-hotel-line text-white text-6xl opacity-30"></i>
+                                </div>
+                                <div class="absolute top-4 left-4">
+                                    <span class="px-3 py-1 bg-white/20 backdrop-blur text-white text-sm rounded-full">Madinah</span>
+                                </div>
+                                <div class="absolute top-4 right-4">
+                                    <span class="px-3 py-1 bg-green-400 text-white text-xs rounded-full font-semibold">4 Star</span>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">Pullman Zamzam Madinah</h3>
+                                <p class="text-gray-600 text-sm mb-4">0.3 km from Prophet's Mosque • Family rooms</p>
+                                <div class="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                                    <span><i class="ri-bed-line mr-1"></i>280 Rooms</span>
+                                    <span><i class="ri-user-line mr-1"></i>Capacity: 700</span>
+                                    <span><i class="ri-wifi-line mr-1"></i>Free WiFi</span>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Occupancy Rate</p>
+                                        <p class="text-lg font-bold text-green-600">85%</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                        Manage Booking
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Transport Page -->
+                <div id="transportPage" class="page-content hidden animate-fade-in">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-800">Flight Bookings</h3>
+                                <button class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">+ Add Flight</button>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="ri-flight-takeoff-line text-green-600 text-xl"></i>
+                                        <div>
+                                            <p class="font-semibold text-gray-800">SV-782</p>
+                                            <p class="text-xs text-gray-500">Jeddah → Medina</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-approved">Confirmed</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="ri-flight-takeoff-line text-blue-600 text-xl"></i>
+                                        <div>
+                                            <p class="font-semibold text-gray-800">EK-805</p>
+                                            <p class="text-xs text-gray-500">Dubai → Jeddah</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-pending">Pending</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-800">Ground Transport</h3>
+                                <button class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">+ Add Bus</button>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="ri-bus-line text-amber-600 text-xl"></i>
+                                        <div>
+                                            <p class="font-semibold text-gray-800">Bus #234</p>
+                                            <p class="text-xs text-gray-500">Makkah → Madinah</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-approved">Active</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="ri-car-line text-purple-600 text-xl"></i>
+                                        <div>
+                                            <p class="font-semibold text-gray-800">VIP Van #12</p>
+                                            <p class="text-xs text-gray-500">Airport Transfer</p>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-approved">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-800">Transfer Schedule</h3>
+                                <button class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">View All</button>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <p class="font-semibold text-gray-800">Group #189</p>
+                                        <span class="text-xs text-gray-500">Today, 2:00 PM</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Hotel → Airport</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <p class="font-semibold text-gray-800">Group #234</p>
+                                        <span class="text-xs text-gray-500">Tomorrow, 8:00 AM</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Makkah → Madinah</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payments Page -->
+                <div id="paymentsPage" class="page-content hidden animate-fade-in">
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <p class="text-sm text-gray-500 mb-2">Total Revenue</p>
+                            <p class="text-3xl font-bold text-green-600">$4.2M</p>
+                            <p class="text-xs text-green-600 mt-2"><i class="ri-arrow-up-line"></i> +15.3% this month</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <p class="text-sm text-gray-500 mb-2">Pending Payments</p>
+                            <p class="text-3xl font-bold text-amber-600">$520K</p>
+                            <p class="text-xs text-amber-600 mt-2">89 transactions</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <p class="text-sm text-gray-500 mb-2">Completed</p>
+                            <p class="text-3xl font-bold text-blue-600">$3.68M</p>
+                            <p class="text-xs text-blue-600 mt-2">1,234 transactions</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <p class="text-sm text-gray-500 mb-2">Refunds</p>
+                            <p class="text-3xl font-bold text-red-600">$45K</p>
+                            <p class="text-xs text-red-600 mt-2">23 transactions</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-gray-800">Recent Transactions</h3>
+                            <div class="flex space-x-2">
+                                <input type="date" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium">Export</button>
+                            </div>
+                        </div>
+                        
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Transaction ID</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Pilgrim</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Package</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Amount</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm font-mono text-gray-600">#TXN-001234</td>
+                                    <td class="px-6 py-4 text-sm text-gray-800">Ahmed Hassan</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Premium Hajj 2024</td>
+                                    <td class="px-6 py-4 text-sm font-bold text-green-600">$12,500</td>
+                                    <td class="px-6 py-4"><span class="status-badge status-approved">Completed</span></td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">May 15, 2024</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm font-mono text-gray-600">#TXN-001235</td>
+                                    <td class="px-6 py-4 text-sm text-gray-800">Fatima Ali</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">Umrah Plus Package</td>
+                                    <td class="px-6 py-4 text-sm font-bold text-amber-600">$4,800</td>
+                                    <td class="px-6 py-4"><span class="status-badge status-pending">Pending</span></td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">May 16, 2024</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm font-mono text-gray-600">#TXN-001236</td>
+                                    <td class="px-6 py-4 text-sm text-gray-800">Mohammed Omar</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">VIP Hajj Experience</td>
+                                    <td class="px-6 py-4 text-sm font-bold text-green-600">$25,000</td>
+                                    <td class="px-6 py-4"><span class="status-badge status-approved">Completed</span></td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">May 17, 2024</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Analytics Page -->
+                <div id="analyticsPage" class="page-content hidden animate-fade-in">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <h3 class="text-lg font-bold text-gray-800 mb-6">Monthly Bookings</h3>
+                            <canvas id="monthlyChart" height="250"></canvas>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                            <h3 class="text-lg font-bold text-gray-800 mb-6">Package Distribution</h3>
+                            <canvas id="packageChart" height="250"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-6">Performance Metrics</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="text-center p-6 bg-green-50 rounded-xl">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="ri-user-star-line text-green-600 text-2xl"></i>
+                                </div>
+                                <p class="text-3xl font-bold text-green-600 mb-2">98.7%</p>
+                                <p class="text-sm text-gray-600">Customer Satisfaction</p>
+                            </div>
+                            
+                            <div class="text-center p-6 bg-blue-50 rounded-xl">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="ri-time-line text-blue-600 text-2xl"></i>
+                                </div>
+                                <p class="text-3xl font-bold text-blue-600 mb-2">3.2 Days</p>
+                                <p class="text-sm text-gray-600">Avg Visa Processing</p>
+                            </div>
+                            
+                            <div class="text-center p-6 bg-amber-50 rounded-xl">
+                                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="ri-repeat-line text-amber-600 text-2xl"></i>
+                                </div>
+                                <p class="text-3xl font-bold text-amber-600 mb-2">45%</p>
+                                <p class="text-sm text-gray-600">Repeat Customers</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Documents Page -->
+                <div id="documentsPage" class="page-content hidden animate-fade-in">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex space-x-4">
+                            <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
+                                <i class="ri-upload-line mr-2"></i>Upload Document
+                            </button>
+                            <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                <i class="ri-folder-add-line mr-2"></i>Create Folder
+                            </button>
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Search documents..." class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="ri-file-text-line text-red-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Passports</h4>
+                            <p class="text-sm text-gray-500 mb-4">2,847 documents</p>
+                            <button class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                View All
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="ri-id-card-line text-green-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Visas</h4>
+                            <p class="text-sm text-gray-500 mb-4">1,847 documents</p>
+                            <button class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                View All
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="ri-ticket-line text-blue-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Flight Tickets</h4>
+                            <p class="text-sm text-gray-500 mb-4">1,456 documents</p>
+                            <button class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                View All
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                            <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4">
+                                <i class="ri-hotel-line text-amber-600 text-xl"></i>
+                            </div>
+                            <h4 class="font-semibold text-gray-800 mb-2">Hotel Vouchers</h4>
+                            <p class="text-sm text-gray-500 mb-4">1,234 documents</p>
+                            <button class="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                                View All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Sidebar Navigation
+        const sidebarItems = document.querySelectorAll('.sidebar-item');
+        const pages = document.querySelectorAll('.page-content');
+        const pageTitle = document.getElementById('pageTitle');
+        
+        const pageTitles = {
+            dashboard: 'Dashboard',
+            packages: 'Packages Management',
+            pilgrims: 'Pilgrims Management',
+            visa: 'Visa Processing',
+            accommodation: 'Accommodation Management',
+            transport: 'Transport Management',
+            payments: 'Payments & Finance',
+            invoices: 'Invoices',
+            analytics: 'Analytics & Reports',
+            documents: 'Documents'
+        };
+        
+        sidebarItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = item.dataset.page;
+                
+                // Update sidebar active state
+                sidebarItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Show corresponding page
+                pages.forEach(p => p.classList.add('hidden'));
+                document.getElementById(page + 'Page').classList.remove('hidden');
+                
+                // Update page title
+                pageTitle.textContent = pageTitles[page] || 'Dashboard';
+            });
+        });
+        
+        // Toggle Sidebar
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('w-64');
+            sidebar.classList.toggle('w-20');
+        });
+        
+        // Initialize Charts
+        const bookingCtx = document.getElementById('bookingChart').getContext('2d');
+        new Chart(bookingCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Hajj Bookings',
+                    data: [120, 150, 180, 220, 280, 350, 320, 290, 250, 200, 160, 130],
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Umrah Bookings',
+                    data: [200, 220, 250, 280, 300, 320, 290, 270, 310, 340, 360, 380],
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: [320000, 380000, 450000, 520000, 610000, 680000],
+                    backgroundColor: '#10B981',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        const packageCtx = document.getElementById('packageChart').getContext('2d');
+        new Chart(packageCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Premium Hajj', 'Umrah Plus', 'VIP Hajj', 'Economy Umrah'],
+                datasets: [{
+                    data: [35, 40, 15, 10],
+                    backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
