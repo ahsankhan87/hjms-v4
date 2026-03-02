@@ -41,7 +41,7 @@ class SupplierController extends BaseController
     {
         $row = (new SupplierModel())->find($id);
         if (empty($row)) {
-            return redirect()->to('/app/suppliers')->with('error', 'Supplier not found.');
+            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
         }
 
         return view('portal/suppliers/edit', [
@@ -60,7 +60,7 @@ class SupplierController extends BaseController
     {
         $supplier = (new SupplierModel())->find($id);
         if (empty($supplier)) {
-            return redirect()->to('/app/suppliers')->with('error', 'Supplier not found.');
+            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
         }
 
         $rows = (new SupplierLedgerEntryModel())
@@ -96,14 +96,14 @@ class SupplierController extends BaseController
         $payload = $this->extractSupplierPayload();
 
         if (! $this->validateData($payload, $this->supplierRules())) {
-            return redirect()->to('/app/suppliers/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/suppliers/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             (new SupplierModel())->insert($this->buildSupplierData($payload, true));
-            return redirect()->to('/app/suppliers')->with('success', 'Supplier added successfully.');
+            return redirect()->to('/suppliers')->with('success', 'Supplier added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/suppliers/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/suppliers/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -113,18 +113,18 @@ class SupplierController extends BaseController
         $payload = $this->extractSupplierPayload();
 
         if ($supplierId < 1) {
-            return redirect()->to('/app/suppliers')->with('error', 'Valid supplier ID is required.');
+            return redirect()->to('/suppliers')->with('error', 'Valid supplier ID is required.');
         }
 
         if (! $this->validateData($payload, $this->supplierRules())) {
-            return redirect()->to('/app/suppliers/' . $supplierId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/suppliers/' . $supplierId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             (new SupplierModel())->update($supplierId, $this->buildSupplierData($payload, false));
-            return redirect()->to('/app/suppliers')->with('success', 'Supplier updated successfully.');
+            return redirect()->to('/suppliers')->with('success', 'Supplier updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/suppliers/' . $supplierId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/suppliers/' . $supplierId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -132,14 +132,14 @@ class SupplierController extends BaseController
     {
         $supplierId = (int) $this->request->getPost('supplier_id');
         if ($supplierId < 1) {
-            return redirect()->to('/app/suppliers')->with('error', 'Valid supplier ID is required for delete.');
+            return redirect()->to('/suppliers')->with('error', 'Valid supplier ID is required for delete.');
         }
 
         try {
             (new SupplierModel())->delete($supplierId);
-            return redirect()->to('/app/suppliers')->with('success', 'Supplier deleted successfully.');
+            return redirect()->to('/suppliers')->with('success', 'Supplier deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/suppliers')->with('error', $e->getMessage());
+            return redirect()->to('/suppliers')->with('error', $e->getMessage());
         }
     }
 
@@ -160,7 +160,7 @@ class SupplierController extends BaseController
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
-            return redirect()->to('/app/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -190,9 +190,9 @@ class SupplierController extends BaseController
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/suppliers/' . $payload['supplier_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
+            return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', $e->getMessage());
         }
     }
 

@@ -14,9 +14,11 @@ class HotelModel extends Model
     protected $allowedFields = [
         'name',
         'city',
+        'distance_m',
         'star_rating',
         'address',
         'image_url',
+        'image_gallery',
         'video_url',
         'youtube_url',
         'map_url',

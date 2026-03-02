@@ -10,8 +10,8 @@
         <p class="mt-2 text-sm text-slate-600"><?= esc($error ?? 'You do not have permission to access this section.') ?></p>
 
         <div class="mt-6 flex flex-wrap gap-3">
-            <a href="<?= site_url('/app') ?>" class="btn btn-md btn-primary">Go to Dashboard</a>
-            <a href="<?= site_url('/app/login') ?>" class="btn btn-md btn-secondary">Back to Login</a>
+            <a href="<?= site_url('/dashboard') ?>" class="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Go to Dashboard</a>
+            <a href="<?= site_url('/login') ?>" class="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Back to Login</a>
         </div>
     </article>
 </main>

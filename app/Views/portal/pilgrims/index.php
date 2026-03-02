@@ -10,10 +10,10 @@
         <article class="lg:col-span-1">
             <div class="list-toolbar">
                 <div class="flex space-x-3">
-                    <a href="<?= site_url('/app/pilgrims/add') ?>" class="btn btn-md btn-primary">
+                    <a href="<?= site_url('/pilgrims/add') ?>" class="btn btn-md btn-primary">
                         <i class="ri-user-add-line mr-2"></i>Add Pilgrim
                     </a>
-                    <a href="<?= site_url('/app/pilgrims/import') ?>" class="btn btn-md btn-secondary">
+                    <a href="<?= site_url('/pilgrims/import') ?>" class="btn btn-md btn-secondary">
                         <i class="fa-solid fa-upload mr-2"></i>Import CSV
                     </a>
                 </div>
@@ -114,10 +114,10 @@
                                     <td><?= esc($pilgrim['phone'] ?? '-') ?></td>
                                     <td>
                                         <div class="flex space-x-2">
-                                            <a href="<?= site_url('/app/pilgrims/' . (int) $pilgrim['id'] . '/edit') ?>" class="icon-btn" title="View / Edit">
+                                            <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id'] . '/edit') ?>" class="icon-btn" title="View / Edit">
                                                 <i class="fa-solid fa-pen"></i>
                                             </a>
-                                            <form method="post" action="<?= site_url('/app/pilgrims/delete') ?>" class="inline">
+                                            <form method="post" action="<?= site_url('/pilgrims/delete') ?>" class="inline">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="pilgrim_id" value="<?= esc($pilgrim['id']) ?>">
                                                 <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this pilgrim?')" title="Delete">

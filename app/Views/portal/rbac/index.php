@@ -11,21 +11,21 @@
             <h3 class="text-lg font-semibold text-gray-800">Roles</h3>
             <p class="mt-2 text-sm text-gray-500">Create and review roles.</p>
             <div class="mt-4 text-2xl font-bold text-gray-800"><?= esc((string) count($roles)) ?></div>
-            <a href="<?= site_url('/app/rbac/roles') ?>" class="btn btn-md btn-primary mt-4">Open Roles</a>
+            <a href="<?= site_url('/rbac/roles') ?>" class="btn btn-md btn-primary mt-4">Open Roles</a>
         </article>
 
         <article class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
             <h3 class="text-lg font-semibold text-gray-800">Permissions</h3>
             <p class="mt-2 text-sm text-gray-500">Create permissions and map them to roles.</p>
             <div class="mt-4 text-2xl font-bold text-gray-800"><?= esc((string) count($permissions)) ?></div>
-            <a href="<?= site_url('/app/rbac/permissions') ?>" class="btn btn-md btn-primary mt-4">Open Permissions</a>
+            <a href="<?= site_url('/rbac/permissions') ?>" class="btn btn-md btn-primary mt-4">Open Permissions</a>
         </article>
 
         <article class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
             <h3 class="text-lg font-semibold text-gray-800">Assignments</h3>
             <p class="mt-2 text-sm text-gray-500">Assign roles to users and review mappings.</p>
             <div class="mt-4 text-2xl font-bold text-gray-800"><?= esc((string) count($users)) ?></div>
-            <a href="<?= site_url('/app/rbac/assign') ?>" class="btn btn-md btn-primary mt-4">Open Assignments</a>
+            <a href="<?= site_url('/rbac/assign') ?>" class="btn btn-md btn-primary mt-4">Open Assignments</a>
         </article>
     </section>
 </main>

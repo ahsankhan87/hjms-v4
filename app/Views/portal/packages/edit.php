@@ -9,7 +9,7 @@
     <section class="grid gap-6 lg:grid-cols-3">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-1">
             <h3 class="text-lg font-semibold">Update Package</h3>
-            <form method="post" action="<?php echo site_url('app/packages/update') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?php echo site_url('packages/update') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                 <label class="block text-xs font-medium text-slate-600">Code
@@ -66,7 +66,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-lg font-semibold">Delete Package</h3>
-            <form method="post" action="/app/packages/delete" class="mt-4 space-y-3">
+            <form method="post" action="/packages/delete" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                 <button type="submit" class="btn btn-md btn-danger btn-block">Delete Package</button>
@@ -78,7 +78,7 @@
                 <h3 class="text-lg font-semibold mb-2">Package Cost Sheet Calculator</h3>
                 <p class="text-xs text-slate-500 mb-3">Save a versioned cost sheet from supplier purchase costs. Each save can create supplier ledger bills automatically.</p>
 
-                <form method="post" action="<?= site_url('app/packages/cost-sheet/save') ?>" class="grid gap-3 md:grid-cols-4">
+                <form method="post" action="<?= site_url('packages/cost-sheet/save') ?>" class="grid gap-3 md:grid-cols-4">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
 
@@ -173,7 +173,7 @@
                     <button type="submit" class="btn btn-md btn-primary md:col-span-2">Save Cost Sheet Version</button>
                     <?php if (!empty($latestCostSheet)): ?>
                         <div class="md:col-span-2 flex items-center justify-end">
-                            <form method="post" action="<?= site_url('app/packages/cost-sheet/publish') ?>" class="inline-flex">
+                            <form method="post" action="<?= site_url('packages/cost-sheet/publish') ?>" class="inline-flex">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                 <input type="hidden" name="cost_sheet_id" value="<?= esc((string) $latestCostSheet['id']) ?>">
@@ -213,7 +213,7 @@
 
             <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
                 <h3 class="text-lg font-semibold mb-4">Package Costs</h3>
-                <form method="post" action="<?= site_url('app/packages/costs/create') ?>" class="grid gap-3 md:grid-cols-5">
+                <form method="post" action="<?= site_url('packages/costs/create') ?>" class="grid gap-3 md:grid-cols-5">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Cost Type
@@ -255,7 +255,7 @@
                                         <td class="py-2 pr-3"><?= esc((string) ($cost['supplier_id'] ?? '')) ?></td>
                                         <td class="py-2 pr-3"><?= esc((string) ($cost['description'] ?? '')) ?></td>
                                         <td class="py-2">
-                                            <form method="post" action="<?= site_url('app/packages/costs/delete') ?>">
+                                            <form method="post" action="<?= site_url('packages/costs/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_cost_id" value="<?= esc($cost['id']) ?>">
@@ -278,7 +278,7 @@
                 <h3 class="text-lg font-semibold mb-4">Package Hotels</h3>
                 <p class="text-xs text-slate-500 mb-3">Hotels are linked directly from Hotel Management records.</p>
                 <p class="text-xs text-slate-500 mb-3">Sequence rule: next hotel check-in starts from previous hotel check-out, and total stay cannot exceed package end date (<?= esc((string) ($packageStayEnd ?? '-')) ?>).</p>
-                <form method="post" action="<?= site_url('app/packages/hotels/create') ?>" class="grid gap-3 md:grid-cols-4" data-package-end="<?= esc((string) ($packageStayEnd ?? '')) ?>">
+                <form method="post" action="<?= site_url('packages/hotels/create') ?>" class="grid gap-3 md:grid-cols-4" data-package-end="<?= esc((string) ($packageStayEnd ?? '')) ?>">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Hotel Room Type
@@ -329,7 +329,7 @@
                                         <td class="py-2 pr-3"><?= esc((string) ($hotelRow['check_out_date'] ?? '')) ?></td>
                                         <td class="py-2 pr-3"><?= esc((string) (($hotelRow['room_type'] ?? '') !== '' ? $hotelRow['room_type'] : ($hotelRow['hotel_room_type'] ?? ''))) ?></td>
                                         <td class="py-2">
-                                            <form method="post" action="<?= site_url('app/packages/hotels/delete') ?>">
+                                            <form method="post" action="<?= site_url('packages/hotels/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_hotel_id" value="<?= esc($hotelRow['id']) ?>">
@@ -350,7 +350,7 @@
 
             <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
                 <h3 class="text-lg font-semibold mb-4">Package Flights</h3>
-                <form method="post" action="<?= site_url('app/packages/flights/create') ?>" class="grid gap-3 md:grid-cols-4">
+                <form method="post" action="<?= site_url('packages/flights/create') ?>" class="grid gap-3 md:grid-cols-4">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Outbound Flight (To KSA)
@@ -405,7 +405,7 @@
                                         <td class="py-2 pr-3"><?= esc((string) ($flightRow['departure_at'] ?? '')) ?></td>
                                         <td class="py-2 pr-3"><?= esc((string) ($flightRow['arrival_at'] ?? '')) ?></td>
                                         <td class="py-2">
-                                            <form method="post" action="<?= site_url('app/packages/flights/delete') ?>">
+                                            <form method="post" action="<?= site_url('packages/flights/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_flight_id" value="<?= esc($flightRow['id']) ?>">
@@ -426,7 +426,7 @@
 
             <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
                 <h3 class="text-lg font-semibold mb-4">Package Transports</h3>
-                <form method="post" action="<?= site_url('app/packages/transports/create') ?>" class="grid gap-3 md:grid-cols-4">
+                <form method="post" action="<?= site_url('packages/transports/create') ?>" class="grid gap-3 md:grid-cols-4">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Transport
@@ -461,7 +461,7 @@
                                         <td class="py-2 pr-3"><?= esc((string) ($transportRow['vehicle_type'] ?? '')) ?></td>
                                         <td class="py-2 pr-3"><?= esc((string) ($transportRow['seat_capacity'] ?? '')) ?></td>
                                         <td class="py-2">
-                                            <form method="post" action="<?= site_url('app/packages/transports/delete') ?>">
+                                            <form method="post" action="<?= site_url('packages/transports/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_transport_id" value="<?= esc($transportRow['id']) ?>">
@@ -485,7 +485,7 @@
 </main>
 <script>
     (function() {
-        const packageForm = document.querySelector('form[action*="app/packages/update"]');
+        const packageForm = document.querySelector('form[action*="packages/update"]');
         if (!packageForm) {
             return;
         }
@@ -493,7 +493,7 @@
         const durationInput = packageForm.querySelector('input[name="duration_days"]');
         const departureInput = packageForm.querySelector('input[name="departure_date"]');
         const arrivalInput = packageForm.querySelector('input[name="arrival_date"]');
-        const hotelForm = document.querySelector('form[action*="app/packages/hotels/create"]');
+        const hotelForm = document.querySelector('form[action*="packages/hotels/create"]');
         const roomSelect = hotelForm ? hotelForm.querySelector('select[name="hotel_room_id"]') : null;
         const stayDistributionInput = hotelForm ? hotelForm.querySelector('input[name="stay_distribution"]') : null;
         const hotelCheckInInput = hotelForm ? hotelForm.querySelector('input[name="check_in_date"]') : null;

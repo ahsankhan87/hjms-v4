@@ -58,17 +58,20 @@ class AuditLogFilter implements FilterInterface
     private function buildActionLabel(string $path, string $method): string
     {
         $segments = explode('/', trim($path, '/'));
+        if (($segments[0] ?? '') === 'app') {
+            array_shift($segments);
+        }
         $normalizedPath = implode('/', $segments);
 
         $exact = [
-            'app/login|POST' => 'Sign In',
-            'app/logout|POST' => 'Sign Out',
-            'app/rbac/role-permissions|POST' => 'Update Role Permissions',
-            'app/rbac/user-roles|POST' => 'Assign Role to User',
-            'app/rbac/roles|POST' => 'Create Role',
-            'app/rbac/permissions|POST' => 'Create Permission',
-            'app/forgot-password|POST' => 'Request Password Reset',
-            'app/reset-password|POST' => 'Reset Password',
+            'login|POST' => 'Sign In',
+            'logout|POST' => 'Sign Out',
+            'rbac/role-permissions|POST' => 'Update Role Permissions',
+            'rbac/user-roles|POST' => 'Assign Role to User',
+            'rbac/roles|POST' => 'Create Role',
+            'rbac/permissions|POST' => 'Create Permission',
+            'forgot-password|POST' => 'Request Password Reset',
+            'reset-password|POST' => 'Reset Password',
         ];
 
         $exactKey = $normalizedPath . '|' . $method;
@@ -112,8 +115,8 @@ class AuditLogFilter implements FilterInterface
 
     private function resolveResourceLabel(array $segments): string
     {
-        $resource = strtolower((string) ($segments[1] ?? $segments[0] ?? 'module'));
-        $subResource = strtolower((string) ($segments[2] ?? ''));
+        $resource = strtolower((string) ($segments[0] ?? 'module'));
+        $subResource = strtolower((string) ($segments[1] ?? ''));
 
         $resourceMap = [
             'users' => 'User',

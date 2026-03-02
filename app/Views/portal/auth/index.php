@@ -1,6 +1,10 @@
 <?php $this->extend('portal/layouts/auth') ?>
 
 <?php $this->section('main') ?>
+<?php
+$mainCompanyData = function_exists('main_company') ? (main_company() ?? []) : [];
+$companyName = trim((string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD'));
+?>
 <main class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
     <div class="relative hidden overflow-hidden lg:flex items-center justify-center bg-slate-900 text-white p-12">
         <div class="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl"></div>
@@ -9,7 +13,7 @@
             <div class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/70 px-4 py-1.5 text-xs text-slate-200">
                 <span class="h-2 w-2 rounded-full bg-emerald-400"></span>ERP Platform
             </div>
-            <h1 class="mt-6 text-4xl font-extrabold leading-tight">Hajj & Umrah ERP</h1>
+            <h1 class="mt-6 text-4xl font-extrabold leading-tight"><?= esc($companyName) ?></h1>
             <p class="mt-4 text-slate-300">Manage pilgrims, bookings, payments, visa processing, operations, and reports from one modern workspace.</p>
             <ul class="mt-8 space-y-3 text-sm text-slate-200">
                 <li>• Secure tenant-based data isolation</li>
@@ -21,6 +25,7 @@
 
     <div class="flex items-center justify-center p-6">
         <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500"><?= esc($companyName) ?></p>
             <h2 class="text-2xl font-bold text-slate-800">Welcome back</h2>
             <p class="mt-1 text-sm text-slate-500">Sign in to continue to your dashboard</p>
 
@@ -30,7 +35,7 @@
                 </div>
             <?php endif; ?>
 
-            <form method="post" action="<?= site_url('/app/login') ?>" class="mt-6 space-y-4">
+            <form method="post" action="<?= site_url('/login') ?>" class="mt-6 space-y-4">
                 <?= csrf_field() ?>
                 <div>
                     <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
@@ -40,11 +45,11 @@
                     <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
                     <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                 </div>
-                <button type="submit" class="btn btn-md btn-primary btn-block">Sign In</button>
+                <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Sign In</button>
             </form>
 
             <p class="mt-4 text-sm text-slate-600">
-                <a href="<?= site_url('/app/forgot-password') ?>" class="underline">Forgot password?</a>
+                <a href="<?= site_url('/forgot-password') ?>" class="underline">Forgot password?</a>
             </p>
 
             <p class="mt-5 text-xs text-slate-500">Need API login? Endpoint available at /api/auth/login</p>

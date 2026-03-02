@@ -9,7 +9,7 @@
     <section class="grid gap-6 lg:grid-cols-3">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-1">
             <h3 class="text-lg font-semibold">Edit Hotel</h3>
-            <form method="post" action="<?= site_url('/app/hotels/update') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/hotels/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                 <div>
@@ -19,6 +19,11 @@
                 <div>
                     <label class="text-sm font-medium">City</label>
                     <input name="city" value="<?= esc(old('city', (string) ($row['city'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-sm font-medium">Distance (m)</label>
+                    <input type="number" min="0" name="distance_m" value="<?= esc(old('distance_m', (string) ($row['distance_m'] ?? ($row['distance_makkah_m'] ?? ($row['distance_madina_m'] ?? ''))))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <p class="mt-1 text-xs text-slate-500">Single distance field. City decides whether it is Makkah or Madina distance.</p>
                 </div>
                 <div>
                     <label class="text-sm font-medium">Star Rating</label>
@@ -32,6 +37,28 @@
                     <label class="text-sm font-medium">Cover Image URL</label>
                     <input name="image_url" value="<?= esc(old('image_url', (string) ($row['image_url'] ?? ''))) ?>" placeholder="https://..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
+                <div>
+                    <label class="text-sm font-medium">Upload More Hotel Images</label>
+                    <input type="file" name="hotel_images[]" multiple accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <p class="mt-1 text-xs text-slate-500">Add more images to gallery. Allowed: JPG, PNG, WEBP (max 5MB each).</p>
+                </div>
+                <?php if (!empty($galleryImages)): ?>
+                    <div>
+                        <label class="text-sm font-medium">Current Gallery</label>
+                        <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            <?php foreach ($galleryImages as $galleryImage): ?>
+                                <div class="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                                    <button type="button" class="gallery-preview-btn block w-full" data-image-src="<?= esc($galleryImage) ?>">
+                                        <img src="<?= esc($galleryImage) ?>" alt="Hotel image" class="h-20 w-full object-cover">
+                                    </button>
+                                    <div class="p-1">
+                                        <button type="button" class="w-full rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100 gallery-delete-btn" data-image-url="<?= esc($galleryImage) ?>">Delete Image</button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <div>
                     <label class="text-sm font-medium">Video URL</label>
                     <input name="video_url" value="<?= esc(old('video_url', (string) ($row['video_url'] ?? ''))) ?>" placeholder="https://..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -50,17 +77,23 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-lg font-semibold">Delete Hotel</h3>
-            <form method="post" action="<?= site_url('/app/hotels/delete') ?>" class="mt-4">
+            <form method="post" action="<?= site_url('/hotels/delete') ?>" class="mt-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                 <button type="submit" class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this hotel and all room types?')">Delete Hotel</button>
+            </form>
+
+            <form id="galleryDeleteForm" method="post" action="<?= site_url('/hotels/gallery/delete') ?>" class="hidden">
+                <?= csrf_field() ?>
+                <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
+                <input type="hidden" name="image_url" id="galleryDeleteImageUrl" value="">
             </form>
         </article>
 
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-2 overflow-auto">
             <h3 class="text-lg font-semibold">Room Types & Allocation</h3>
 
-            <form method="post" action="<?= site_url('/app/hotels/rooms') ?>" class="mt-4 grid gap-3 md:grid-cols-4">
+            <form method="post" action="<?= site_url('/hotels/rooms') ?>" class="mt-4 grid gap-3 md:grid-cols-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                 <div>
@@ -106,7 +139,7 @@
                                 <?php $available = max(0, (int) $room['total_rooms'] - (int) $room['allocated_rooms']); ?>
                                 <tr class="border-t border-slate-100">
                                     <td class="px-3 py-2">
-                                        <form method="post" action="<?= site_url('/app/hotels/rooms/update') ?>" class="grid gap-2 md:grid-cols-5 items-center">
+                                        <form method="post" action="<?= site_url('/hotels/rooms/update') ?>" class="grid gap-2 md:grid-cols-5 items-center">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                                             <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">
@@ -125,7 +158,7 @@
                                                 <i class="fa-solid fa-floppy-disk"></i>
                                             </button>
                                             </form>
-                                            <form method="post" action="<?= site_url('/app/hotels/rooms/delete') ?>" class="inline">
+                                            <form method="post" action="<?= site_url('/hotels/rooms/delete') ?>" class="inline">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">
@@ -144,4 +177,127 @@
         </article>
     </section>
 </main>
+
+<div id="galleryPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4">
+    <div class="relative w-full max-w-4xl overflow-hidden rounded-xl bg-white">
+        <button type="button" id="galleryPreviewClose" class="absolute right-3 top-3 z-10 rounded-md bg-black/60 px-3 py-1 text-sm text-white hover:bg-black/80">Close</button>
+        <button type="button" id="galleryPreviewPrev" class="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-md bg-black/60 px-3 py-2 text-sm text-white hover:bg-black/80">&#10094;</button>
+        <button type="button" id="galleryPreviewNext" class="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-md bg-black/60 px-3 py-2 text-sm text-white hover:bg-black/80">&#10095;</button>
+        <img id="galleryPreviewImage" src="" alt="Preview" class="max-h-[85vh] w-full object-contain bg-black/5">
+    </div>
+</div>
+
+<script>
+    (function() {
+        var deleteButtons = document.querySelectorAll('.gallery-delete-btn');
+        var deleteForm = document.getElementById('galleryDeleteForm');
+        var deleteInput = document.getElementById('galleryDeleteImageUrl');
+
+        if (deleteButtons.length && deleteForm && deleteInput) {
+            deleteButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var imageUrl = button.getAttribute('data-image-url') || '';
+                    if (!imageUrl) {
+                        return;
+                    }
+                    if (!window.confirm('Remove this image from gallery?')) {
+                        return;
+                    }
+                    deleteInput.value = imageUrl;
+                    deleteForm.submit();
+                });
+            });
+        }
+
+        var previewButtons = document.querySelectorAll('.gallery-preview-btn');
+        var modal = document.getElementById('galleryPreviewModal');
+        var modalImage = document.getElementById('galleryPreviewImage');
+        var closeButton = document.getElementById('galleryPreviewClose');
+        var prevButton = document.getElementById('galleryPreviewPrev');
+        var nextButton = document.getElementById('galleryPreviewNext');
+        var previewImages = [];
+        var currentIndex = 0;
+
+        function renderImageAt(index) {
+            if (!previewImages.length) {
+                return;
+            }
+
+            if (index < 0) {
+                index = previewImages.length - 1;
+            }
+            if (index >= previewImages.length) {
+                index = 0;
+            }
+
+            currentIndex = index;
+            modalImage.src = previewImages[currentIndex];
+        }
+
+        if (previewButtons.length && modal && modalImage && closeButton && prevButton && nextButton) {
+            previewButtons.forEach(function(button, index) {
+                var src = button.getAttribute('data-image-src') || '';
+                if (src) {
+                    previewImages.push(src);
+                }
+
+                button.addEventListener('click', function() {
+                    var imageSrc = button.getAttribute('data-image-src') || '';
+                    if (!imageSrc) {
+                        return;
+                    }
+
+                    var clickedIndex = previewImages.indexOf(imageSrc);
+                    if (clickedIndex === -1) {
+                        clickedIndex = index;
+                    }
+
+                    renderImageAt(clickedIndex);
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            });
+
+            prevButton.addEventListener('click', function(event) {
+                event.stopPropagation();
+                renderImageAt(currentIndex - 1);
+            });
+
+            nextButton.addEventListener('click', function(event) {
+                event.stopPropagation();
+                renderImageAt(currentIndex + 1);
+            });
+
+            closeButton.addEventListener('click', function() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                modalImage.src = '';
+            });
+
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    modalImage.src = '';
+                }
+            });
+
+            document.addEventListener('keydown', function(event) {
+                if (modal.classList.contains('hidden')) {
+                    return;
+                }
+
+                if (event.key === 'ArrowLeft') {
+                    renderImageAt(currentIndex - 1);
+                } else if (event.key === 'ArrowRight') {
+                    renderImageAt(currentIndex + 1);
+                } else if (event.key === 'Escape') {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    modalImage.src = '';
+                }
+            });
+        }
+    })();
+</script>
 <?php $this->endSection() ?>

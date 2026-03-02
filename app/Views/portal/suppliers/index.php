@@ -9,7 +9,7 @@
     <section class="space-y-4">
         <div class="list-toolbar">
             <div class="flex space-x-3">
-                <a href="<?= site_url('/app/suppliers/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus mr-2"></i>Add Supplier</a>
+                <a href="<?= site_url('/suppliers/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus mr-2"></i>Add Supplier</a>
             </div>
         </div>
 
@@ -42,9 +42,9 @@
                                 <td class="px-3 py-2"><?= ((int) ($row['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive' ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= site_url('/app/suppliers/' . (int) $row['id'] . '/ledger') ?>" class="btn btn-sm btn-secondary">Ledger</a>
-                                        <a href="<?= site_url('/app/suppliers/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Supplier"><i class="fa-solid fa-pen"></i></a>
-                                        <form method="post" action="<?= site_url('/app/suppliers/delete') ?>" class="inline">
+                                        <a href="<?= site_url('/suppliers/' . (int) $row['id'] . '/ledger') ?>" class="btn btn-sm btn-secondary">Ledger</a>
+                                        <a href="<?= site_url('/suppliers/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Supplier"><i class="fa-solid fa-pen"></i></a>
+                                        <form method="post" action="<?= site_url('/suppliers/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="supplier_id" value="<?= esc((string) $row['id']) ?>">
                                             <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this supplier?')" title="Delete Supplier"><i class="fa-solid fa-trash"></i></button>

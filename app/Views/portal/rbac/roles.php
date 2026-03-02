@@ -8,12 +8,12 @@
 
     <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 max-w-2xl">
         <h3 class="text-lg font-semibold">Create Role</h3>
-        <form method="post" action="<?= site_url('/app/rbac/roles') ?>" class="mt-4 space-y-3">
+        <form method="post" action="<?= site_url('/rbac/roles') ?>" class="mt-4 space-y-3">
             <?= csrf_field() ?>
             <input name="name" required placeholder="Role name (e.g. manager)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             <textarea name="description" rows="2" placeholder="Description" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
             <button class="btn btn-md btn-primary" type="submit">Create Role</button>
-            <a class="btn btn-md btn-secondary" href="<?= site_url('/app/rbac') ?>">Back</a>
+            <a class="btn btn-md btn-secondary" href="<?= site_url('/rbac') ?>">Back</a>
         </form>
     </article>
 

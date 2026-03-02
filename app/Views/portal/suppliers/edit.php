@@ -9,7 +9,7 @@
     <section class="max-w-3xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Edit Supplier</h3>
-            <form method="post" action="<?= site_url('/app/suppliers/update') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/suppliers/update') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="supplier_id" value="<?= esc((string) $row['id']) ?>">
                 <input name="supplier_name" value="<?= esc(old('supplier_name', (string) $row['supplier_name'])) ?>" placeholder="Supplier Name" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

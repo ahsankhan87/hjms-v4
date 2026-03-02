@@ -9,7 +9,7 @@
     <section class="max-w-3xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Add Hotel</h3>
-            <form method="post" action="<?= site_url('/app/hotels') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/hotels') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <div>
                     <label class="text-sm font-medium">Hotel Name</label>
@@ -18,6 +18,11 @@
                 <div>
                     <label class="text-sm font-medium">City</label>
                     <input name="city" value="<?= esc(old('city')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-sm font-medium">Distance (m)</label>
+                    <input type="number" min="0" name="distance_m" value="<?= esc(old('distance_m')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <p class="mt-1 text-xs text-slate-500">Enter one distance value based on selected city (Makkah or Madina).</p>
                 </div>
                 <div>
                     <label class="text-sm font-medium">Star Rating</label>
@@ -30,6 +35,11 @@
                 <div>
                     <label class="text-sm font-medium">Cover Image URL</label>
                     <input name="image_url" value="<?= esc(old('image_url')) ?>" placeholder="https://..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-sm font-medium">Upload Hotel Images</label>
+                    <input type="file" name="hotel_images[]" multiple accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <p class="mt-1 text-xs text-slate-500">You can select multiple images. Allowed: JPG, PNG, WEBP (max 5MB each).</p>
                 </div>
                 <div>
                     <label class="text-sm font-medium">Video URL</label>

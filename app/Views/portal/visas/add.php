@@ -9,7 +9,7 @@
     <section class="max-w-3xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Add Visa</h3>
-            <form method="post" action="<?= site_url('/app/visas') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/visas') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <div>
                     <label class="text-sm font-medium">Pilgrim</label>

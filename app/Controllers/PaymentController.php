@@ -11,7 +11,7 @@ class PaymentController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();
@@ -34,7 +34,7 @@ class PaymentController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -58,7 +58,7 @@ class PaymentController extends BaseController
             'gateway_reference' => 'permit_empty|max_length[120]',
             'note'              => 'permit_empty|max_length[5000]',
         ])) {
-            return redirect()->to('/app/payments')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/payments')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -67,7 +67,7 @@ class PaymentController extends BaseController
 
             $booking = db_connect()->table('bookings')->select('id')->where('id', $payload['booking_id'])->where('season_id', $seasonId)->get()->getRowArray();
             if (empty($booking)) {
-                return redirect()->to('/app/payments')->withInput()->with('error', 'Selected booking is not in active season.');
+                return redirect()->to('/payments')->withInput()->with('error', 'Selected booking is not in active season.');
             }
 
             $model = new PaymentModel();
@@ -87,9 +87,9 @@ class PaymentController extends BaseController
                 'created_at'         => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/payments')->with('success', 'Payment posted successfully.');
+            return redirect()->to('/payments')->with('success', 'Payment posted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/payments')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/payments')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -98,7 +98,7 @@ class PaymentController extends BaseController
         $paymentId = (int) $this->request->getPost('payment_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
         $payload = [
             'booking_id'        => (string) $this->request->getPost('booking_id'),
@@ -113,7 +113,7 @@ class PaymentController extends BaseController
         ];
 
         if ($paymentId < 1) {
-            return redirect()->to('/app/payments')->withInput()->with('error', 'Valid payment ID is required.');
+            return redirect()->to('/payments')->withInput()->with('error', 'Valid payment ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -127,7 +127,7 @@ class PaymentController extends BaseController
             'status'            => 'permit_empty|max_length[40]',
             'note'              => 'permit_empty|max_length[5000]',
         ])) {
-            return redirect()->to('/app/payments')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/payments')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $data = [];
@@ -160,28 +160,28 @@ class PaymentController extends BaseController
         }
 
         if ($data === []) {
-            return redirect()->to('/app/payments')->withInput()->with('error', 'Provide at least one field to update for payment.');
+            return redirect()->to('/payments')->withInput()->with('error', 'Provide at least one field to update for payment.');
         }
 
         try {
             $model = new PaymentModel();
             $existing = $model->where('id', $paymentId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/app/payments')->with('error', 'Payment not found in active season.');
+                return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
             }
 
             if (isset($data['booking_id'])) {
                 $booking = db_connect()->table('bookings')->select('id')->where('id', (int) $data['booking_id'])->where('season_id', $seasonId)->get()->getRowArray();
                 if (empty($booking)) {
-                    return redirect()->to('/app/payments')->withInput()->with('error', 'Selected booking is not in active season.');
+                    return redirect()->to('/payments')->withInput()->with('error', 'Selected booking is not in active season.');
                 }
             }
 
             $model->update($paymentId, $data);
 
-            return redirect()->to('/app/payments')->with('success', 'Payment updated successfully.');
+            return redirect()->to('/payments')->with('success', 'Payment updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/payments')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/payments')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -190,27 +190,61 @@ class PaymentController extends BaseController
         $paymentId = (int) $this->request->getPost('payment_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($paymentId < 1) {
-            return redirect()->to('/app/payments')->with('error', 'Valid payment ID is required for delete.');
+            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for delete.');
         }
 
         try {
             $model = new PaymentModel();
             $existing = $model->where('id', $paymentId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/app/payments')->with('error', 'Payment not found in active season.');
+                return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
             }
             $deleted = $model->delete($paymentId);
 
             if (! $deleted) {
-                return redirect()->to('/app/payments')->with('error', 'Payment not found or already removed.');
+                return redirect()->to('/payments')->with('error', 'Payment not found or already removed.');
             }
 
-            return redirect()->to('/app/payments')->with('success', 'Payment deleted successfully.');
+            return redirect()->to('/payments')->with('success', 'Payment deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/payments')->with('error', $e->getMessage());
+            return redirect()->to('/payments')->with('error', $e->getMessage());
         }
+    }
+
+    public function receipt(int $paymentId)
+    {
+        $seasonId = $this->activeSeasonId();
+        if ($seasonId === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+
+        if ($paymentId < 1) {
+            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for receipt.');
+        }
+
+        $db = db_connect();
+        $payment = $db->table('payments p')
+            ->select('p.*, b.booking_no, b.remarks AS booking_remarks, pkg.code AS package_code, pkg.name AS package_name')
+            ->join('bookings b', 'b.id = p.booking_id', 'left')
+            ->join('packages pkg', 'pkg.id = b.package_id', 'left')
+            ->where('p.id', $paymentId)
+            ->where('p.season_id', $seasonId)
+            ->get()
+            ->getRowArray();
+
+        if (empty($payment)) {
+            return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+        }
+
+        return view('portal/payments/receipt', [
+            'title' => 'HJMS ERP | Payment Receipt',
+            'payment' => $payment,
+            'company' => main_company(),
+            'receiptNo' => 'RCT-' . str_pad((string) $paymentId, 5, '0', STR_PAD_LEFT),
+            'receiptDate' => date('d M Y', strtotime((string) ($payment['payment_date'] ?? date('Y-m-d H:i:s')))),
+        ]);
     }
 }

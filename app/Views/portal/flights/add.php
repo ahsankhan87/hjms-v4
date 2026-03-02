@@ -9,14 +9,41 @@
     <section class="max-w-3xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Add Flight</h3>
-            <form method="post" action="<?= site_url('/app/flights') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/flights') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
-                <input name="airline" value="<?= esc(old('airline')) ?>" placeholder="Airline" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <?php $airlineValue = (string) old('airline'); ?>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Airline</label>
+                    <select name="airline" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="">Select airline</option>
+                        <?php foreach (['PIA', 'Saudia', 'Airblue', 'AirSial', 'SereneAir', 'Flynas', 'Flyadeal', 'Emirates', 'Qatar Airways', 'Etihad', 'Turkish Airlines', 'Other'] as $airline): ?>
+                            <option value="<?= esc($airline) ?>" <?= $airlineValue === $airline ? 'selected' : '' ?>><?= esc($airline) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <input name="flight_no" value="<?= esc(old('flight_no')) ?>" placeholder="Flight No" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="pnr" value="<?= esc(old('pnr')) ?>" placeholder="PNR" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <div class="grid grid-cols-2 gap-3">
-                    <input name="departure_airport" value="<?= esc(old('departure_airport')) ?>" placeholder="Departure Airport" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    <input name="arrival_airport" value="<?= esc(old('arrival_airport')) ?>" placeholder="Arrival Airport" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <?php $departureAirportValue = (string) old('departure_airport'); ?>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Departure Airport</label>
+                        <select name="departure_airport" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <option value="">Select departure airport</option>
+                            <?php foreach (['LHE', 'ISB', 'KHI', 'MUX', 'PEW', 'JED', 'MED', 'RUH', 'DMM', 'DXB', 'DOH', 'AUH'] as $airport): ?>
+                                <option value="<?= esc($airport) ?>" <?= $departureAirportValue === $airport ? 'selected' : '' ?>><?= esc($airport) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php $arrivalAirportValue = (string) old('arrival_airport'); ?>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Arrival Airport</label>
+                        <select name="arrival_airport" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <option value="">Select arrival airport</option>
+                            <?php foreach (['JED', 'MED', 'RUH', 'DMM', 'LHE', 'ISB', 'KHI', 'MUX', 'PEW', 'DXB', 'DOH', 'AUH'] as $airport): ?>
+                                <option value="<?= esc($airport) ?>" <?= $arrivalAirportValue === $airport ? 'selected' : '' ?>><?= esc($airport) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <input type="datetime-local" name="departure_at" value="<?= esc(old('departure_at')) ?>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

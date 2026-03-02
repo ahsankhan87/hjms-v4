@@ -9,7 +9,7 @@
     <section class="space-y-4">
         <div class="list-toolbar">
             <div class="flex space-x-3">
-                <a href="<?= site_url('/app/transports/add') ?>" class="btn btn-md btn-primary">
+                <a href="<?= site_url('/transports/add') ?>" class="btn btn-md btn-primary">
                     <i class="fa-solid fa-plus mr-2"></i>Add Transport Provider
                 </a>
             </div>
@@ -47,10 +47,10 @@
                                 <td class="px-3 py-2"><?= esc((int) ($row['seat_capacity'] ?? 0)) ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= site_url('/app/transports/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Transport">
+                                        <a href="<?= site_url('/transports/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Transport">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <form method="post" action="<?= site_url('/app/transports/delete') ?>" class="inline">
+                                        <form method="post" action="<?= site_url('/transports/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="transport_id" value="<?= esc($row['id']) ?>">
                                             <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this transport provider?')" title="Delete Transport">

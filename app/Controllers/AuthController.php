@@ -10,12 +10,12 @@ class AuthController extends BaseController
     {
         if (session('is_logged_in')) {
             if (auth_is_super_admin() || auth_can('dashboard.view')) {
-                return redirect()->to('/app');
+                return redirect()->to('/dashboard');
             }
 
             service('authService')->logout();
 
-            return redirect()->to('/app/login')->with('error', 'Your session is missing required permissions. Please sign in again.');
+            return redirect()->to('/login')->with('error', 'Your session is missing required permissions. Please sign in again.');
         }
 
         return view('portal/auth/index', [
@@ -52,7 +52,7 @@ class AuthController extends BaseController
         try {
             service('authService')->login($payload['email'], $payload['password']);
 
-            return redirect()->to('/app');
+            return redirect()->to('/dashboard');
         } catch (\DomainException $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
@@ -62,7 +62,7 @@ class AuthController extends BaseController
     {
         service('authService')->logout();
 
-        return redirect()->to('/app/login');
+        return redirect()->to('/login');
     }
 
     public function forgotPasswordForm()
@@ -93,7 +93,7 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('success', 'If the account exists, a reset link has been generated.');
         }
 
-        $resetLink = site_url('/app/reset-password?token=' . urlencode($token));
+        $resetLink = site_url('/reset-password?token=' . urlencode($token));
 
         return redirect()->back()->with('success', 'Reset link generated.')->with('reset_link', $resetLink);
     }
@@ -129,6 +129,6 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Reset token is invalid or expired.');
         }
 
-        return redirect()->to('/app/login')->with('success', 'Password reset complete. You can now sign in.');
+        return redirect()->to('/login')->with('success', 'Password reset complete. You can now sign in.');
     }
 }

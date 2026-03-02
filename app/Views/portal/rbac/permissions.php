@@ -9,14 +9,14 @@
     <section class="grid gap-6 lg:grid-cols-2">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Create Permission</h3>
-            <form method="post" action="<?= site_url('/app/rbac/permissions') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/rbac/permissions') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input name="name" required placeholder="permission.name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="module" placeholder="module" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <textarea name="description" rows="2" placeholder="Description" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
                 <div class="flex gap-2">
                     <button class="btn btn-md btn-primary" type="submit">Create Permission</button>
-                    <a class="btn btn-md btn-secondary" href="<?= site_url('/app/rbac') ?>">Back</a>
+                    <a class="btn btn-md btn-secondary" href="<?= site_url('/rbac') ?>">Back</a>
                 </div>
             </form>
         </article>
@@ -67,7 +67,7 @@
             }
         }
         ?>
-        <form method="post" action="<?= site_url('/app/rbac/role-permissions') ?>" class="p-4 space-y-4" id="rolePermissionForm">
+        <form method="post" action="<?= site_url('/rbac/role-permissions') ?>" class="p-4 space-y-4" id="rolePermissionForm">
             <?= csrf_field() ?>
             <div class="grid gap-3 lg:grid-cols-3">
                 <div>

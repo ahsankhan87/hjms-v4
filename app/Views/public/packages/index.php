@@ -36,7 +36,7 @@
     <main class="pkg-wrap space-y-4">
         <section class="pkg-card flex items-center justify-between">
             <h1 class="text-2xl font-semibold text-slate-800">Latest Umrah Group Packages</h1>
-            <a href="<?= site_url('/app/login') ?>" class="btn btn-md btn-secondary">Login</a>
+            <a href="<?= site_url('/login') ?>" class="btn btn-md btn-secondary">Login</a>
         </section>
 
         <?php if (!empty($error)): ?>

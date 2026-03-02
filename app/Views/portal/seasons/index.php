@@ -8,7 +8,7 @@
 
     <section class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
         <h3 class="text-lg font-semibold">Create Season</h3>
-        <form method="post" action="<?= site_url('/app/seasons') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="post" action="<?= site_url('/seasons') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
             <?= csrf_field() ?>
             <div><label class="text-sm font-medium">Year Start</label><input type="number" name="year_start" min="2001" required value="<?= esc(old('year_start', date('Y'))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></div>
             <div><label class="text-sm font-medium">Year End</label><input type="number" name="year_end" min="2002" required value="<?= esc(old('year_end', date('Y') + 1)) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></div>
@@ -49,7 +49,7 @@
                         </td>
                         <td class="px-3 py-2">
                             <?php if ((int) ($row['is_active'] ?? 0) !== 1): ?>
-                                <form method="post" action="<?= site_url('/app/seasons/activate') ?>" class="inline">
+                                <form method="post" action="<?= site_url('/seasons/activate') ?>" class="inline">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="season_id" value="<?= esc($row['id']) ?>">
                                     <button type="submit" class="btn btn-sm btn-secondary">Activate</button>

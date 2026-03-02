@@ -13,7 +13,7 @@ class VisaController extends BaseController
         $db = db_connect();
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         return view('portal/visas/index', [
@@ -60,7 +60,7 @@ class VisaController extends BaseController
         $row = $model->where('id', $id)->where('season_id', $this->activeSeasonId())->first();
 
         if (empty($row)) {
-            return redirect()->to('/app/visas')->with('error', 'Visa record not found.');
+            return redirect()->to('/visas')->with('error', 'Visa record not found.');
         }
 
         $lookups = $this->getLookupData();
@@ -85,7 +85,7 @@ class VisaController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -110,24 +110,24 @@ class VisaController extends BaseController
             'approval_date'   => 'permit_empty|valid_date[Y-m-d]',
             'rejection_reason' => 'permit_empty|max_length[5000]',
         ])) {
-            return redirect()->to('/app/visas/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/visas/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $fileData = $this->handleVisaFileUpload();
             if (isset($fileData['error'])) {
-                return redirect()->to('/app/visas/add')->withInput()->with('error', $fileData['error']);
+                return redirect()->to('/visas/add')->withInput()->with('error', $fileData['error']);
             }
 
             $db = db_connect();
             $pilgrim = $db->table('pilgrims')->select('id')->where('id', $payload['pilgrim_id'])->where('season_id', $seasonId)->get()->getRowArray();
             if (empty($pilgrim)) {
-                return redirect()->to('/app/visas/add')->withInput()->with('error', 'Selected pilgrim is not in active season.');
+                return redirect()->to('/visas/add')->withInput()->with('error', 'Selected pilgrim is not in active season.');
             }
             if ($payload['booking_id'] !== null) {
                 $booking = $db->table('bookings')->select('id')->where('id', (int) $payload['booking_id'])->where('season_id', $seasonId)->get()->getRowArray();
                 if (empty($booking)) {
-                    return redirect()->to('/app/visas/add')->withInput()->with('error', 'Selected booking is not in active season.');
+                    return redirect()->to('/visas/add')->withInput()->with('error', 'Selected booking is not in active season.');
                 }
             }
 
@@ -149,9 +149,9 @@ class VisaController extends BaseController
                 'updated_at'       => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/visas')->with('success', 'Visa record created successfully.');
+            return redirect()->to('/visas')->with('success', 'Visa record created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/visas/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/visas/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -160,7 +160,7 @@ class VisaController extends BaseController
         $visaId = (int) $this->request->getPost('visa_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -176,7 +176,7 @@ class VisaController extends BaseController
         ];
 
         if ($visaId < 1) {
-            return redirect()->to('/app/visas')->withInput()->with('error', 'Valid visa ID is required.');
+            return redirect()->to('/visas')->withInput()->with('error', 'Valid visa ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -190,7 +190,7 @@ class VisaController extends BaseController
             'rejection_reason' => 'permit_empty|max_length[5000]',
             'notes'            => 'permit_empty',
         ])) {
-            return redirect()->to('/app/visas/' . $visaId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/visas/' . $visaId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -209,18 +209,18 @@ class VisaController extends BaseController
 
             $fileData = $this->handleVisaFileUpload();
             if (isset($fileData['error'])) {
-                return redirect()->to('/app/visas/' . $visaId . '/edit')->withInput()->with('error', $fileData['error']);
+                return redirect()->to('/visas/' . $visaId . '/edit')->withInput()->with('error', $fileData['error']);
             }
 
             $db = db_connect();
             $pilgrim = $db->table('pilgrims')->select('id')->where('id', $payload['pilgrim_id'])->where('season_id', $seasonId)->get()->getRowArray();
             if (empty($pilgrim)) {
-                return redirect()->to('/app/visas/' . $visaId . '/edit')->withInput()->with('error', 'Selected pilgrim is not in active season.');
+                return redirect()->to('/visas/' . $visaId . '/edit')->withInput()->with('error', 'Selected pilgrim is not in active season.');
             }
             if ($payload['booking_id'] !== null) {
                 $booking = $db->table('bookings')->select('id')->where('id', (int) $payload['booking_id'])->where('season_id', $seasonId)->get()->getRowArray();
                 if (empty($booking)) {
-                    return redirect()->to('/app/visas/' . $visaId . '/edit')->withInput()->with('error', 'Selected booking is not in active season.');
+                    return redirect()->to('/visas/' . $visaId . '/edit')->withInput()->with('error', 'Selected booking is not in active season.');
                 }
             }
 
@@ -232,13 +232,13 @@ class VisaController extends BaseController
             $model = new VisaModel();
             $existing = $model->where('id', $visaId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/app/visas')->with('error', 'Visa record not found in active season.');
+                return redirect()->to('/visas')->with('error', 'Visa record not found in active season.');
             }
             $model->update($visaId, $updateData);
 
-            return redirect()->to('/app/visas')->with('success', 'Visa record updated successfully.');
+            return redirect()->to('/visas')->with('success', 'Visa record updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/visas/' . $visaId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/visas/' . $visaId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -247,7 +247,7 @@ class VisaController extends BaseController
         $visaId = (int) $this->request->getPost('visa_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -258,7 +258,7 @@ class VisaController extends BaseController
         ];
 
         if ($visaId < 1) {
-            return redirect()->to('/app/visas')->withInput()->with('error', 'Valid visa ID is required.');
+            return redirect()->to('/visas')->withInput()->with('error', 'Valid visa ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -267,7 +267,7 @@ class VisaController extends BaseController
             'approval_date'    => 'permit_empty|valid_date[Y-m-d]',
             'rejection_reason' => 'permit_empty|max_length[5000]',
         ])) {
-            return redirect()->to('/app/visas')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/visas')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -276,13 +276,13 @@ class VisaController extends BaseController
             $model = new VisaModel();
             $existing = $model->where('id', $visaId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/app/visas')->with('error', 'Visa record not found in active season.');
+                return redirect()->to('/visas')->with('error', 'Visa record not found in active season.');
             }
             $model->update($visaId, $updateData);
 
-            return redirect()->to('/app/visas')->with('success', 'Visa status updated successfully.');
+            return redirect()->to('/visas')->with('success', 'Visa status updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/visas')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/visas')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -290,7 +290,7 @@ class VisaController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $visaIds = $this->request->getPost('visa_ids');
@@ -302,7 +302,7 @@ class VisaController extends BaseController
         ];
 
         if (! is_array($visaIds) || $visaIds === []) {
-            return redirect()->to('/app/visas')->withInput()->with('error', 'Select at least one visa record for bulk update.');
+            return redirect()->to('/visas')->withInput()->with('error', 'Select at least one visa record for bulk update.');
         }
 
         $visaIds = array_values(array_unique(array_filter(array_map('intval', $visaIds), static function (int $id): bool {
@@ -310,7 +310,7 @@ class VisaController extends BaseController
         })));
 
         if ($visaIds === []) {
-            return redirect()->to('/app/visas')->withInput()->with('error', 'Selected visa IDs are invalid.');
+            return redirect()->to('/visas')->withInput()->with('error', 'Selected visa IDs are invalid.');
         }
 
         if (! $this->validateData($payload, [
@@ -319,16 +319,16 @@ class VisaController extends BaseController
             'approval_date'    => 'permit_empty|valid_date[Y-m-d]',
             'rejection_reason' => 'permit_empty|max_length[5000]',
         ])) {
-            return redirect()->to('/app/visas')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/visas')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $updateData = $this->buildStatusUpdateData($payload);
             db_connect()->table('visas')->where('season_id', $seasonId)->whereIn('id', $visaIds)->update($updateData);
 
-            return redirect()->to('/app/visas')->with('success', 'Bulk visa status updated for ' . count($visaIds) . ' record(s).');
+            return redirect()->to('/visas')->with('success', 'Bulk visa status updated for ' . count($visaIds) . ' record(s).');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/visas')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/visas')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -337,27 +337,27 @@ class VisaController extends BaseController
         $visaId = (int) $this->request->getPost('visa_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($visaId < 1) {
-            return redirect()->to('/app/visas')->with('error', 'Valid visa ID is required for delete.');
+            return redirect()->to('/visas')->with('error', 'Valid visa ID is required for delete.');
         }
 
         try {
             $model = new VisaModel();
             $existing = $model->where('id', $visaId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/app/visas')->with('error', 'Visa record not found in active season.');
+                return redirect()->to('/visas')->with('error', 'Visa record not found in active season.');
             }
             $deleted = $model->delete($visaId);
 
             if (! $deleted) {
-                return redirect()->to('/app/visas')->with('error', 'Visa record not found or already removed.');
+                return redirect()->to('/visas')->with('error', 'Visa record not found or already removed.');
             }
 
-            return redirect()->to('/app/visas')->with('success', 'Visa record deleted successfully.');
+            return redirect()->to('/visas')->with('success', 'Visa record deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/visas')->with('error', $e->getMessage());
+            return redirect()->to('/visas')->with('error', $e->getMessage());
         }
     }
 

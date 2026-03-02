@@ -11,10 +11,14 @@ Options -Indexes
 	Options +FollowSymlinks
 	RewriteEngine On
 
+	# Redirect legacy app-prefixed URLs to no-prefix URLs.
+	RewriteRule ^app/?$ dashboard [R=302,L,NC]
+	RewriteRule ^app/(.*)$ $1 [R=302,L,NC]
+
 	# If you installed CodeIgniter in a subfolder, you will need to
 	# change the following line to match the subfolder you need.
 	# http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
-	# RewriteBase /
+	RewriteBase /kasbook/hjms-v4/
 
 	# Redirect Trailing Slashes...
 	RewriteCond %{REQUEST_FILENAME} !-d

@@ -9,7 +9,7 @@
     <section class="grid gap-6 lg:grid-cols-3">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-1">
             <h3 class="text-lg font-semibold">Edit Visa</h3>
-            <form method="post" action="<?= site_url('/app/visas/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/visas/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="visa_id" value="<?= esc($row['id']) ?>">
 
@@ -94,7 +94,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-lg font-semibold">Delete Visa</h3>
-            <form method="post" action="<?= site_url('/app/visas/delete') ?>" class="mt-4">
+            <form method="post" action="<?= site_url('/visas/delete') ?>" class="mt-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="visa_id" value="<?= esc($row['id']) ?>">
                 <button type="submit" class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this visa record?')">Delete Visa</button>

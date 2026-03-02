@@ -5,7 +5,7 @@
     <?php if (!empty($filterErrors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($filterErrors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
     <section class="rounded-xl border border-slate-200 bg-white p-5">
-        <form method="get" action="/app/reports" class="grid gap-4 md:grid-cols-3">
+        <form method="get" action="/reports" class="grid gap-4 md:grid-cols-3">
             <div>
                 <label class="text-sm font-medium">From Date</label>
                 <input type="date" name="from_date" value="<?= esc($filters['from_date'] ?? '') ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

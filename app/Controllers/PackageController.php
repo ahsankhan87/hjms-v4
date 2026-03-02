@@ -22,7 +22,7 @@ class PackageController extends BaseController
     public function index()
     {
         if ($this->activeSeasonId() === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $model = new PackageModel();
@@ -70,7 +70,7 @@ class PackageController extends BaseController
             return redirect()->to('/packages')->with('error', 'Selected package not found.');
         }
 
-        return redirect()->to('/app/bookings?package_id=' . $packageId);
+        return redirect()->to('/bookings?package_id=' . $packageId);
     }
 
     private function buildPackageCards(array $rows): array
@@ -172,14 +172,32 @@ class PackageController extends BaseController
                 }
             }
 
+            $resolvedAirlineLogo = $this->resolveAirlineLogo(
+                (string) ($row['airline_logo'] ?? ''),
+                $airlineName
+            );
+
             $hotelNames = [];
+            $hotelItems = [];
             foreach ($linkedHotels as $hotel) {
+                $hotelId = (int) ($hotel['hotel_id'] ?? 0);
                 $name = trim((string) ($hotel['master_hotel_name'] ?? $hotel['hotel_name'] ?? ''));
                 if ($name !== '') {
                     $hotelNames[] = $name;
+                    $hotelItems[] = [
+                        'id' => $hotelId > 0 ? $hotelId : null,
+                        'name' => $name,
+                    ];
                 }
             }
             $hotelNames = array_values(array_unique($hotelNames));
+
+            $uniqueHotelItems = [];
+            foreach ($hotelItems as $hotelItem) {
+                $key = ($hotelItem['id'] ?? 'null') . '|' . strtolower((string) ($hotelItem['name'] ?? ''));
+                $uniqueHotelItems[$key] = $hotelItem;
+            }
+            $hotelItems = array_values($uniqueHotelItems);
 
             $priceMap = [];
             foreach ($linkedCosts as $cost) {
@@ -195,10 +213,11 @@ class PackageController extends BaseController
                 'code' => (string) ($row['code'] ?? ''),
                 'name' => (string) ($row['name'] ?? ''),
                 'airline_name' => $airlineName,
-                'airline_logo' => (string) ($row['airline_logo'] ?? ''),
+                'airline_logo' => $resolvedAirlineLogo,
                 'route_label' => $routeLabel,
                 'ticket_refs' => array_slice(array_values(array_unique($ticketRefs)), 0, 2),
                 'hotel_names' => array_slice($hotelNames, 0, 2),
+                'hotel_items' => array_slice($hotelItems, 0, 2),
                 'travel_date' => $travelDate,
                 'duration_days' => (int) ($row['duration_days'] ?? 0),
                 'available_seats' => (int) ($row['total_seats'] ?? 0),
@@ -212,10 +231,34 @@ class PackageController extends BaseController
         return $cards;
     }
 
+    private function resolveAirlineLogo(string $logoUrl, string $airlineName): string
+    {
+        $logoUrl = trim($logoUrl);
+        if ($logoUrl !== '') {
+            return $logoUrl;
+        }
+
+        $airlineSlug = strtolower(trim((string) preg_replace('/[^a-z0-9]+/i', '-', $airlineName), '-'));
+        if ($airlineSlug === '') {
+            return '';
+        }
+
+        $relativeBase = 'assets/uploads/airlines/' . $airlineSlug;
+        foreach (['.png', '.jpg', '.jpeg', '.webp', '.svg'] as $extension) {
+            $relativePath = $relativeBase . $extension;
+            $absolutePath = rtrim(FCPATH, '\\/') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+            if (is_file($absolutePath)) {
+                return base_url($relativePath);
+            }
+        }
+
+        return '';
+    }
+
     public function add()
     {
         if ($this->activeSeasonId() === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         return view('portal/packages/add', [
@@ -235,7 +278,7 @@ class PackageController extends BaseController
         $row = $model->where('id', $id)->where('season_id', $this->activeSeasonId())->first();
 
         if (empty($row)) {
-            return redirect()->to('/app/packages')->with('error', 'Package not found.');
+            return redirect()->to('/packages')->with('error', 'Package not found.');
         }
 
         $db = db_connect();
@@ -377,7 +420,7 @@ class PackageController extends BaseController
 
         $packageId = (int) $this->request->getPost('package_id');
         if ($packageId < 1) {
-            return redirect()->to('/app/packages')->with('error', 'Valid package ID is required for costing.');
+            return redirect()->to('/packages')->with('error', 'Valid package ID is required for costing.');
         }
 
         $payload = [
@@ -423,7 +466,7 @@ class PackageController extends BaseController
             'supplier_makkah_id' => 'permit_empty|integer',
             'supplier_madina_id' => 'permit_empty|integer',
         ])) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $calc = $this->calculateCostSheet($payload);
@@ -511,10 +554,10 @@ class PackageController extends BaseController
         $db->transComplete();
 
         if (! $db->transStatus()) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->withInput()->with('error', 'Failed to save cost sheet.');
+            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Failed to save cost sheet.');
         }
 
-        return redirect()->to('/app/packages/' . $packageId . '/edit')->with('success', 'Package cost sheet saved (version ' . $versionNo . ').');
+        return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package cost sheet saved (version ' . $versionNo . ').');
     }
 
     public function publishCostSheet()
@@ -527,13 +570,13 @@ class PackageController extends BaseController
         $sheetId = (int) $this->request->getPost('cost_sheet_id');
 
         if ($packageId < 1 || $sheetId < 1) {
-            return redirect()->to('/app/packages')->with('error', 'Valid package and cost sheet IDs are required.');
+            return redirect()->to('/packages')->with('error', 'Valid package and cost sheet IDs are required.');
         }
 
         $sheetModel = new PackageCostSheetModel();
         $sheet = $sheetModel->where('id', $sheetId)->where('package_id', $packageId)->first();
         if (empty($sheet)) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', 'Cost sheet not found.');
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Cost sheet not found.');
         }
 
         $db = db_connect();
@@ -543,17 +586,17 @@ class PackageController extends BaseController
         $db->transComplete();
 
         if (! $db->transStatus()) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', 'Failed to publish cost sheet.');
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Failed to publish cost sheet.');
         }
 
-        return redirect()->to('/app/packages/' . $packageId . '/edit')->with('success', 'Cost sheet published successfully.');
+        return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Cost sheet published successfully.');
     }
 
     public function createPackage()
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -600,7 +643,7 @@ class PackageController extends BaseController
             'total_seats'    => 'required|integer|greater_than[0]',
             'selling_price'  => 'required|decimal',
         ])) {
-            return redirect()->to('/app/packages/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/packages/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -614,34 +657,34 @@ class PackageController extends BaseController
                 'code'           => $payload['code'],
                 'name'           => $payload['name'],
                 'package_type'   => $payload['package_type'],
-                'airline'        => $payload['airline'] !== '' ? $payload['airline'] : null,
-                'airline_logo'   => $payload['airline_logo'] !== '' ? $payload['airline_logo'] : null,
+                // 'airline'        => $payload['airline'] !== '' ? $payload['airline'] : null,
+                // 'airline_logo'   => $payload['airline_logo'] !== '' ? $payload['airline_logo'] : null,
                 'duration_days'  => (int) $payload['duration_days'],
                 'departure_date' => $payload['departure_date'],
                 'arrival_date'   => $arrivalDate,
-                'makkah_hotel'   => $payload['makkah_hotel'] !== '' ? $payload['makkah_hotel'] : null,
-                'makkah_hotel_link' => $payload['makkah_hotel_link'] !== '' ? $payload['makkah_hotel_link'] : null,
-                'madina_hotel'   => $payload['madina_hotel'] !== '' ? $payload['madina_hotel'] : null,
-                'madina_hotel_link' => $payload['madina_hotel_link'] !== '' ? $payload['madina_hotel_link'] : null,
-                'sharing_types'  => $payload['sharing_types'] !== '' ? $payload['sharing_types'] : null,
+                // 'makkah_hotel'   => $payload['makkah_hotel'] !== '' ? $payload['makkah_hotel'] : null,
+                // 'makkah_hotel_link' => $payload['makkah_hotel_link'] !== '' ? $payload['makkah_hotel_link'] : null,
+                // 'madina_hotel'   => $payload['madina_hotel'] !== '' ? $payload['madina_hotel'] : null,
+                // 'madina_hotel_link' => $payload['madina_hotel_link'] !== '' ? $payload['madina_hotel_link'] : null,
+                // 'sharing_types'  => $payload['sharing_types'] !== '' ? $payload['sharing_types'] : null,
                 'total_seats'    => (int) $payload['total_seats'],
                 'selling_price'  => (float) $payload['selling_price'],
-                'purchase_price_total' => $payload['purchase_price_total'] !== '' ? (float) $payload['purchase_price_total'] : null,
-                'purchase_price_visa' => $payload['purchase_price_visa'] !== '' ? (float) $payload['purchase_price_visa'] : null,
-                'purchase_price_ticket' => $payload['purchase_price_ticket'] !== '' ? (float) $payload['purchase_price_ticket'] : null,
-                'purchase_price_transport' => $payload['purchase_price_transport'] !== '' ? (float) $payload['purchase_price_transport'] : null,
-                'purchase_price_makkah' => $payload['purchase_price_makkah'] !== '' ? (float) $payload['purchase_price_makkah'] : null,
-                'purchase_price_madina' => $payload['purchase_price_madina'] !== '' ? (float) $payload['purchase_price_madina'] : null,
-                'passport_attachment' => $payload['passport_attachment'] !== '' ? $payload['passport_attachment'] : null,
+                // 'purchase_price_total' => $payload['purchase_price_total'] !== '' ? (float) $payload['purchase_price_total'] : null,
+                // 'purchase_price_visa' => $payload['purchase_price_visa'] !== '' ? (float) $payload['purchase_price_visa'] : null,
+                // 'purchase_price_ticket' => $payload['purchase_price_ticket'] !== '' ? (float) $payload['purchase_price_ticket'] : null,
+                // 'purchase_price_transport' => $payload['purchase_price_transport'] !== '' ? (float) $payload['purchase_price_transport'] : null,
+                // 'purchase_price_makkah' => $payload['purchase_price_makkah'] !== '' ? (float) $payload['purchase_price_makkah'] : null,
+                // 'purchase_price_madina' => $payload['purchase_price_madina'] !== '' ? (float) $payload['purchase_price_madina'] : null,
+                // 'passport_attachment' => $payload['passport_attachment'] !== '' ? $payload['passport_attachment'] : null,
                 'is_active'      => 1,
                 'notes'          => $payload['notes'] !== '' ? $payload['notes'] : null,
                 'created_at'     => date('Y-m-d H:i:s'),
                 'updated_at'     => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/packages')->with('success', 'Package created successfully.');
+            return redirect()->to('/packages')->with('success', 'Package created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/packages/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -650,7 +693,7 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
         $payload = [
             'code'           => (string) $this->request->getPost('code'),
@@ -680,7 +723,7 @@ class PackageController extends BaseController
         ];
 
         if ($packageId < 1) {
-            return redirect()->to('/app/packages')->withInput()->with('error', 'Valid package ID is required.');
+            return redirect()->to('/packages')->withInput()->with('error', 'Valid package ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -703,7 +746,7 @@ class PackageController extends BaseController
             'notes'          => 'permit_empty',
             'is_active'      => 'permit_empty|in_list[0,1]',
         ])) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $data = array_filter($payload, static function ($value) {
@@ -711,7 +754,7 @@ class PackageController extends BaseController
         });
 
         if ($data === []) {
-            return redirect()->to('/app/packages')->withInput()->with('error', 'Provide at least one field to update for package.');
+            return redirect()->to('/packages')->withInput()->with('error', 'Provide at least one field to update for package.');
         }
 
         if (isset($data['duration_days'])) {
@@ -746,7 +789,7 @@ class PackageController extends BaseController
             $model = new PackageModel();
             $existing = $model->where('id', $packageId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/app/packages')->with('error', 'Package not found in active season.');
+                return redirect()->to('/packages')->with('error', 'Package not found in active season.');
             }
 
             if (isset($data['departure_date']) || isset($data['duration_days'])) {
@@ -769,9 +812,9 @@ class PackageController extends BaseController
                 $model->update($packageId, $data + ['updated_at' => date('Y-m-d H:i:s')]);
             }
 
-            return redirect()->to('/app/packages')->with('success', 'Package updated successfully.');
+            return redirect()->to('/packages')->with('success', 'Package updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -780,27 +823,27 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/app/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($packageId < 1) {
-            return redirect()->to('/app/packages')->with('error', 'Valid package ID is required for delete.');
+            return redirect()->to('/packages')->with('error', 'Valid package ID is required for delete.');
         }
 
         try {
             $model = new PackageModel();
             $existing = $model->where('id', $packageId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/app/packages')->with('error', 'Package not found in active season.');
+                return redirect()->to('/packages')->with('error', 'Package not found in active season.');
             }
             $deleted = $model->delete($packageId);
 
             if (! $deleted) {
-                return redirect()->to('/app/packages')->with('error', 'Package not found or already removed.');
+                return redirect()->to('/packages')->with('error', 'Package not found or already removed.');
             }
 
-            return redirect()->to('/app/packages')->with('success', 'Package deleted successfully.');
+            return redirect()->to('/packages')->with('success', 'Package deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages')->with('error', $e->getMessage());
+            return redirect()->to('/packages')->with('error', $e->getMessage());
         }
     }
 
@@ -821,7 +864,7 @@ class PackageController extends BaseController
             'supplier_id' => 'permit_empty|integer',
             'description' => 'permit_empty',
         ])) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -835,9 +878,9 @@ class PackageController extends BaseController
                 'created_at'  => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('success', 'Package cost added successfully.');
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Package cost added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -847,18 +890,18 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($costId < 1 || $packageId < 1) {
-            return redirect()->to('/app/packages')->with('error', 'Valid package cost and package IDs are required for delete.');
+            return redirect()->to('/packages')->with('error', 'Valid package cost and package IDs are required for delete.');
         }
 
         try {
             $deleted = (new PackageCostModel())->delete($costId);
             if (! $deleted) {
-                return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', 'Package cost not found or already removed.');
+                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package cost not found or already removed.');
             }
 
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('success', 'Package cost deleted successfully.');
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package cost deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -879,7 +922,7 @@ class PackageController extends BaseController
             'check_out_date' => 'permit_empty|valid_date[Y-m-d]',
             'stay_distribution' => 'permit_empty|max_length[120]',
         ])) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -892,12 +935,12 @@ class PackageController extends BaseController
                 ->getRowArray();
 
             if (empty($room)) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected hotel room type not found.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected hotel room type not found.');
             }
 
             $package = (new PackageModel())->find($payload['package_id']);
             if (empty($package)) {
-                return redirect()->to('/app/packages')->with('error', 'Package not found.');
+                return redirect()->to('/packages')->with('error', 'Package not found.');
             }
 
             $stayWindow = $this->packageStayWindow($package);
@@ -905,7 +948,7 @@ class PackageController extends BaseController
             $packageStayEnd = (string) ($stayWindow['end'] ?? '');
 
             if ($packageStayStart === '' || $packageStayEnd === '') {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package departure/arrival dates are required before hotel allocation.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package departure/arrival dates are required before hotel allocation.');
             }
 
             $lastHotelStay = $db->table('package_hotels')
@@ -918,14 +961,14 @@ class PackageController extends BaseController
 
             $expectedCheckIn = (string) ($lastHotelStay['check_out_date'] ?? $packageStayStart);
             if (strtotime($expectedCheckIn) >= strtotime($packageStayEnd)) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package hotel duration is already fully allocated.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package hotel duration is already fully allocated.');
             }
 
             $checkInDate = $payload['check_in_date'] !== '' ? $payload['check_in_date'] : $expectedCheckIn;
             $checkOutDate = $payload['check_out_date'];
 
             if ($checkInDate !== $expectedCheckIn) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Next hotel check-in must be ' . $expectedCheckIn . ' to maintain sequence.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Next hotel check-in must be ' . $expectedCheckIn . ' to maintain sequence.');
             }
 
             if ($checkInDate === '' || $checkOutDate === '') {
@@ -941,15 +984,15 @@ class PackageController extends BaseController
             }
 
             if ($checkInDate === '' || $checkOutDate === '') {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-in and check-out dates are required.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-in and check-out dates are required.');
             }
 
             if (strtotime($checkOutDate) <= strtotime($checkInDate)) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out date must be after check-in date.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out date must be after check-in date.');
             }
 
             if (strtotime($checkOutDate) > strtotime($packageStayEnd)) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out cannot exceed package stay end date (' . $packageStayEnd . ').');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out cannot exceed package stay end date (' . $packageStayEnd . ').');
             }
 
             $occupied = $db->table('package_hotels ph')
@@ -960,7 +1003,7 @@ class PackageController extends BaseController
 
             $availableRooms = max(0, (int) ($room['total_rooms'] ?? 0) - (int) $occupied);
             if ($availableRooms < 1) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'No room available for selected hotel room type in the selected date range.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'No room available for selected hotel room type in the selected date range.');
             }
 
             (new PackageHotelModel())->insert([
@@ -974,9 +1017,9 @@ class PackageController extends BaseController
                 'created_at'    => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('success', 'Hotel attached to package successfully.');
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Hotel attached to package successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -986,18 +1029,18 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($rowId < 1 || $packageId < 1) {
-            return redirect()->to('/app/packages')->with('error', 'Valid package hotel and package IDs are required for delete.');
+            return redirect()->to('/packages')->with('error', 'Valid package hotel and package IDs are required for delete.');
         }
 
         try {
             $deleted = (new PackageHotelModel())->delete($rowId);
             if (! $deleted) {
-                return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', 'Package hotel attachment not found or already removed.');
+                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package hotel attachment not found or already removed.');
             }
 
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('success', 'Package hotel attachment deleted successfully.');
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package hotel attachment deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -1022,11 +1065,11 @@ class PackageController extends BaseController
             'return_departure_at'   => 'permit_empty|valid_date[Y-m-d H:i:s]',
             'return_arrival_at'     => 'permit_empty|valid_date[Y-m-d H:i:s]',
         ])) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         if ($payload['outbound_flight_id'] === $payload['return_flight_id']) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Outbound and return flights must be different.');
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Outbound and return flights must be different.');
         }
 
         try {
@@ -1035,7 +1078,7 @@ class PackageController extends BaseController
             $returnFlight = $flightModel->find($payload['return_flight_id']);
 
             if (empty($outboundFlight) || empty($returnFlight)) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('error', 'Outbound and return flights must both be selected.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Outbound and return flights must both be selected.');
             }
 
             $packageFlightModel = new PackageFlightModel();
@@ -1060,9 +1103,9 @@ class PackageController extends BaseController
                 'created_at'   => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('success', 'Outbound and return flights attached to package successfully.');
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Outbound and return flights attached to package successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -1072,18 +1115,18 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($rowId < 1 || $packageId < 1) {
-            return redirect()->to('/app/packages')->with('error', 'Valid package flight and package IDs are required for delete.');
+            return redirect()->to('/packages')->with('error', 'Valid package flight and package IDs are required for delete.');
         }
 
         try {
             $deleted = (new PackageFlightModel())->delete($rowId);
             if (! $deleted) {
-                return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', 'Package flight attachment not found or already removed.');
+                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package flight attachment not found or already removed.');
             }
 
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('success', 'Package flight attachment deleted successfully.');
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package flight attachment deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -1100,13 +1143,13 @@ class PackageController extends BaseController
             'transport_id' => 'required|integer',
             'seat_capacity' => 'permit_empty|integer|greater_than_equal_to[0]',
         ])) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $transport = (new TransportModel())->find($payload['transport_id']);
             if (empty($transport)) {
-                return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected transport not found.');
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected transport not found.');
             }
 
             (new PackageTransportModel())->insert([
@@ -1118,9 +1161,9 @@ class PackageController extends BaseController
                 'created_at'   => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('success', 'Transport attached to package successfully.');
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Transport attached to package successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -1130,18 +1173,18 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($rowId < 1 || $packageId < 1) {
-            return redirect()->to('/app/packages')->with('error', 'Valid package transport and package IDs are required for delete.');
+            return redirect()->to('/packages')->with('error', 'Valid package transport and package IDs are required for delete.');
         }
 
         try {
             $deleted = (new PackageTransportModel())->delete($rowId);
             if (! $deleted) {
-                return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', 'Package transport attachment not found or already removed.');
+                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package transport attachment not found or already removed.');
             }
 
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('success', 'Package transport attachment deleted successfully.');
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package transport attachment deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 

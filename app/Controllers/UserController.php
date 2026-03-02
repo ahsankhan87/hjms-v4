@@ -79,7 +79,7 @@ class UserController extends BaseController
             ->find($id);
 
         if (empty($user)) {
-            return redirect()->to('/app/users')->with('error', 'User not found.');
+            return redirect()->to('/users')->with('error', 'User not found.');
         }
 
         return view('portal/users/edit', [
@@ -117,13 +117,13 @@ class UserController extends BaseController
             'is_active' => 'required|in_list[0,1]',
             'role_id'   => 'permit_empty|integer|greater_than[0]',
         ])) {
-            return redirect()->to('/app/users/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/users/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $userModel = new UserModel();
         $existing = $userModel->where('email', $payload['email'])->first();
         if ($existing !== null) {
-            return redirect()->to('/app/users/add')->withInput()->with('error', 'Email is already in use.');
+            return redirect()->to('/users/add')->withInput()->with('error', 'Email is already in use.');
         }
 
         try {
@@ -140,9 +140,9 @@ class UserController extends BaseController
                 $this->assignRoleIfValid($userId, (int) $payload['role_id']);
             }
 
-            return redirect()->to('/app/users')->with('success', 'User created successfully.');
+            return redirect()->to('/users')->with('success', 'User created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/users/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/users/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -158,10 +158,10 @@ class UserController extends BaseController
         ];
 
         if ($userId < 1) {
-            return redirect()->to('/app/users')->withInput()->with('error', 'Valid user ID is required.');
+            return redirect()->to('/users')->withInput()->with('error', 'Valid user ID is required.');
         }
 
-        $editUrl = '/app/users/' . $userId . '/edit';
+        $editUrl = '/users/' . $userId . '/edit';
 
         if (! $this->validateData($payload, [
             'name'      => 'permit_empty|min_length[3]|max_length[120]',
@@ -176,7 +176,7 @@ class UserController extends BaseController
         $userModel = new UserModel();
         $existingUser = $userModel->find($userId);
         if ($existingUser === null) {
-            return redirect()->to('/app/users')->with('error', 'User not found.');
+            return redirect()->to('/users')->with('error', 'User not found.');
         }
 
         if ($payload['is_active'] === '0' && $userId === (int) session('user_id')) {
@@ -220,7 +220,7 @@ class UserController extends BaseController
                 }
             }
 
-            return redirect()->to('/app/users')->with('success', 'User updated successfully.');
+            return redirect()->to('/users')->with('success', 'User updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->to($editUrl)->withInput()->with('error', $e->getMessage());
         }
@@ -231,17 +231,17 @@ class UserController extends BaseController
         $userId = (int) $this->request->getPost('user_id');
 
         if ($userId < 1) {
-            return redirect()->to('/app/users')->with('error', 'Valid user ID is required for delete.');
+            return redirect()->to('/users')->with('error', 'Valid user ID is required for delete.');
         }
 
         if ($userId === (int) session('user_id')) {
-            return redirect()->to('/app/users')->with('error', 'You cannot delete your own account.');
+            return redirect()->to('/users')->with('error', 'You cannot delete your own account.');
         }
 
         $userModel = new UserModel();
         $existingUser = $userModel->find($userId);
         if ($existingUser === null) {
-            return redirect()->to('/app/users')->with('error', 'User not found or already removed.');
+            return redirect()->to('/users')->with('error', 'User not found or already removed.');
         }
 
         try {
@@ -255,9 +255,9 @@ class UserController extends BaseController
 
             $userModel->delete($userId);
 
-            return redirect()->to('/app/users')->with('success', 'User deleted successfully.');
+            return redirect()->to('/users')->with('success', 'User deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/users')->with('error', $e->getMessage());
+            return redirect()->to('/users')->with('error', $e->getMessage());
         }
     }
 

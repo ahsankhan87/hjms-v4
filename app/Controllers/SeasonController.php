@@ -37,11 +37,11 @@ class SeasonController extends BaseController
             'year_end'   => 'required|integer|greater_than[2000]',
             'name'       => 'permit_empty|max_length[120]',
         ])) {
-            return redirect()->to('/app/seasons')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/seasons')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         if ($payload['year_end'] <= $payload['year_start']) {
-            return redirect()->to('/app/seasons')->withInput()->with('error', 'Year End must be greater than Year Start.');
+            return redirect()->to('/seasons')->withInput()->with('error', 'Year End must be greater than Year Start.');
         }
 
         $name = $payload['name'] !== '' ? $payload['name'] : ($payload['year_start'] . ' - ' . $payload['year_end'] . ' Season');
@@ -69,9 +69,9 @@ class SeasonController extends BaseController
                 throw new \RuntimeException('Failed to create season.');
             }
 
-            return redirect()->to('/app/seasons')->with('success', 'Season created successfully.');
+            return redirect()->to('/seasons')->with('success', 'Season created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/seasons')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/seasons')->withInput()->with('error', $e->getMessage());
         }
     }
 

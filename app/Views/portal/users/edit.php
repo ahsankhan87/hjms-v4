@@ -9,7 +9,7 @@
     <section class="grid gap-6 lg:grid-cols-3">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-1">
             <h2 class="text-sm font-semibold text-slate-900">Update User</h2>
-            <form method="post" action="<?= site_url('/app/users/update') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/users/update') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="user_id" value="<?= esc($row['id']) ?>">
                 <div>
@@ -47,7 +47,7 @@
             <hr class="my-5 border-slate-200">
 
             <h2 class="text-sm font-semibold text-slate-900">Delete User</h2>
-            <form method="post" action="<?= site_url('/app/users/delete') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/users/delete') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="user_id" value="<?= esc($row['id']) ?>">
                 <button class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this user?')">Delete User</button>

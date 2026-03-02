@@ -1,6 +1,11 @@
-<IfModule authz_core_module>
-	Require all denied
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+
+	# Redirect direct /app directory requests to no-prefix URLs.
+	RewriteRule ^$ /kasbook/hjms-v4/dashboard [R=302,L,NC]
+	RewriteRule ^(.*)$ /kasbook/hjms-v4/$1 [R=302,L,NC]
 </IfModule>
-<IfModule !authz_core_module>
-	Deny from all
+
+<IfModule !mod_rewrite.c>
+	ErrorDocument 404 /kasbook/hjms-v4/dashboard
 </IfModule>

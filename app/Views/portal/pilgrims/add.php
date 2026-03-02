@@ -9,7 +9,7 @@
     <section class="max-w-3xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h2 class="text-sm font-semibold text-slate-900">Add Pilgrim</h2>
-            <form method="post" action="<?= site_url('/app/pilgrims') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/pilgrims') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>

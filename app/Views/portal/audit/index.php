@@ -6,7 +6,7 @@
     <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
 
     <section class="rounded-xl border border-slate-200 bg-white p-5">
-        <form method="get" action="<?= site_url('/app/audit') ?>" class="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <form method="get" action="<?= site_url('/audit') ?>" class="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
             <div>
                 <label class="text-sm font-medium">User</label>
                 <select name="user_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -33,7 +33,7 @@
             </div>
             <div>
                 <label class="text-sm font-medium">Path</label>
-                <input name="path" value="<?= esc($filters['path'] ?? '') ?>" placeholder="/app/users" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input name="path" value="<?= esc($filters['path'] ?? '') ?>" placeholder="/users" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="text-sm font-medium">From</label>
@@ -45,7 +45,7 @@
             </div>
             <div class="md:col-span-3 lg:col-span-6 flex gap-2">
                 <button type="submit" class="btn btn-md btn-primary">Apply Filter</button>
-                <a href="<?= site_url('/app/audit') ?>" class="btn btn-md btn-secondary">Reset</a>
+                <a href="<?= site_url('/audit') ?>" class="btn btn-md btn-secondary">Reset</a>
             </div>
         </form>
     </section>

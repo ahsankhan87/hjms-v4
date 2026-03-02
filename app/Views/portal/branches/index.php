@@ -9,7 +9,7 @@
     <section class="grid gap-6 lg:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-1">
             <h3 class="text-lg font-semibold">Add Branch</h3>
-            <form method="post" action="/app/branches" class="mt-4 space-y-3">
+            <form method="post" action="/branches" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <div>
                     <label class="text-sm font-medium">Code</label>
@@ -33,7 +33,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-lg font-semibold">Update Branch</h3>
-            <form method="post" action="/app/branches/update" class="mt-4 space-y-3">
+            <form method="post" action="/branches/update" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="number" name="branch_id" min="1" required placeholder="Branch ID" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="code" placeholder="New Code (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -51,7 +51,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-lg font-semibold">Delete Branch</h3>
-            <form method="post" action="/app/branches/delete" class="mt-4 space-y-3">
+            <form method="post" action="/branches/delete" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="number" name="branch_id" min="1" required placeholder="Branch ID" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <button type="submit" class="btn btn-md btn-danger btn-block">Delete Branch</button>

@@ -63,7 +63,7 @@ class RbacController extends BaseController
         $model = new RoleModel();
         $exists = $model->where('name', $payload['name'])->first();
         if ($exists !== null) {
-            return redirect()->to('/app/rbac/roles')->with('error', 'Role already exists.');
+            return redirect()->to('/rbac/roles')->with('error', 'Role already exists.');
         }
 
         $model->insert([
@@ -75,7 +75,7 @@ class RbacController extends BaseController
             'updated_at'  => date('Y-m-d H:i:s'),
         ]);
 
-        return redirect()->to('/app/rbac/roles')->with('success', 'Role created.');
+        return redirect()->to('/rbac/roles')->with('success', 'Role created.');
     }
 
     public function createPermission()
@@ -97,7 +97,7 @@ class RbacController extends BaseController
         $model = new PermissionModel();
         $exists = $model->where('name', $payload['name'])->first();
         if ($exists !== null) {
-            return redirect()->to('/app/rbac/permissions')->with('error', 'Permission already exists.');
+            return redirect()->to('/rbac/permissions')->with('error', 'Permission already exists.');
         }
 
         $model->insert([
@@ -108,7 +108,7 @@ class RbacController extends BaseController
             'updated_at'  => date('Y-m-d H:i:s'),
         ]);
 
-        return redirect()->to('/app/rbac/permissions')->with('success', 'Permission created.');
+        return redirect()->to('/rbac/permissions')->with('success', 'Permission created.');
     }
 
     public function syncRolePermissions()
@@ -118,12 +118,12 @@ class RbacController extends BaseController
         $permissionIds = is_array($permissionIds) ? array_map('intval', $permissionIds) : [];
 
         if ($roleId < 1) {
-            return redirect()->to('/app/rbac/permissions')->with('error', 'Valid role is required.');
+            return redirect()->to('/rbac/permissions')->with('error', 'Valid role is required.');
         }
 
         $role = (new RoleModel())->where('id', $roleId)->first();
         if ($role === null) {
-            return redirect()->to('/app/rbac/permissions')->with('error', 'Role not found.');
+            return redirect()->to('/rbac/permissions')->with('error', 'Role not found.');
         }
 
         $rpModel = new RolePermissionModel();
@@ -140,7 +140,7 @@ class RbacController extends BaseController
             }
         }
 
-        return redirect()->to('/app/rbac/permissions')->with('success', 'Role permissions updated.');
+        return redirect()->to('/rbac/permissions')->with('success', 'Role permissions updated.');
     }
 
     public function assignUserRole()
@@ -149,13 +149,13 @@ class RbacController extends BaseController
         $roleId = (int) $this->request->getPost('role_id');
 
         if ($userId < 1 || $roleId < 1) {
-            return redirect()->to('/app/rbac/assign')->with('error', 'User and role are required.');
+            return redirect()->to('/rbac/assign')->with('error', 'User and role are required.');
         }
 
         $role = (new RoleModel())->where('id', $roleId)->first();
         $user = (new UserModel())->where('id', $userId)->first();
         if ($role === null || $user === null) {
-            return redirect()->to('/app/rbac/assign')->with('error', 'Invalid user or role.');
+            return redirect()->to('/rbac/assign')->with('error', 'Invalid user or role.');
         }
 
         $urModel = new UserRoleModel();
@@ -176,7 +176,7 @@ class RbacController extends BaseController
             service('authService')->refreshAuthorization($userId);
         }
 
-        return redirect()->to('/app/rbac/assign')->with('success', 'Role assigned to user.');
+        return redirect()->to('/rbac/assign')->with('success', 'Role assigned to user.');
     }
 
     private function baseViewData(array $extra = []): array

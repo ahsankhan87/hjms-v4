@@ -37,7 +37,7 @@ $model = new BranchModel();
             'name'  => 'required|min_length[3]|max_length[120]',
             'phone' => 'permit_empty|max_length[30]',
         ])) {
-            return redirect()->to('/app/branches')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/branches')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -52,9 +52,9 @@ $model = new BranchModel();
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/branches')->with('success', 'Branch created successfully.');
+            return redirect()->to('/branches')->with('success', 'Branch created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/branches')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/branches')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -70,7 +70,7 @@ $payload = [
         ];
 
         if ($branchId < 1) {
-            return redirect()->to('/app/branches')->withInput()->with('error', 'Valid branch ID is required.');
+            return redirect()->to('/branches')->withInput()->with('error', 'Valid branch ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -80,7 +80,7 @@ $payload = [
             'address'   => 'permit_empty',
             'is_active' => 'permit_empty|in_list[0,1]',
         ])) {
-            return redirect()->to('/app/branches')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/branches')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $data = array_filter($payload, static function ($value) {
@@ -88,7 +88,7 @@ $payload = [
         });
 
         if ($data === []) {
-            return redirect()->to('/app/branches')->withInput()->with('error', 'Provide at least one field to update for branch.');
+            return redirect()->to('/branches')->withInput()->with('error', 'Provide at least one field to update for branch.');
         }
 
         if (isset($data['is_active'])) {
@@ -99,9 +99,9 @@ $payload = [
             $model = new BranchModel();
             $model->update($branchId, $data + ['updated_at' => date('Y-m-d H:i:s')]);
 
-            return redirect()->to('/app/branches')->with('success', 'Branch updated successfully.');
+            return redirect()->to('/branches')->with('success', 'Branch updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/branches')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/branches')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -109,7 +109,7 @@ $payload = [
     {
         $branchId = (int) $this->request->getPost('branch_id');
 if ($branchId < 1) {
-            return redirect()->to('/app/branches')->with('error', 'Valid branch ID is required for delete.');
+            return redirect()->to('/branches')->with('error', 'Valid branch ID is required for delete.');
         }
 
         try {
@@ -117,12 +117,12 @@ if ($branchId < 1) {
             $deleted = $model->delete($branchId);
 
             if (! $deleted) {
-                return redirect()->to('/app/branches')->with('error', 'Branch not found or already removed.');
+                return redirect()->to('/branches')->with('error', 'Branch not found or already removed.');
             }
 
-            return redirect()->to('/app/branches')->with('success', 'Branch deleted successfully.');
+            return redirect()->to('/branches')->with('success', 'Branch deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/branches')->with('error', $e->getMessage());
+            return redirect()->to('/branches')->with('error', $e->getMessage());
         }
     }
 }

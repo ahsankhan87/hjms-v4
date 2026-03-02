@@ -44,7 +44,7 @@ class TransportController extends BaseController
         $row = $model->find($id);
 
         if (empty($row)) {
-            return redirect()->to('/app/transports')->with('error', 'Transport record not found.');
+            return redirect()->to('/transports')->with('error', 'Transport record not found.');
         }
 
         $db = db_connect();
@@ -78,7 +78,7 @@ class TransportController extends BaseController
         $payload = $this->extractPayload();
 
         if (! $this->validateData($payload, $this->rules())) {
-            return redirect()->to('/app/transports/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/transports/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -94,9 +94,9 @@ class TransportController extends BaseController
                 'updated_at'    => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/transports')->with('success', 'Transport provider added successfully.');
+            return redirect()->to('/transports')->with('success', 'Transport provider added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/transports/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/transports/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -106,11 +106,11 @@ class TransportController extends BaseController
         $payload = $this->extractPayload();
 
         if ($transportId < 1) {
-            return redirect()->to('/app/transports')->withInput()->with('error', 'Valid transport ID is required.');
+            return redirect()->to('/transports')->withInput()->with('error', 'Valid transport ID is required.');
         }
 
         if (! $this->validateData($payload, $this->rules())) {
-            return redirect()->to('/app/transports/' . $transportId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/transports/' . $transportId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -125,9 +125,9 @@ class TransportController extends BaseController
                 'updated_at'    => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/transports')->with('success', 'Transport updated successfully.');
+            return redirect()->to('/transports')->with('success', 'Transport updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/transports/' . $transportId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/transports/' . $transportId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -136,7 +136,7 @@ class TransportController extends BaseController
         $transportId = (int) $this->request->getPost('transport_id');
 
         if ($transportId < 1) {
-            return redirect()->to('/app/transports')->with('error', 'Valid transport ID is required for delete.');
+            return redirect()->to('/transports')->with('error', 'Valid transport ID is required for delete.');
         }
 
         try {
@@ -148,12 +148,12 @@ class TransportController extends BaseController
             $deleted = $model->delete($transportId);
 
             if (! $deleted) {
-                return redirect()->to('/app/transports')->with('error', 'Transport not found or already removed.');
+                return redirect()->to('/transports')->with('error', 'Transport not found or already removed.');
             }
 
-            return redirect()->to('/app/transports')->with('success', 'Transport deleted successfully.');
+            return redirect()->to('/transports')->with('success', 'Transport deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/transports')->with('error', $e->getMessage());
+            return redirect()->to('/transports')->with('error', $e->getMessage());
         }
     }
 
@@ -180,7 +180,7 @@ class TransportController extends BaseController
             'ziarat_site'  => 'permit_empty|max_length[180]',
             'notes'        => 'permit_empty|max_length[255]',
         ])) {
-            return redirect()->to('/app/transports/' . $payload['transport_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/transports/' . $payload['transport_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -201,9 +201,9 @@ class TransportController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/transports/' . $payload['transport_id'] . '/edit')->with('success', 'Transport leg added successfully.');
+            return redirect()->to('/transports/' . $payload['transport_id'] . '/edit')->with('success', 'Transport leg added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/transports/' . $payload['transport_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/transports/' . $payload['transport_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -217,18 +217,18 @@ class TransportController extends BaseController
         $transportId = (int) $this->request->getPost('transport_id');
 
         if ($legId < 1 || $transportId < 1) {
-            return redirect()->to('/app/transports')->with('error', 'Valid transport and leg IDs are required for delete.');
+            return redirect()->to('/transports')->with('error', 'Valid transport and leg IDs are required for delete.');
         }
 
         try {
             $deleted = (new TransportLegModel())->delete($legId);
             if (! $deleted) {
-                return redirect()->to('/app/transports/' . $transportId . '/edit')->with('error', 'Transport leg not found or already removed.');
+                return redirect()->to('/transports/' . $transportId . '/edit')->with('error', 'Transport leg not found or already removed.');
             }
 
-            return redirect()->to('/app/transports/' . $transportId . '/edit')->with('success', 'Transport leg deleted successfully.');
+            return redirect()->to('/transports/' . $transportId . '/edit')->with('success', 'Transport leg deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/transports/' . $transportId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/transports/' . $transportId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -243,14 +243,14 @@ class TransportController extends BaseController
         $direction = (string) $this->request->getPost('direction');
 
         if ($legId < 1 || $transportId < 1 || ! in_array($direction, ['up', 'down'], true)) {
-            return redirect()->to('/app/transports')->with('error', 'Valid transport leg move request is required.');
+            return redirect()->to('/transports')->with('error', 'Valid transport leg move request is required.');
         }
 
         try {
             $model = new TransportLegModel();
             $current = $model->where('id', $legId)->where('transport_id', $transportId)->first();
             if (empty($current)) {
-                return redirect()->to('/app/transports/' . $transportId . '/edit')->with('error', 'Transport leg not found.');
+                return redirect()->to('/transports/' . $transportId . '/edit')->with('error', 'Transport leg not found.');
             }
 
             $targetBuilder = $model->where('transport_id', $transportId);
@@ -262,7 +262,7 @@ class TransportController extends BaseController
 
             $target = $targetBuilder->first();
             if (empty($target)) {
-                return redirect()->to('/app/transports/' . $transportId . '/edit');
+                return redirect()->to('/transports/' . $transportId . '/edit');
             }
 
             $model->update((int) $current['id'], [
@@ -274,9 +274,9 @@ class TransportController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/transports/' . $transportId . '/edit')->with('success', 'Transport leg order updated.');
+            return redirect()->to('/transports/' . $transportId . '/edit')->with('success', 'Transport leg order updated.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/transports/' . $transportId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/transports/' . $transportId . '/edit')->with('error', $e->getMessage());
         }
     }
 

@@ -9,7 +9,7 @@
     <section class="max-w-3xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Add Supplier</h3>
-            <form method="post" action="<?= site_url('/app/suppliers') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/suppliers') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input name="supplier_name" value="<?= esc(old('supplier_name')) ?>" placeholder="Supplier Name" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <select name="supplier_type" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

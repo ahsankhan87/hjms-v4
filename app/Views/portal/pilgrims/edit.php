@@ -9,7 +9,7 @@
     <section class="max-w-5xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h2 class="text-sm font-semibold text-slate-900">Update Pilgrim</h2>
-            <form method="post" action="<?= site_url('/app/pilgrims/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/pilgrims/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="pilgrim_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
 
@@ -126,7 +126,7 @@
             <hr class="my-5 border-slate-200">
 
             <h2 class="text-sm font-semibold text-slate-900">Delete Pilgrim</h2>
-            <form method="post" action="<?= site_url('/app/pilgrims/delete') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/pilgrims/delete') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="number" name="pilgrim_id" min="1" required placeholder="Pilgrim ID" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <button class="btn btn-md btn-danger btn-block">Delete Pilgrim</button>

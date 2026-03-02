@@ -10,8 +10,8 @@
         body {
             font-family: Arial, Helvetica, sans-serif;
             margin: 0;
-            padding: 24px;
-            background: #f5f7fb;
+            padding: 12px;
+            background: #f3f4f6;
             color: #1f2937;
         }
 
@@ -19,106 +19,203 @@
             max-width: 1100px;
             margin: 0 auto;
             background: #fff;
-            border: 1px solid #dbe3ef;
-            box-shadow: 0 8px 20px -12px rgba(30, 41, 59, .3);
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 18px -14px rgba(15, 23, 42, .35);
         }
 
         .header {
             display: grid;
-            grid-template-columns: 180px 1fr;
-            gap: 16px;
-            padding: 18px;
-            border-bottom: 2px solid #194f90;
+            grid-template-columns: 220px 1fr 220px;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #94a3b8;
+            align-items: center;
+            background: #fff;
         }
 
-        .brand {
-            font-size: 30px;
-            color: #194f90;
-            font-weight: 700;
-            line-height: 1.1;
-        }
-
-        .company {
+        .company-block {
+            border: none;
+            border-radius: 0;
+            padding: 2px 4px;
+            min-height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
+            gap: 2px;
+            background: transparent;
         }
 
-        .company h1 {
+        .company-block img {
+            max-width: 170px;
+            max-height: 64px;
+            object-fit: contain;
+        }
+
+        .company-block h1 {
             margin: 0;
             color: #113d77;
-            font-size: 34px;
-            letter-spacing: .6px;
+            font-size: 17px;
+            letter-spacing: .2px;
+            font-weight: 700;
         }
 
-        .company p {
-            margin: 4px 0;
-            font-size: 13px;
+        .company-block p {
+            margin: 0;
+            font-size: 11px;
             color: #334155;
+            line-height: 1.25;
+        }
+
+        .urdu-text {
+            direction: rtl;
+            text-align: right;
+        }
+
+        .company-center h1 {
+            font-size: 23px;
+            letter-spacing: .35px;
+        }
+
+        @media (max-width: 900px) {
+            .header {
+                grid-template-columns: 1fr;
+            }
         }
 
         .meta {
             display: flex;
             justify-content: space-between;
-            border-top: 1px solid #dbe3ef;
-            border-bottom: 1px solid #dbe3ef;
-            padding: 10px 14px;
-            font-size: 14px;
+            border-top: 1px solid #cbd5e1;
+            border-bottom: 1px solid #cbd5e1;
+            padding: 7px 12px;
+            font-size: 12px;
             color: #113d77;
             font-weight: 700;
+            background: #f8fafc;
         }
 
         .section-title {
-            margin: 10px 0 0;
-            padding: 7px 10px;
-            background: #154f95;
-            color: #fff;
-            font-size: 18px;
+            margin: 8px 0 2px;
+            padding: 4px 2px;
+            background: transparent;
+            color: #0f2f57;
+            font-size: 13px;
             font-weight: 700;
+            letter-spacing: .2px;
+            border-bottom: 1px solid #93a9c8;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
-            margin-bottom: 8px;
+            font-size: 11px;
+            margin-bottom: 4px;
+            table-layout: fixed;
+        }
+
+        .hotel-table,
+        .pilgrim-table {
+            table-layout: auto;
+        }
+
+        .hotel-table th:nth-child(3),
+        .hotel-table td:nth-child(3) {
+            width: 24%;
+        }
+
+        .hotel-table th:nth-child(7),
+        .hotel-table td:nth-child(7) {
+            width: 16%;
+        }
+
+        .pilgrim-table th:nth-child(1),
+        .pilgrim-table td:nth-child(1) {
+            width: 24%;
+        }
+
+        .pilgrim-table th:nth-child(2),
+        .pilgrim-table td:nth-child(2) {
+            width: 17%;
+        }
+
+        .pilgrim-table th:nth-child(6),
+        .pilgrim-table td:nth-child(6) {
+            width: 14%;
         }
 
         th,
         td {
-            border: 1px solid #9fb7d8;
-            padding: 6px 8px;
+            border: 1px solid #8ea3bf;
+            padding: 4px 5px;
             text-align: left;
+            vertical-align: top;
+            word-break: break-word;
         }
 
         th {
-            background: #1b4f8f;
-            color: #fff;
+            background: #edf3fb;
+            color: #0f2f57;
             font-weight: 700;
+            font-size: 10px;
+            text-transform: none;
+            letter-spacing: 0;
         }
 
         .content {
-            padding: 0 14px 14px;
+            padding: 0 8px 8px;
         }
 
         .remarks {
-            min-height: 62px;
+            min-height: 38px;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 3px;
+        }
+
+        .contact-item {
+            border: 1px solid #8ea3bf;
+            background: #f8fbff;
+            padding: 6px;
+        }
+
+        .contact-label {
+            font-size: 10px;
+            color: #0f2f57;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .contact-value {
+            font-size: 11px;
+            color: #0f172a;
+            line-height: 1.25;
+            word-break: break-word;
         }
 
         .actions {
             max-width: 1100px;
-            margin: 0 auto 12px;
+            margin: 0 auto 8px;
             display: flex;
             justify-content: flex-end;
-            gap: 8px;
+            gap: 6px;
         }
 
         .btn {
             border: 1px solid #0f4a8a;
             background: #18589f;
             color: #fff;
-            padding: 8px 14px;
+            padding: 5px 10px;
             border-radius: 6px;
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
         }
 
@@ -127,10 +224,21 @@
             color: #18589f;
         }
 
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
         @media print {
+
+            html,
             body {
                 background: #fff;
                 padding: 0;
+                margin: 0;
+                width: 210mm;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
 
             .actions {
@@ -139,32 +247,180 @@
 
             .sheet {
                 border: none;
+                border-radius: 0;
                 box-shadow: none;
+                width: 100%;
+                max-width: none;
+                margin: 0;
+                overflow: visible;
+            }
+
+            .header {
+                grid-template-columns: 170px 1fr 170px;
+                gap: 6px;
+                padding: 6px 8px;
+            }
+
+            .company-block {
+                min-height: 72px;
+                padding: 4px;
+                gap: 2px;
+            }
+
+            .company-block img {
+                max-height: 52px;
+            }
+
+            .company-block h1,
+            .company-center h1 {
+                font-size: 13px;
+                line-height: 1.2;
+            }
+
+            .company-block p {
+                font-size: 9px;
+                line-height: 1.2;
+            }
+
+            .meta {
+                font-size: 9px;
+                padding: 4px 8px;
+            }
+
+            .section-title {
+                font-size: 10px;
+                padding: 3px 1px;
+                margin-top: 4px;
+            }
+
+            .content {
+                padding: 0 5px 5px;
+            }
+
+            table {
+                font-size: 8.5px;
+                margin-bottom: 3px;
+            }
+
+            th,
+            td {
+                padding: 2px 3px;
+                font-size: 8px;
+                line-height: 1.15;
+            }
+
+            th {
+                font-size: 8px;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            .remarks {
+                min-height: 24px;
+            }
+
+            .contact-grid {
+                gap: 4px;
+            }
+
+            .contact-item {
+                padding: 4px;
+            }
+
+            .contact-label {
+                font-size: 8px;
+                margin-bottom: 2px;
+            }
+
+            .contact-value {
+                font-size: 8px;
+                line-height: 1.15;
+            }
+
+            .section-title,
+            table,
+            tr,
+            td,
+            th {
+                page-break-inside: avoid;
+                break-inside: avoid-page;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .contact-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 
 <body>
+    <?php
+    $mainCompanyData = is_array($mainCompany ?? null) ? $mainCompany : [];
+    $shirkaData = is_array($shirkaCompany ?? null) ? $shirkaCompany : [];
+
+    $mainCompanyName = (string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD');
+    $mainCompanyTagline = (string) ($mainCompanyData['tagline'] ?? 'Hajj & Umrah Management');
+    $mainCompanyAddress = (string) ($mainCompanyData['address'] ?? '');
+    $mainCompanyLogo = trim((string) ($mainCompanyData['logo_url'] ?? ''));
+
+    $shirkaName = trim((string) ($shirkaData['name'] ?? ''));
+    $shirkaLogo = trim((string) ($shirkaData['logo_url'] ?? ''));
+    $shirkaAddress = trim((string) ($shirkaData['address'] ?? ''));
+
+    $voucherInstructionsUr = trim((string) ($mainCompanyData['voucher_instructions_ur'] ?? ''));
+    $voucherInstructionsEn = trim((string) ($mainCompanyData['voucher_instructions_en'] ?? ''));
+
+    $makkahContact = trim((string) ($mainCompanyData['makkah_contact'] ?? ''));
+
+    $madinaContact = trim((string) ($mainCompanyData['madina_contact'] ?? ''));
+
+    $transportContact = trim((string) ($mainCompanyData['transport_contact'] ?? ''));
+    ?>
     <div class="actions">
-        <a class="btn secondary" href="<?= site_url('/app/bookings') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        <a class="btn secondary" href="<?= site_url('/bookings') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
         <button type="button" class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Voucher</button>
         <button type="button" class="btn" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> Save as PDF</button>
     </div>
 
     <article class="sheet">
         <header class="header">
-            <div class="brand">HJMS<br>Voucher</div>
-            <div class="company">
-                <h1>KARWAN-E-TAIF PVT LTD</h1>
-                <p>Shop # B-7, B-8, Hanifullah Plaza Charsadda Road, Opposite Charsadda Bus Stand Peshawar</p>
-                <p>Saudi Company: AlAhela Establishment for Umrah Services</p>
+            <div class="company-block">
+                <?php if ($mainCompanyLogo !== ''): ?>
+                    <img src="<?= esc($mainCompanyLogo) ?>" alt="Main Company Logo">
+                <?php else: ?>
+                    <h1><?= esc($mainCompanyName) ?></h1>
+                <?php endif; ?>
+            </div>
+
+            <div class="company-block company-center">
+                <h1><?= esc($mainCompanyName) ?></h1>
+                <?php if ($mainCompanyTagline !== ''): ?><p><?= esc($mainCompanyTagline) ?></p><?php endif; ?>
+                <?php if ($mainCompanyAddress !== ''): ?><p><?= esc($mainCompanyAddress) ?></p><?php endif; ?>
+            </div>
+
+            <div class="company-block">
+                <?php if ($shirkaLogo !== ''): ?>
+                    <img src="<?= esc($shirkaLogo) ?>" alt="Shirka Logo">
+                <?php endif; ?>
+                <h1><?= esc($shirkaName !== '' ? $shirkaName : 'Saudi Shirka') ?></h1>
+                <?php if ($shirkaAddress !== ''): ?><p><?= esc($shirkaAddress) ?></p><?php endif; ?>
+                <?php if ($shirkaName === '' && $shirkaLogo === ''): ?><p>No shirka selected for this booking.</p><?php endif; ?>
             </div>
         </header>
 
         <div class="meta">
             <div>Voucher No: <?= esc($voucherNo) ?></div>
-            <div>Date Created: <?= esc($voucherDate) ?></div>
+            <div>Voucher Date: <?= esc($voucherDate) ?></div>
         </div>
 
         <div class="content">
@@ -258,7 +514,7 @@
 
             <?php if (!empty($hotelRows)): ?>
                 <div class="section-title">Accommodation Detail</div>
-                <table>
+                <table class="hotel-table">
                     <thead>
                         <tr>
                             <th>Package</th>
@@ -281,11 +537,23 @@
                                     $nights = (string) floor(($end - $start) / 86400);
                                 }
                             }
+
+                            $hotelCity = strtolower(trim((string) ($hotel['hotel_city'] ?? '')));
+                            $isMadina = strpos($hotelCity, 'madina') !== false || strpos($hotelCity, 'medina') !== false;
+                            $hotelLogoPath = $isMadina
+                                ? base_url('assets/uploads/madina-logo.svg')
+                                : base_url('assets/uploads/makkah-logo.svg');
+                            $hotelLogoAlt = $isMadina ? 'Madina' : 'Makkah';
                             ?>
                             <tr>
                                 <td><?= esc((string) ($booking['package_code'] ?? '')) ?></td>
                                 <td><?= esc((string) ($hotel['hotel_city'] ?? '')) ?></td>
-                                <td><?= esc((string) ($hotel['hotel_master_name'] ?? $hotel['hotel_name'] ?? '')) ?></td>
+                                <td>
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <img src="<?= esc($hotelLogoPath) ?>" alt="<?= esc($hotelLogoAlt) ?>" style="width:18px; height:18px; object-fit:contain;">
+                                        <span><?= esc((string) ($hotel['hotel_master_name'] ?? $hotel['hotel_name'] ?? '')) ?></span>
+                                    </div>
+                                </td>
                                 <td><?= esc((string) ($hotel['check_in_date'] ?? '')) ?></td>
                                 <td><?= esc((string) ($hotel['check_out_date'] ?? '')) ?></td>
                                 <td><?= esc($nights) ?></td>
@@ -330,7 +598,7 @@
 
             <?php if (!empty($pilgrimRows)): ?>
                 <div class="section-title">Mutamer's (Pilgrims) Detail</div>
-                <table>
+                <table class="pilgrim-table">
                     <thead>
                         <tr>
                             <th>PILGRIM NAME</th>
@@ -365,30 +633,6 @@
                 </table>
             <?php endif; ?>
 
-            <div class="section-title">Payment Detail</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Total Posted</th>
-                        <th>Entries</th>
-                        <th>Last Payment Date</th>
-                        <th>Last Payment No</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $paymentRows = is_array($payments ?? null) ? $payments : [];
-                    $lastPayment = $paymentRows !== [] ? end($paymentRows) : null;
-                    ?>
-                    <tr>
-                        <td><?= esc(number_format((float) $totalPaid, 2)) ?></td>
-                        <td><?= esc((string) count($paymentRows)) ?></td>
-                        <td><?= esc((string) ($lastPayment['payment_date'] ?? '')) ?></td>
-                        <td><?= esc((string) ($lastPayment['payment_no'] ?? '')) ?></td>
-                    </tr>
-                </tbody>
-            </table>
-
             <div class="section-title">Remarks</div>
             <table>
                 <tbody>
@@ -397,6 +641,48 @@
                     </tr>
                 </tbody>
             </table>
+
+            <?php if ($voucherInstructionsUr !== '' || $voucherInstructionsEn !== ''): ?>
+                <div class="section-title">Instructions</div>
+                <table>
+                    <tbody>
+                        <?php if ($voucherInstructionsUr !== ''): ?>
+                            <tr>
+                                <td style="white-space: pre-line;" class="urdu-text"><?= esc($voucherInstructionsUr) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php if ($voucherInstructionsEn !== ''): ?>
+                            <tr>
+                                <td style="white-space: pre-line;"><?= esc($voucherInstructionsEn) ?></td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+
+            <?php if ($makkahContact !== '' || $madinaContact !== '' || $transportContact !== ''): ?>
+                <div class="section-title">Contact Detail</div>
+                <div class="contact-grid">
+                    <?php if ($makkahContact !== ''): ?>
+                        <div class="contact-item">
+                            <div class="contact-label">Makkah Office</div>
+                            <div class="contact-value"><?= esc($makkahContact) ?></div>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($madinaContact !== ''): ?>
+                        <div class="contact-item">
+                            <div class="contact-label">Madina Office</div>
+                            <div class="contact-value"><?= esc($madinaContact) ?></div>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($transportContact !== ''): ?>
+                        <div class="contact-item">
+                            <div class="contact-label">Transport Contact</div>
+                            <div class="contact-value"><?= esc($transportContact) ?></div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
         </div>
     </article>
 </body>

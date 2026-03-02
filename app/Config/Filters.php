@@ -111,6 +111,6 @@ class Filters extends BaseFilters
      * @var array<string, array<string, list<string>>>
      */
     public array $filters = [
-        'auditlog' => ['after' => ['app/*']],
+        'auditlog' => ['after' => ['*']],
     ];
 }

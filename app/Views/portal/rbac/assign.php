@@ -9,7 +9,7 @@
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Assign Role to User</h3>
             <p class="mt-1 text-sm text-slate-500">Pick any user and role to assign access quickly.</p>
-            <form method="post" action="<?= site_url('/app/rbac/user-roles') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/rbac/user-roles') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <select name="user_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Select user</option>
@@ -25,7 +25,7 @@
                 </select>
                 <div class="flex gap-2">
                     <button class="btn btn-md btn-primary" type="submit">Assign Role</button>
-                    <a class="btn btn-md btn-secondary" href="<?= site_url('/app/rbac') ?>">Back</a>
+                    <a class="btn btn-md btn-secondary" href="<?= site_url('/rbac') ?>">Back</a>
                 </div>
             </form>
         </article>
@@ -61,7 +61,7 @@
                             <?= esc($items !== [] ? implode(', ', $items) : '-') ?>
                         </td>
                         <td>
-                            <form method="post" action="<?= site_url('/app/rbac/user-roles') ?>" class="flex items-center gap-2">
+                            <form method="post" action="<?= site_url('/rbac/user-roles') ?>" class="flex items-center gap-2">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="user_id" value="<?= esc($user['id']) ?>">
                                 <select name="role_id" required class="min-w-[180px] rounded-lg border border-slate-300 px-2 py-1 text-sm">

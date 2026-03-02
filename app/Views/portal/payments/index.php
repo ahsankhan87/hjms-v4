@@ -8,7 +8,7 @@
 
     <section class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
         <h3 class="text-lg font-semibold">Post Payment / Refund</h3>
-        <form method="post" action="<?= site_url('/app/payments') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form method="post" action="<?= site_url('/payments') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <?= csrf_field() ?>
             <div><label class="text-sm font-medium">Booking</label><select name="booking_id" required class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Select booking</option><?php foreach ($bookings as $item): ?><option value="<?= esc($item['id']) ?>"><?= esc($item['booking_no']) ?> (<?= esc($item['status']) ?>)</option><?php endforeach; ?>
@@ -33,7 +33,7 @@
         <hr class="my-5 border-slate-200">
 
         <h3 class="text-lg font-semibold">Update Payment</h3>
-        <form method="post" action="<?= site_url('/app/payments/update') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form method="post" action="<?= site_url('/payments/update') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <?= csrf_field() ?>
             <div><label class="text-sm font-medium">Payment ID</label><input type="number" name="payment_id" min="1" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></div>
             <div><label class="text-sm font-medium">Booking (optional)</label><select name="booking_id" class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -61,7 +61,7 @@
         <hr class="my-5 border-slate-200">
 
         <h3 class="text-lg font-semibold">Delete Payment</h3>
-        <form method="post" action="<?= site_url('/app/payments/delete') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form method="post" action="<?= site_url('/payments/delete') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <?= csrf_field() ?>
             <div class="md:col-span-2"><label class="text-sm font-medium">Payment ID</label><input type="number" name="payment_id" min="1" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></div>
             <div class="md:col-span-1 flex items-end"><button type="submit" class="btn btn-md btn-danger btn-block">Delete Payment</button></div>
@@ -79,6 +79,7 @@
                     <th class="px-3 py-2 text-left">Channel</th>
                     <th class="px-3 py-2 text-left">Amount</th>
                     <th class="px-3 py-2 text-left">Date</th>
+                    <th class="px-3 py-2 text-left">Receipt</th>
                     <th class="px-3 py-2 text-left">Voucher</th>
                 </tr>
             </thead>
@@ -92,7 +93,10 @@
                         <td class="px-3 py-2"><?= esc($row['amount']) ?></td>
                         <td class="px-3 py-2"><?= esc($row['payment_date']) ?></td>
                         <td class="px-3 py-2">
-                            <a href="<?= site_url('/app/bookings/' . (int) $row['booking_id'] . '/voucher') ?>" target="_blank" class="btn btn-sm btn-secondary">Open</a>
+                            <a href="<?= site_url('/payments/' . (int) $row['id'] . '/receipt') ?>" target="_blank" class="btn btn-sm btn-secondary">Open</a>
+                        </td>
+                        <td class="px-3 py-2">
+                            <a href="<?= site_url('/bookings/' . (int) $row['booking_id'] . '/voucher') ?>" target="_blank" class="btn btn-sm btn-secondary">Open</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

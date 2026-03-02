@@ -9,17 +9,17 @@
     <section class="space-y-4">
         <div class="list-toolbar">
             <div class="flex space-x-3">
-                <a href="<?= site_url('/app/flights/add') ?>" class="btn btn-md btn-primary">
+                <a href="<?= site_url('/flights/add') ?>" class="btn btn-md btn-primary">
                     <i class="fa-solid fa-plus mr-2"></i>Add Flight
                 </a>
-                <a href="<?= site_url('/app/flights/departure-batches') ?>" class="btn btn-md btn-secondary">
+                <a href="<?= site_url('/flights/departure-batches') ?>" class="btn btn-md btn-secondary">
                     <i class="fa-solid fa-layer-group mr-2"></i>Departure Batch View
                 </a>
             </div>
-            <form method="get" action="<?= site_url('/app/flights') ?>" class="flex items-center gap-2">
+            <form method="get" action="<?= site_url('/flights') ?>" class="flex items-center gap-2">
                 <input type="text" name="pnr" value="<?= esc($pnr ?? '') ?>" placeholder="Track by PNR" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                 <button type="submit" class="btn btn-md btn-primary">Search</button>
-                <a href="<?= site_url('/app/flights') ?>" class="btn btn-md btn-secondary">Reset</a>
+                <a href="<?= site_url('/flights') ?>" class="btn btn-md btn-secondary">Reset</a>
             </form>
         </div>
 
@@ -57,10 +57,10 @@
                                 <td class="px-3 py-2"><?= esc((int) ($row['package_links'] ?? 0)) ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= site_url('/app/flights/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Flight">
+                                        <a href="<?= site_url('/flights/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Flight">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <form method="post" action="<?= site_url('/app/flights/delete') ?>" class="inline">
+                                        <form method="post" action="<?= site_url('/flights/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="flight_id" value="<?= esc($row['id']) ?>">
                                             <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this flight?')" title="Delete Flight">

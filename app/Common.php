@@ -143,3 +143,100 @@ if (! function_exists('activate_season')) {
         return $db->transStatus();
     }
 }
+
+if (! function_exists('company_table_ready')) {
+    function company_table_ready(): bool
+    {
+        try {
+            $db = db_connect();
+            $db->query('SELECT 1 FROM companies LIMIT 1');
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (! function_exists('active_company')) {
+    function active_company()
+    {
+        static $company = null;
+        static $resolved = false;
+
+        if ($resolved) {
+            return $company;
+        }
+
+        $resolved = true;
+        if (! company_table_ready()) {
+            return null;
+        }
+
+        $db = db_connect();
+        $row = $db->table('companies')
+            ->where('is_active', 1)
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        if ($row === null) {
+            $row = $db->table('companies')->orderBy('id', 'DESC')->get()->getRowArray();
+        }
+
+        $company = is_array($row) ? $row : null;
+
+        return $company;
+    }
+}
+
+if (! function_exists('main_company_table_ready')) {
+    function main_company_table_ready(): bool
+    {
+        try {
+            $db = db_connect();
+            $db->query('SELECT 1 FROM main_company LIMIT 1');
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (! function_exists('main_company')) {
+    function main_company()
+    {
+        static $company = null;
+        static $resolved = false;
+
+        if ($resolved) {
+            return $company;
+        }
+
+        $resolved = true;
+
+        if (main_company_table_ready()) {
+            $row = db_connect()->table('main_company')->orderBy('id', 'ASC')->get()->getRowArray();
+            if (is_array($row)) {
+                $company = $row;
+
+                return $company;
+            }
+        }
+
+        $company = [
+            'name' => 'KARWAN-E-TAIF PVT LTD',
+            'tagline' => 'Hajj & Umrah Management',
+            'address' => '',
+            'phone' => '',
+            'email' => '',
+            'website' => '',
+            'logo_url' => '',
+            'ntn' => '',
+            'strn' => '',
+        ];
+
+        return $company;
+    }
+}

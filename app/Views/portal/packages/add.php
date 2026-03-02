@@ -9,7 +9,7 @@
     <section class="max-w-3xl">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h3 class="text-lg font-semibold">Add Package</h3>
-            <form method="post" action="<?php echo site_url('/app/packages') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?php echo site_url('/packages') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <div>
                     <label class="text-sm font-medium">Code</label>
@@ -68,7 +68,7 @@
 </main>
 <script>
     (function() {
-        const form = document.querySelector('form[action*="/app/packages"]');
+        const form = document.querySelector('form[action*="/packages"]');
         if (!form) {
             return;
         }

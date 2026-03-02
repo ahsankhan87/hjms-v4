@@ -15,10 +15,10 @@
                 <a href="<?= base_url('assets/samples/mofa_pilgrims_sample.csv') ?>" class="btn btn-sm btn-secondary" download>
                     <i class="fa-solid fa-download mr-2"></i>Download Sample CSV
                 </a>
-                <a href="<?= site_url('/app/pilgrims') ?>" class="btn btn-sm btn-secondary">Back to Pilgrims</a>
+                <a href="<?= site_url('/pilgrims') ?>" class="btn btn-sm btn-secondary">Back to Pilgrims</a>
             </div>
 
-            <form method="post" action="<?= site_url('/app/pilgrims/import') ?>" enctype="multipart/form-data" class="space-y-3">
+            <form method="post" action="<?= site_url('/pilgrims/import') ?>" enctype="multipart/form-data" class="space-y-3">
                 <?= csrf_field() ?>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">MOFA CSV File</label>

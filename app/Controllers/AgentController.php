@@ -48,7 +48,7 @@ $db = db_connect();
             'credit_limit'     => 'permit_empty|decimal',
             'branch_id'        => 'permit_empty|integer',
         ])) {
-            return redirect()->to('/app/agents')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/agents')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -68,9 +68,9 @@ $db = db_connect();
                 'updated_at'        => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/app/agents')->with('success', 'Agent created successfully.');
+            return redirect()->to('/agents')->with('success', 'Agent created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/agents')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/agents')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -90,7 +90,7 @@ $payload = [
         ];
 
         if ($agentId < 1) {
-            return redirect()->to('/app/agents')->withInput()->with('error', 'Valid agent ID is required.');
+            return redirect()->to('/agents')->withInput()->with('error', 'Valid agent ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -104,7 +104,7 @@ $payload = [
             'branch_id'        => 'permit_empty|integer',
             'is_active'        => 'permit_empty|in_list[0,1]',
         ])) {
-            return redirect()->to('/app/agents')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/agents')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $data = array_filter($payload, static function ($value) {
@@ -112,7 +112,7 @@ $payload = [
         });
 
         if ($data === []) {
-            return redirect()->to('/app/agents')->withInput()->with('error', 'Provide at least one field to update for agent.');
+            return redirect()->to('/agents')->withInput()->with('error', 'Provide at least one field to update for agent.');
         }
 
         if (isset($data['commission_value'])) {
@@ -132,9 +132,9 @@ $payload = [
             $model = new AgentModel();
             $model->update($agentId, $data + ['updated_at' => date('Y-m-d H:i:s')]);
 
-            return redirect()->to('/app/agents')->with('success', 'Agent updated successfully.');
+            return redirect()->to('/agents')->with('success', 'Agent updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/agents')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/agents')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -142,7 +142,7 @@ $payload = [
     {
         $agentId = (int) $this->request->getPost('agent_id');
 if ($agentId < 1) {
-            return redirect()->to('/app/agents')->with('error', 'Valid agent ID is required for delete.');
+            return redirect()->to('/agents')->with('error', 'Valid agent ID is required for delete.');
         }
 
         try {
@@ -150,12 +150,12 @@ if ($agentId < 1) {
             $deleted = $model->delete($agentId);
 
             if (! $deleted) {
-                return redirect()->to('/app/agents')->with('error', 'Agent not found or already removed.');
+                return redirect()->to('/agents')->with('error', 'Agent not found or already removed.');
             }
 
-            return redirect()->to('/app/agents')->with('success', 'Agent deleted successfully.');
+            return redirect()->to('/agents')->with('success', 'Agent deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/app/agents')->with('error', $e->getMessage());
+            return redirect()->to('/agents')->with('error', $e->getMessage());
         }
     }
 }

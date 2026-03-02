@@ -16,7 +16,7 @@
             <hr class="my-5 border-slate-200">
 
             <h4 class="text-base font-semibold">Post Ledger Entry</h4>
-            <form method="post" action="<?= site_url('/app/suppliers/ledger') ?>" class="mt-3 space-y-3">
+            <form method="post" action="<?= site_url('/suppliers/ledger') ?>" class="mt-3 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="supplier_id" value="<?= esc((string) $supplier['id']) ?>">
                 <input type="date" name="entry_date" value="<?= esc(old('entry_date', date('Y-m-d'))) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

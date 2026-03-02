@@ -15,6 +15,7 @@ class BookingModel extends SeasonScopedModel
         'package_id',
         'agent_id',
         'branch_id',
+        'company_id',
         'status',
         'total_pilgrims',
         'remarks',

@@ -10,12 +10,49 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="<?= base_url('assets/js/jquery-3.6.0.min.js') ?>"></script>
 
-    <link rel="stylesheet" href="<?= base_url('assets/css/tailwind.local.css') ?>">
+    <!-- Tailwind CSS -->
+    <script src="<?= base_url() . 'assets/css/tailwindcss-3.4.16.css' ?>"></script>
+    <!-- <link rel="stylesheet" href="<?= base_url('assets/css/tailwind.local.css') ?>"> -->
     <link rel="stylesheet" href="<?= base_url('assets/datatable-1.11.5/jquery.dataTables.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/datatable-1.11.5/buttons.dataTables.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/js/select2/select2.min.css') ?>">
 
     <link rel="stylesheet" href="<?= base_url('assets/fontawesome-free-7.0.0-web/css/all.min.css') ?>">
+    <!-- Custom configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#ebfbf6',
+                            100: '#d4fcef',
+                            200: '#bcffea',
+                            300: '#94fedc',
+                            400: '#7eddbf',
+                            500: '#6ac8aa',
+                            600: '#4eaf90',
+                            700: '#3ca886',
+                            800: '#1b9d74',
+                            900: '#059669',
+                        },
+                        dark: {
+                            800: '#1b9d74',
+                            900: '#059669',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.08)',
+                        'soft-lg': '0 10px 30px -3px rgba(0, 0, 0, 0.1)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         :root {
             --primary: #10b981;
@@ -341,14 +378,30 @@
     <div id="appShell" class="flex h-screen overflow-hidden">
         <aside id="sidebar" class="w-72 bg-white shadow-lg flex flex-col transition-all duration-300 -translate-x-full md:translate-x-0 fixed md:static inset-y-0 left-0 z-40">
             <div class="flex h-full flex-col">
-                <div class="p-6 border-b border-gray-100">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center text-white">
-                            <i class="fa-solid fa-kaaba"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-lg font-bold text-gray-800">Karwane Taif</h1>
-                            <p class="text-xs text-gray-500">Hajj & Umrah Management</p>
+                <?php
+                $mainCompanyProfile = function_exists('main_company') ? (main_company() ?? []) : [];
+                $mainCompanyName = trim((string) ($mainCompanyProfile['name'] ?? 'Karwane Taif'));
+                $mainCompanyTagline = trim((string) ($mainCompanyProfile['tagline'] ?? 'Hajj & Umrah Management'));
+                $mainCompanyLogo = trim((string) ($mainCompanyProfile['logo_url'] ?? ''));
+                ?>
+                <div class="p-4 border-b border-gray-100">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <div class="flex items-center gap-3 min-w-0 overflow-hidden">
+                            <?php if ($mainCompanyLogo !== ''): ?>
+                                <img src="<?= esc($mainCompanyLogo) ?>" alt="Main Company Logo" class="w-10 h-10 shrink-0 rounded-lg object-contain border border-slate-200 bg-white p-1">
+                            <?php else: ?>
+                                <div class="w-10 h-10 shrink-0 gradient-bg rounded-lg flex items-center justify-center text-white">
+                                    <i class="fa-solid fa-kaaba"></i>
+                                </div>
+                            <?php endif; ?>
+                            <div class="min-w-0 flex-1 overflow-hidden">
+                                <h1 class="text-sm font-bold text-gray-800 leading-tight truncate" title="<?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>">
+                                    <?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>
+                                </h1>
+                                <p class="mt-1 text-xs text-gray-500 leading-tight truncate" title="<?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>">
+                                    <?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -371,6 +424,8 @@
                     $canBranches = auth_can('branches.view');
                     $canAgents = auth_can('agents.view');
                     $canUsers = auth_can('users.view');
+                    $canCompanies = auth_can('companies.view');
+                    $canCompaniesManage = auth_can('companies.manage');
                     $canReports = auth_can('reports.view');
                     $canAudit = auth_can('audit.view');
                     ?>
@@ -378,37 +433,37 @@
                         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Main Menu</p>
                     </div>
                     <?php if ($canDashboard): ?>
-                        <a href="<?= site_url('/app') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/dashboard') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
                             <i class="fa-solid fa-chart-line w-4"></i><span>Dashboard</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canPackages): ?>
-                        <a href="<?= site_url('/app/packages') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'packages' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/packages') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'packages' ? 'active' : '' ?>">
                             <i class="fa-solid fa-box-open w-4"></i><span>Packages</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canPilgrims): ?>
-                        <a href="<?= site_url('/app/pilgrims') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'pilgrims' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/pilgrims') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'pilgrims' ? 'active' : '' ?>">
                             <i class="fa-solid fa-users w-4"></i><span>Pilgrims</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canVisas): ?>
-                        <a href="<?= site_url('/app/visas') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'visas' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/visas') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'visas' ? 'active' : '' ?>">
                             <i class="fa-solid fa-passport w-4"></i><span>Visa Processing</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canFlights): ?>
-                        <a href="<?= site_url('/app/flights') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'flights' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/flights') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'flights' ? 'active' : '' ?>">
                             <i class="fa-solid fa-plane w-4"></i><span>Flights</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canHotels): ?>
-                        <a href="<?= site_url('/app/hotels') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'hotels' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/hotels') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'hotels' ? 'active' : '' ?>">
                             <i class="fa-solid fa-hotel w-4"></i><span>Hotels</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canTransports): ?>
-                        <a href="<?= site_url('/app/transports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'transports' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/transports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'transports' ? 'active' : '' ?>">
                             <i class="fa-solid fa-bus w-4"></i><span>Transport</span>
                         </a>
                     <?php endif; ?>
@@ -417,10 +472,10 @@
                         <div class="px-4 mt-6 mb-2">
                             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
                         </div>
-                        <a href="<?= site_url('/app/payments') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'payments' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/payments') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'payments' ? 'active' : '' ?>">
                             <i class="fa-solid fa-wallet w-4"></i><span>Payments</span>
                         </a>
-                        <a href="<?= site_url('/app/suppliers') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'suppliers' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/suppliers') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'suppliers' ? 'active' : '' ?>">
                             <i class="fa-solid fa-handshake w-4"></i><span>Suppliers</span>
                         </a>
                     <?php endif; ?>
@@ -431,60 +486,27 @@
                         </div>
                     <?php endif; ?>
                     <?php if ($canBookings): ?>
-                        <a href="<?= site_url('/app/bookings') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'bookings' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/bookings') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'bookings' ? 'active' : '' ?>">
                             <i class="fa-solid fa-file-contract w-4"></i><span>Bookings</span>
                         </a>
                     <?php endif; ?>
-                    <?php if ($canBranches): ?>
-                        <a href="<?= site_url('/app/branches') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'branches' ? 'active' : '' ?>">
+                    <!-- <?php if ($canBranches): ?>
+                        <a href="<?= site_url('/branches') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'branches' ? 'active' : '' ?>">
                             <i class="fa-solid fa-code-branch w-4"></i><span>Branches</span>
                         </a>
-                    <?php endif; ?>
+                    <?php endif; ?> -->
                     <?php if ($canAgents): ?>
-                        <a href="<?= site_url('/app/agents') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'agents' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/agents') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'agents' ? 'active' : '' ?>">
                             <i class="fa-solid fa-user-tie w-4"></i><span>Agents</span>
                         </a>
                     <?php endif; ?>
-                    <?php if ($canUsers): ?>
-                        <a href="<?= site_url('/app/users') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'users' ? 'active' : '' ?>">
-                            <i class="fa-solid fa-user-gear w-4"></i><span>Users</span>
-                        </a>
-                    <?php endif; ?>
                     <?php if ($canReports): ?>
-                        <a href="<?= site_url('/app/reports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'reports' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/reports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'reports' ? 'active' : '' ?>">
                             <i class="fa-solid fa-chart-pie w-4"></i><span>Reports</span>
-                        </a>
-                    <?php endif; ?>
-                    <?php if ($canAudit): ?>
-                        <a href="<?= site_url('/app/audit') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'audit' ? 'active' : '' ?>">
-                            <i class="fa-solid fa-shield-halved w-4"></i><span>Audit Log</span>
-                        </a>
-                    <?php endif; ?>
-                    <?php if ($canRbacManage): ?>
-                        <a href="<?= site_url('/app/rbac') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'rbac' ? 'active' : '' ?>">
-                            <i class="fa-solid fa-user-shield w-4"></i><span>Access Control</span>
-                        </a>
-
-                    <?php endif; ?>
-                    <?php if ($canSeasons): ?>
-                        <a href="<?= site_url('/app/seasons') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'seasons' ? 'active' : '' ?>">
-                            <i class="fa-solid fa-calendar-days w-4"></i><span>Seasons</span>
                         </a>
                     <?php endif; ?>
                 </nav>
 
-                <div class="p-4 border-t border-gray-100">
-                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div class="w-10 h-10 gradient-bg rounded-full flex items-center justify-center text-white font-semibold">
-                            <?= esc(strtoupper(substr((string) ($userEmail ?? 'A'), 0, 1))) ?>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-800">Admin User</p>
-                            <p class="text-xs text-gray-500 truncate"><?= esc($userEmail ?? '') ?></p>
-                        </div>
-                        <i class="fa-solid fa-gear text-gray-400"></i>
-                    </div>
-                </div>
             </div>
         </aside>
 
@@ -503,7 +525,7 @@
 
                     <div class="flex items-center gap-3">
                         <?php if ($canSeasons && !empty($seasonRows)): ?>
-                            <form method="post" action="<?= site_url('/app/seasons/activate') ?>" class="hidden xl:flex items-center gap-2">
+                            <form method="post" action="<?= site_url('/seasons/activate') ?>" class="hidden xl:flex items-center gap-2">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="_return" value="<?= current_url() ?>">
                                 <label class="text-xs font-medium text-slate-600">Season</label>
@@ -520,12 +542,62 @@
                             <input type="text" placeholder="Search..." class="top-search pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-64 text-sm">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
                         </div>
-                        <form method="post" action="<?= site_url('/app/logout') ?>">
-                            <?= csrf_field() ?>
-                            <button class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700" type="submit">
-                                <i class="fa-solid fa-right-from-bracket mr-1"></i>Logout
+                        <div class="relative" id="topUserMenuWrap">
+                            <button id="topUserMenuButton" type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                <span class="h-8 w-8 gradient-bg rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                                    <?= esc(strtoupper(substr((string) ($userEmail ?? 'A'), 0, 1))) ?>
+                                </span>
+                                <span class="hidden sm:inline max-w-[180px] truncate"><?= esc($userEmail ?? '') ?></span>
+                                <i class="fa-solid fa-chevron-down text-xs text-slate-500"></i>
                             </button>
-                        </form>
+
+                            <div id="topUserMenu" class="absolute right-0 z-50 mt-2 hidden w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                                <div class="border-b border-slate-100 px-4 py-3">
+                                    <p class="text-xs text-slate-500">Signed in as</p>
+                                    <p class="truncate text-sm font-semibold text-slate-800"><?= esc($userEmail ?? '') ?></p>
+                                </div>
+                                <div class="py-1">
+                                    <?php if ($canUsers): ?>
+                                        <a href="<?= site_url('/users') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-user-gear w-4 text-slate-500"></i><span>Users</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($canCompanies): ?>
+                                        <a href="<?= site_url('/companies') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-building w-4 text-slate-500"></i><span>Companies</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($canCompaniesManage): ?>
+                                        <a href="<?= site_url('/main-company') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-pen-to-square w-4 text-slate-500"></i><span>Profile Settings</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($canAudit): ?>
+                                        <a href="<?= site_url('/audit') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-shield-halved w-4 text-slate-500"></i><span>Audit Log</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($canRbacManage): ?>
+                                        <a href="<?= site_url('/rbac') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-user-shield w-4 text-slate-500"></i><span>Access Control</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($canSeasons): ?>
+                                        <a href="<?= site_url('/seasons') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-calendar-days w-4 text-slate-500"></i><span>Seasons</span>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="border-t border-slate-100 p-1">
+                                    <form method="post" action="<?= site_url('/logout') ?>">
+                                        <?= csrf_field() ?>
+                                        <button class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-rose-700 hover:bg-rose-50" type="submit">
+                                            <i class="fa-solid fa-right-from-bracket w-4"></i><span>Logout</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -544,12 +616,28 @@
         (function() {
             var menuToggle = document.getElementById('menuToggle');
             var sidebar = document.getElementById('sidebar');
-            if (!menuToggle || !sidebar) {
-                return;
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('-translate-x-full');
+                });
             }
-            menuToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('-translate-x-full');
-            });
+
+            var topUserMenuWrap = document.getElementById('topUserMenuWrap');
+            var topUserMenuButton = document.getElementById('topUserMenuButton');
+            var topUserMenu = document.getElementById('topUserMenu');
+
+            if (topUserMenuWrap && topUserMenuButton && topUserMenu) {
+                topUserMenuButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    topUserMenu.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', function(event) {
+                    if (!topUserMenuWrap.contains(event.target)) {
+                        topUserMenu.classList.add('hidden');
+                    }
+                });
+            }
         })();
     </script>
     <script src="<?= base_url('assets/datatable-1.11.5/jquery.dataTables.min.js') ?>"></script>
