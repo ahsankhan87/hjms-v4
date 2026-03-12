@@ -376,7 +376,7 @@
 
 <body class="bg-slate-50 text-slate-800 antialiased">
     <div id="appShell" class="flex h-screen overflow-hidden">
-        <aside id="sidebar" class="w-72 bg-white shadow-lg flex flex-col transition-all duration-300 -translate-x-full md:translate-x-0 fixed md:static inset-y-0 left-0 z-40">
+        <aside id="sidebar" class="w-72 bg-white shadow-lg flex flex-col transition-transform duration-200 ease-out motion-reduce:transition-none will-change-transform -translate-x-full md:translate-x-0 fixed md:static inset-y-0 left-0 z-40">
             <div class="flex h-full flex-col">
                 <?php
                 $mainCompanyProfile = function_exists('main_company') ? (main_company() ?? []) : [];
@@ -510,6 +510,8 @@
             </div>
         </aside>
 
+        <div id="sidebarBackdrop" class="fixed inset-0 z-30 bg-slate-900/40 opacity-0 pointer-events-none transition-opacity duration-200 ease-out md:hidden" aria-hidden="true"></div>
+
         <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
             <header class="bg-white shadow-sm border-b border-gray-100 px-4 md:px-8 py-4">
                 <div class="flex items-center justify-between gap-4">
@@ -616,11 +618,90 @@
         (function() {
             var menuToggle = document.getElementById('menuToggle');
             var sidebar = document.getElementById('sidebar');
+            var sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+            function isMobileViewport() {
+                return window.matchMedia('(max-width: 767px)').matches;
+            }
+
+            function openSidebar() {
+                if (!sidebar) {
+                    return;
+                }
+                sidebar.classList.remove('-translate-x-full');
+                if (sidebarBackdrop) {
+                    sidebarBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+                    sidebarBackdrop.classList.add('opacity-100', 'pointer-events-auto');
+                }
+                document.body.classList.add('overflow-hidden');
+            }
+
+            function closeSidebar() {
+                if (!sidebar) {
+                    return;
+                }
+                if (isMobileViewport()) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+                if (sidebarBackdrop) {
+                    sidebarBackdrop.classList.remove('opacity-100', 'pointer-events-auto');
+                    sidebarBackdrop.classList.add('opacity-0', 'pointer-events-none');
+                }
+                document.body.classList.remove('overflow-hidden');
+            }
+
+            function toggleSidebar() {
+                if (!sidebar || !isMobileViewport()) {
+                    return;
+                }
+
+                if (sidebar.classList.contains('-translate-x-full')) {
+                    openSidebar();
+                } else {
+                    closeSidebar();
+                }
+            }
+
             if (menuToggle && sidebar) {
-                menuToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('-translate-x-full');
+                menuToggle.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    toggleSidebar();
                 });
             }
+
+            if (sidebarBackdrop) {
+                sidebarBackdrop.addEventListener('click', closeSidebar);
+            }
+
+            if (sidebar) {
+                sidebar.addEventListener('click', function(event) {
+                    var target = event.target;
+                    if (isMobileViewport() && target && target.closest('a')) {
+                        closeSidebar();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeSidebar();
+                }
+            });
+
+            window.addEventListener('resize', function() {
+                if (!isMobileViewport()) {
+                    if (sidebarBackdrop) {
+                        sidebarBackdrop.classList.remove('opacity-100', 'pointer-events-auto');
+                        sidebarBackdrop.classList.add('opacity-0', 'pointer-events-none');
+                    }
+                    document.body.classList.remove('overflow-hidden');
+                    if (sidebar) {
+                        sidebar.classList.remove('-translate-x-full');
+                    }
+                } else if (sidebar) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            });
 
             var topUserMenuWrap = document.getElementById('topUserMenuWrap');
             var topUserMenuButton = document.getElementById('topUserMenuButton');

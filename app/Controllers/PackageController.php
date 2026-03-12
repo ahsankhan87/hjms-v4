@@ -88,6 +88,7 @@ class PackageController extends BaseController
             ->select('pf.*, f.departure_airport, f.arrival_airport, f.pnr')
             ->join('flights f', 'f.id = pf.flight_id', 'left')
             ->whereIn('pf.package_id', $packageIds)
+            ->orderBy('pf.departure_at', 'ASC')
             ->orderBy('pf.id', 'ASC')
             ->get()
             ->getResultArray();
@@ -101,6 +102,8 @@ class PackageController extends BaseController
             ->getResultArray();
 
         $transportRows = $db->table('package_transports pt')
+            ->select('pt.*, t.transport_name AS master_transport_name, t.vehicle_type AS master_vehicle_type')
+            ->join('transports t', 't.id = pt.transport_id', 'left')
             ->whereIn('pt.package_id', $packageIds)
             ->orderBy('pt.id', 'ASC')
             ->get()
@@ -143,10 +146,15 @@ class PackageController extends BaseController
             $routeLabel = '-';
             $airlineName = (string) ($row['airline'] ?? '');
             $travelDate = (string) ($row['departure_date'] ?? '');
+            $departureDateTime = (string) ($row['departure_date'] ?? '');
+            $returnArrivalDateTime = (string) ($row['arrival_date'] ?? '');
             $ticketRefs = [];
+            $outboundFlight = null;
+            $returnFlight = null;
 
             if ($linkedFlights !== []) {
                 $firstFlight = $linkedFlights[0];
+                $lastFlight = $linkedFlights[count($linkedFlights) - 1];
                 $departureAirport = (string) ($firstFlight['departure_airport'] ?? '');
                 $arrivalAirport = (string) ($firstFlight['arrival_airport'] ?? '');
                 if ($departureAirport !== '' || $arrivalAirport !== '') {
@@ -159,7 +167,32 @@ class PackageController extends BaseController
                 $departureAt = (string) ($firstFlight['departure_at'] ?? '');
                 if ($departureAt !== '') {
                     $travelDate = date('Y-m-d', strtotime($departureAt));
+                    $departureDateTime = $departureAt;
                 }
+
+                $returnArrivalAt = (string) ($lastFlight['arrival_at'] ?? '');
+                if ($returnArrivalAt !== '') {
+                    $returnArrivalDateTime = $returnArrivalAt;
+                }
+
+                $outboundFlight = [
+                    'airline' => (string) ($firstFlight['airline'] ?? ''),
+                    'flight_no' => (string) ($firstFlight['flight_no'] ?? ''),
+                    'pnr' => trim((string) ($firstFlight['pnr'] ?? '')),
+                    'departure_airport' => (string) ($firstFlight['departure_airport'] ?? ''),
+                    'arrival_airport' => (string) ($firstFlight['arrival_airport'] ?? ''),
+                    'departure_at' => (string) ($firstFlight['departure_at'] ?? ''),
+                    'arrival_at' => (string) ($firstFlight['arrival_at'] ?? ''),
+                ];
+                $returnFlight = [
+                    'airline' => (string) ($lastFlight['airline'] ?? ''),
+                    'flight_no' => (string) ($lastFlight['flight_no'] ?? ''),
+                    'pnr' => trim((string) ($lastFlight['pnr'] ?? '')),
+                    'departure_airport' => (string) ($lastFlight['departure_airport'] ?? ''),
+                    'arrival_airport' => (string) ($lastFlight['arrival_airport'] ?? ''),
+                    'departure_at' => (string) ($lastFlight['departure_at'] ?? ''),
+                    'arrival_at' => (string) ($lastFlight['arrival_at'] ?? ''),
+                ];
 
                 foreach ($linkedFlights as $flight) {
                     $pnr = trim((string) ($flight['pnr'] ?? ''));
@@ -176,28 +209,46 @@ class PackageController extends BaseController
                 (string) ($row['airline_logo'] ?? ''),
                 $airlineName
             );
+            $returnAirlineName = trim((string) ($returnFlight['airline'] ?? $airlineName));
+            $returnAirlineLogo = $this->resolveAirlineLogo('', $returnAirlineName);
 
             $hotelNames = [];
-            $hotelItems = [];
+            $hotelStays = [];
             foreach ($linkedHotels as $hotel) {
                 $hotelId = (int) ($hotel['hotel_id'] ?? 0);
                 $name = trim((string) ($hotel['master_hotel_name'] ?? $hotel['hotel_name'] ?? ''));
                 if ($name !== '') {
                     $hotelNames[] = $name;
-                    $hotelItems[] = [
+                }
+
+                $checkInDate = (string) ($hotel['check_in_date'] ?? '');
+                $checkOutDate = (string) ($hotel['check_out_date'] ?? '');
+                $city = trim((string) ($hotel['city'] ?? ''));
+
+                $nights = 0;
+                $checkInTs = strtotime($checkInDate);
+                $checkOutTs = strtotime($checkOutDate);
+                if ($checkInTs !== false && $checkOutTs !== false && $checkOutTs > $checkInTs) {
+                    $nights = (int) floor(($checkOutTs - $checkInTs) / 86400);
+                }
+
+                if ($name !== '') {
+                    $hotelStays[] = [
                         'id' => $hotelId > 0 ? $hotelId : null,
                         'name' => $name,
+                        'city' => $city,
+                        'nights' => $nights,
                     ];
                 }
             }
             $hotelNames = array_values(array_unique($hotelNames));
 
-            $uniqueHotelItems = [];
-            foreach ($hotelItems as $hotelItem) {
-                $key = ($hotelItem['id'] ?? 'null') . '|' . strtolower((string) ($hotelItem['name'] ?? ''));
-                $uniqueHotelItems[$key] = $hotelItem;
+            $uniqueHotelStays = [];
+            foreach ($hotelStays as $stay) {
+                $key = ($stay['id'] ?? 'null') . '|' . strtolower((string) ($stay['name'] ?? '')) . '|' . strtolower((string) ($stay['city'] ?? '')) . '|' . (int) ($stay['nights'] ?? 0);
+                $uniqueHotelStays[$key] = $stay;
             }
-            $hotelItems = array_values($uniqueHotelItems);
+            $hotelStays = array_values($uniqueHotelStays);
 
             $priceMap = [];
             foreach ($linkedCosts as $cost) {
@@ -208,21 +259,48 @@ class PackageController extends BaseController
                 $priceMap[$type] = (float) ($cost['cost_amount'] ?? 0);
             }
 
+            $transportTypes = [];
+            $transportNames = [];
+            foreach ($linkedTransports as $transport) {
+                $type = strtolower(trim((string) (($transport['vehicle_type'] ?? '') !== ''
+                    ? $transport['vehicle_type']
+                    : ($transport['master_vehicle_type'] ?? ''))));
+                if ($type !== '') {
+                    $transportTypes[] = ucfirst($type);
+                }
+
+                $name = trim((string) (($transport['master_transport_name'] ?? '') !== ''
+                    ? $transport['master_transport_name']
+                    : ($transport['provider_name'] ?? '')));
+                if ($name !== '') {
+                    $transportNames[] = $name;
+                }
+            }
+            $transportTypes = array_values(array_unique($transportTypes));
+            $transportNames = array_values(array_unique($transportNames));
+
             $cards[] = [
                 'id' => $packageId,
                 'code' => (string) ($row['code'] ?? ''),
                 'name' => (string) ($row['name'] ?? ''),
                 'airline_name' => $airlineName,
                 'airline_logo' => $resolvedAirlineLogo,
+                'return_airline_logo' => $returnAirlineLogo,
                 'route_label' => $routeLabel,
                 'ticket_refs' => array_slice(array_values(array_unique($ticketRefs)), 0, 2),
                 'hotel_names' => array_slice($hotelNames, 0, 2),
-                'hotel_items' => array_slice($hotelItems, 0, 2),
+                'hotel_stays' => $hotelStays,
                 'travel_date' => $travelDate,
+                'departure_datetime' => $departureDateTime,
+                'return_arrival_datetime' => $returnArrivalDateTime,
+                'outbound_flight' => $outboundFlight,
+                'return_flight' => $returnFlight,
                 'duration_days' => (int) ($row['duration_days'] ?? 0),
                 'available_seats' => (int) ($row['total_seats'] ?? 0),
                 'price_map' => $priceMap,
                 'transport_count' => count($linkedTransports),
+                'transport_types' => $transportTypes,
+                'transport_names' => array_slice($transportNames, 0, 3),
                 'flight_count' => count($linkedFlights),
                 'hotel_count' => count($linkedHotels),
             ];
@@ -238,14 +316,13 @@ class PackageController extends BaseController
             return $logoUrl;
         }
 
-        $airlineSlug = strtolower(trim((string) preg_replace('/[^a-z0-9]+/i', '-', $airlineName), '-'));
-        if ($airlineSlug === '') {
+        $airlineKey = strtolower((string) preg_replace('/[^a-z0-9]+/i', '', $airlineName));
+        if ($airlineKey === '') {
             return '';
         }
 
-        $relativeBase = 'assets/uploads/airlines/' . $airlineSlug;
-        foreach (['.png', '.jpg', '.jpeg', '.webp', '.svg'] as $extension) {
-            $relativePath = $relativeBase . $extension;
+        foreach (['png', 'jpg', 'jpeg', 'webp', 'svg'] as $ext) {
+            $relativePath = 'assets/uploads/airlines/' . $airlineKey . '.' . $ext;
             $absolutePath = rtrim(FCPATH, '\\/') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
             if (is_file($absolutePath)) {
                 return base_url($relativePath);
