@@ -54,6 +54,32 @@
                         <option value="0" <?= (string) old('is_active', (string) $row['is_active']) === '0' ? 'selected' : '' ?>>Inactive</option>
                     </select>
                 </label>
+                <div class="border-t border-slate-100 pt-3">
+                    <p class="text-xs font-medium text-slate-600 mb-1">Package Includes</p>
+                    <p class="text-xs text-slate-400 mb-2">Uncheck a component if pilgrims arrange it themselves. The voucher will show &ldquo;Self-arranged&rdquo; for excluded components.</p>
+                    <?php
+                    $incHotel     = (int) old('include_hotel',     (string) ($row['include_hotel']     ?? 1));
+                    $incTicket    = (int) old('include_ticket',    (string) ($row['include_ticket']    ?? 1));
+                    $incTransport = (int) old('include_transport', (string) ($row['include_transport'] ?? 1));
+                    ?>
+                    <div class="space-y-1.5">
+                        <input type="hidden" name="include_hotel" value="0">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" id="toggle_hotel" name="include_hotel" value="1" class="rounded border-slate-300" <?= $incHotel ? 'checked' : '' ?>>
+                            <span>Hotel Accommodation</span>
+                        </label>
+                        <input type="hidden" name="include_ticket" value="0">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" id="toggle_ticket" name="include_ticket" value="1" class="rounded border-slate-300" <?= $incTicket ? 'checked' : '' ?>>
+                            <span>Flight / Ticket</span>
+                        </label>
+                        <input type="hidden" name="include_transport" value="0">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" id="toggle_transport" name="include_transport" value="1" class="rounded border-slate-300" <?= $incTransport ? 'checked' : '' ?>>
+                            <span>Transport</span>
+                        </label>
+                    </div>
+                </div>
                 <p class="text-xs text-slate-500">Flights, Hotels, Transports, and package price slabs are managed from the linked sections on the right.</p>
                 <button type="submit" class="btn btn-md btn-primary btn-block">Update Package</button>
             </form>
@@ -139,7 +165,7 @@
                 </div>
             </article>
 
-            <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
+            <article id="hotel-section" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
                 <h3 class="text-lg font-semibold mb-4">Package Hotels</h3>
                 <p class="text-xs text-slate-500 mb-3">Hotels are linked directly from Hotel Management records.</p>
                 <p class="text-xs text-slate-500 mb-3">Sequence rule: next hotel check-in starts from previous hotel check-out, and total stay cannot exceed package end date (<?= esc((string) ($packageStayEnd ?? '-')) ?>).</p>
@@ -213,7 +239,7 @@
                 </div>
             </article>
 
-            <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
+            <article id="flight-section" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
                 <h3 class="text-lg font-semibold mb-4">Package Flights</h3>
                 <form method="post" action="<?= site_url('packages/flights/create') ?>" class="grid gap-3 md:grid-cols-4">
                     <?= csrf_field() ?>
@@ -289,7 +315,7 @@
                 </div>
             </article>
 
-            <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
+            <article id="transport-section" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
                 <h3 class="text-lg font-semibold mb-4">Package Transports</h3>
                 <form method="post" action="<?= site_url('packages/transports/create') ?>" class="grid gap-3 md:grid-cols-4">
                     <?= csrf_field() ?>
@@ -527,5 +553,66 @@
         updateArrivalDate();
         updateHotelDates();
     })();
+
+    // Component include toggles — show/hide the linking sections immediately on change
+    (function() {
+        var toggleMap = {
+            toggle_hotel: document.getElementById('hotel-section'),
+            toggle_ticket: document.getElementById('flight-section'),
+            toggle_transport: document.getElementById('transport-section'),
+        };
+
+        function syncSections() {
+            Object.keys(toggleMap).forEach(function(id) {
+                var cb = document.getElementById(id);
+                var section = toggleMap[id];
+                if (cb && section) {
+                    section.style.display = cb.checked ? '' : 'none';
+                }
+            });
+        }
+
+        Object.keys(toggleMap).forEach(function(id) {
+            var cb = document.getElementById(id);
+            if (cb) {
+                cb.addEventListener('change', syncSections);
+            }
+        });
+
+        syncSections(); // apply current state on page load
+    })();
+
+    // Sync flight override date fields from package departure / arrival dates
+    // (function() {
+    //     var packageForm = document.querySelector('form[action*="packages/update"]');
+    //     if (!packageForm) return;
+
+    //     var pkgDep = packageForm.querySelector('input[name="departure_date"]');
+    //     var pkgArr = packageForm.querySelector('input[name="arrival_date"]');
+
+    //     var flightForm = document.querySelector('form[action*="packages/flights/create"]');
+    //     if (!flightForm) return;
+
+    //     var outboundDep = flightForm.querySelector('input[name="outbound_departure_at"]');
+    //     var outboundArr = flightForm.querySelector('input[name="outbound_arrival_at"]');
+    //     var returnDep = flightForm.querySelector('input[name="return_departure_at"]');
+    //     var returnArr = flightForm.querySelector('input[name="return_arrival_at"]');
+
+    //     function applyPackageDates() {
+    //         if (pkgDep && pkgDep.value) {
+    //             if (outboundDep) outboundDep.value = pkgDep.value;
+    //             if (outboundArr) outboundArr.value = pkgDep.value;
+    //         }
+    //         if (pkgArr && pkgArr.value) {
+    //             if (returnDep) returnDep.value = pkgArr.value;
+    //             if (returnArr) returnArr.value = pkgArr.value;
+    //         }
+    //     }
+
+    //     if (pkgDep) pkgDep.addEventListener('change', applyPackageDates);
+    //     if (pkgArr) pkgArr.addEventListener('change', applyPackageDates);
+
+    //     applyPackageDates();
+    // })();
 </script>
 <?php $this->endSection() ?>

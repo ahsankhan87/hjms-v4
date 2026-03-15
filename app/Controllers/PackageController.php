@@ -298,11 +298,16 @@ class PackageController extends BaseController
                 'duration_days' => (int) ($row['duration_days'] ?? 0),
                 'available_seats' => (int) ($row['total_seats'] ?? 0),
                 'price_map' => $priceMap,
-                'transport_count' => count($linkedTransports),
-                'transport_types' => $transportTypes,
-                'transport_names' => array_slice($transportNames, 0, 3),
-                'flight_count' => count($linkedFlights),
-                'hotel_count' => count($linkedHotels),
+                'transport_count'   => count($linkedTransports),
+                'transport_types'   => $transportTypes,
+                'transport_names'   => array_slice($transportNames, 0, 3),
+                'flight_count'      => count($linkedFlights),
+                'hotel_count'       => count($linkedHotels),
+                'include_hotel'     => (int) ($row['include_hotel']     ?? 1),
+                'include_ticket'    => (int) ($row['include_ticket']    ?? 1),
+                'include_transport' => (int) ($row['include_transport'] ?? 1),
+                'package_departure_date' => (string) ($row['departure_date'] ?? ''),
+                'package_arrival_date'   => (string) ($row['arrival_date']   ?? ''),
             ];
         }
 
@@ -489,186 +494,6 @@ class PackageController extends BaseController
         ]);
     }
 
-    public function saveCostSheet()
-    {
-        if (! db_connect()->tableExists('package_cost_sheets')) {
-            return redirect()->back()->with('error', 'Costing tables are missing. Run latest migration first.');
-        }
-
-        $packageId = (int) $this->request->getPost('package_id');
-        if ($packageId < 1) {
-            return redirect()->to('/packages')->with('error', 'Valid package ID is required for costing.');
-        }
-
-        $payload = [
-            'visa_sar' => (string) $this->request->getPost('visa_sar'),
-            'visa_ex_rate' => (string) $this->request->getPost('visa_ex_rate'),
-            'transport_sar' => (string) $this->request->getPost('transport_sar'),
-            'transport_ex_rate' => (string) $this->request->getPost('transport_ex_rate'),
-            'ticket_pkr' => (string) $this->request->getPost('ticket_pkr'),
-            'makkah_room_rate_sar' => (string) $this->request->getPost('makkah_room_rate_sar'),
-            'makkah_ex_rate' => (string) $this->request->getPost('makkah_ex_rate'),
-            'makkah_nights' => (string) $this->request->getPost('makkah_nights'),
-            'madina_room_rate_sar' => (string) $this->request->getPost('madina_room_rate_sar'),
-            'madina_ex_rate' => (string) $this->request->getPost('madina_ex_rate'),
-            'madina_nights' => (string) $this->request->getPost('madina_nights'),
-            'other_pkr' => (string) $this->request->getPost('other_pkr'),
-            'profit_pkr' => (string) $this->request->getPost('profit_pkr'),
-            'notes' => trim((string) $this->request->getPost('notes')),
-            'supplier_visa_id' => (string) $this->request->getPost('supplier_visa_id'),
-            'supplier_transport_id' => (string) $this->request->getPost('supplier_transport_id'),
-            'supplier_ticket_id' => (string) $this->request->getPost('supplier_ticket_id'),
-            'supplier_makkah_id' => (string) $this->request->getPost('supplier_makkah_id'),
-            'supplier_madina_id' => (string) $this->request->getPost('supplier_madina_id'),
-        ];
-
-        if (! $this->validateData($payload, [
-            'visa_sar' => 'required|decimal',
-            'visa_ex_rate' => 'required|decimal',
-            'transport_sar' => 'required|decimal',
-            'transport_ex_rate' => 'required|decimal',
-            'ticket_pkr' => 'required|decimal',
-            'makkah_room_rate_sar' => 'required|decimal',
-            'makkah_ex_rate' => 'required|decimal',
-            'makkah_nights' => 'required|integer|greater_than_equal_to[0]',
-            'madina_room_rate_sar' => 'required|decimal',
-            'madina_ex_rate' => 'required|decimal',
-            'madina_nights' => 'required|integer|greater_than_equal_to[0]',
-            'other_pkr' => 'permit_empty|decimal',
-            'profit_pkr' => 'required|decimal',
-            'notes' => 'permit_empty|max_length[255]',
-            'supplier_visa_id' => 'permit_empty|integer',
-            'supplier_transport_id' => 'permit_empty|integer',
-            'supplier_ticket_id' => 'permit_empty|integer',
-            'supplier_makkah_id' => 'permit_empty|integer',
-            'supplier_madina_id' => 'permit_empty|integer',
-        ])) {
-            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
-        }
-
-        $calc = $this->calculateCostSheet($payload);
-
-        $db = db_connect();
-        $db->transStart();
-
-        $sheetModel = new PackageCostSheetModel();
-        $lastVersion = (int) ($sheetModel->selectMax('version_no')->where('package_id', $packageId)->first()['version_no'] ?? 0);
-        $versionNo = $lastVersion + 1;
-
-        $sheetModel->insert([
-            'package_id' => $packageId,
-            'version_no' => $versionNo,
-            'is_published' => 0,
-            'visa_sar' => (float) $payload['visa_sar'],
-            'visa_ex_rate' => (float) $payload['visa_ex_rate'],
-            'transport_sar' => (float) $payload['transport_sar'],
-            'transport_ex_rate' => (float) $payload['transport_ex_rate'],
-            'ticket_pkr' => (float) $payload['ticket_pkr'],
-            'makkah_room_rate_sar' => (float) $payload['makkah_room_rate_sar'],
-            'makkah_ex_rate' => (float) $payload['makkah_ex_rate'],
-            'makkah_nights' => (int) $payload['makkah_nights'],
-            'madina_room_rate_sar' => (float) $payload['madina_room_rate_sar'],
-            'madina_ex_rate' => (float) $payload['madina_ex_rate'],
-            'madina_nights' => (int) $payload['madina_nights'],
-            'other_pkr' => $payload['other_pkr'] !== '' ? (float) $payload['other_pkr'] : 0,
-            'profit_pkr' => (float) $payload['profit_pkr'],
-            'notes' => $payload['notes'] !== '' ? $payload['notes'] : null,
-            'created_by' => session('user_id') ? (int) session('user_id') : null,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        $sheetId = (int) $sheetModel->getInsertID();
-
-        $itemModel = new PackageCostSheetItemModel();
-        $ledgerModel = new SupplierLedgerEntryModel();
-
-        $components = [
-            ['code' => 'visa', 'supplier' => $payload['supplier_visa_id'], 'amount' => $calc['componentTotals']['visa']],
-            ['code' => 'transport', 'supplier' => $payload['supplier_transport_id'], 'amount' => $calc['componentTotals']['transport']],
-            ['code' => 'ticket', 'supplier' => $payload['supplier_ticket_id'], 'amount' => $calc['componentTotals']['ticket']],
-            ['code' => 'makkah', 'supplier' => $payload['supplier_makkah_id'], 'amount' => $calc['componentTotals']['makkah']],
-            ['code' => 'madina', 'supplier' => $payload['supplier_madina_id'], 'amount' => $calc['componentTotals']['madina']],
-        ];
-
-        foreach ($components as $component) {
-            $supplierId = $component['supplier'] !== '' ? (int) $component['supplier'] : null;
-
-            $itemModel->insert([
-                'cost_sheet_id' => $sheetId,
-                'component_code' => $component['code'],
-                'supplier_id' => $supplierId,
-                'purchase_amount_pkr' => (float) $component['amount'],
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
-
-            if ($supplierId !== null && $component['amount'] > 0 && $db->tableExists('supplier_ledger_entries')) {
-                $ledgerModel->insert([
-                    'supplier_id' => $supplierId,
-                    'entry_date' => date('Y-m-d'),
-                    'entry_type' => 'bill',
-                    'debit_amount' => (float) $component['amount'],
-                    'credit_amount' => 0,
-                    'reference_type' => 'package_cost_sheet',
-                    'reference_id' => $sheetId,
-                    'description' => 'Package #' . $packageId . ' Cost Sheet V' . $versionNo . ' (' . strtoupper($component['code']) . ')',
-                    'created_at' => date('Y-m-d H:i:s'),
-                ]);
-            }
-        }
-
-        $lineModel = new PackagePriceLineModel();
-        foreach ($calc['lines'] as $sharingType => $values) {
-            $lineModel->insert([
-                'cost_sheet_id' => $sheetId,
-                'sharing_type' => $sharingType,
-                'total_cost_pkr' => (float) $values['total_cost_pkr'],
-                'sell_price_pkr' => (float) $values['sell_price_pkr'],
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
-        }
-
-        $db->transComplete();
-
-        if (! $db->transStatus()) {
-            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Failed to save cost sheet.');
-        }
-
-        return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package cost sheet saved (version ' . $versionNo . ').');
-    }
-
-    public function publishCostSheet()
-    {
-        if (! db_connect()->tableExists('package_cost_sheets')) {
-            return redirect()->back()->with('error', 'Costing tables are missing. Run latest migration first.');
-        }
-
-        $packageId = (int) $this->request->getPost('package_id');
-        $sheetId = (int) $this->request->getPost('cost_sheet_id');
-
-        if ($packageId < 1 || $sheetId < 1) {
-            return redirect()->to('/packages')->with('error', 'Valid package and cost sheet IDs are required.');
-        }
-
-        $sheetModel = new PackageCostSheetModel();
-        $sheet = $sheetModel->where('id', $sheetId)->where('package_id', $packageId)->first();
-        if (empty($sheet)) {
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Cost sheet not found.');
-        }
-
-        $db = db_connect();
-        $db->transStart();
-        $sheetModel->where('package_id', $packageId)->set(['is_published' => 0])->update();
-        $sheetModel->update($sheetId, ['is_published' => 1, 'updated_at' => date('Y-m-d H:i:s')]);
-        $db->transComplete();
-
-        if (! $db->transStatus()) {
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Failed to publish cost sheet.');
-        }
-
-        return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Cost sheet published successfully.');
-    }
-
     public function createPackage()
     {
         $seasonId = $this->activeSeasonId();
@@ -745,14 +570,17 @@ class PackageController extends BaseController
         };
 
         $payload = [
-            'code'           => (string) $this->request->getPost('code'),
-            'name'           => (string) $this->request->getPost('name'),
-            'package_type'   => (string) $this->request->getPost('package_type'),
-            'duration_days'  => (string) $this->request->getPost('duration_days'),
-            'departure_date' => $normDatetime((string) $this->request->getPost('departure_date')),
-            'arrival_date'   => $normDatetime((string) $this->request->getPost('arrival_date')),
-            'notes'          => (string) $this->request->getPost('notes'),
-            'is_active'      => (string) $this->request->getPost('is_active'),
+            'code'              => (string) $this->request->getPost('code'),
+            'name'              => (string) $this->request->getPost('name'),
+            'package_type'      => (string) $this->request->getPost('package_type'),
+            'duration_days'     => (string) $this->request->getPost('duration_days'),
+            'departure_date'    => $normDatetime((string) $this->request->getPost('departure_date')),
+            'arrival_date'      => $normDatetime((string) $this->request->getPost('arrival_date')),
+            'notes'             => (string) $this->request->getPost('notes'),
+            'is_active'         => (string) $this->request->getPost('is_active'),
+            'include_hotel'     => (string) ($this->request->getPost('include_hotel') ?? ''),
+            'include_ticket'    => (string) ($this->request->getPost('include_ticket') ?? ''),
+            'include_transport' => (string) ($this->request->getPost('include_transport') ?? ''),
         ];
 
         if ($packageId < 1) {
@@ -764,10 +592,13 @@ class PackageController extends BaseController
             'name'          => 'permit_empty|min_length[3]|max_length[180]',
             'package_type'  => 'permit_empty|in_list[hajj,umrah]',
             'duration_days' => 'permit_empty|integer|greater_than[0]',
-            'departure_date' => 'permit_empty',
-            'arrival_date'  => 'permit_empty',
-            'notes'         => 'permit_empty',
-            'is_active'     => 'permit_empty|in_list[0,1]',
+            'departure_date'    => 'permit_empty',
+            'arrival_date'      => 'permit_empty',
+            'notes'             => 'permit_empty',
+            'is_active'         => 'permit_empty|in_list[0,1]',
+            'include_hotel'     => 'permit_empty|in_list[0,1]',
+            'include_ticket'    => 'permit_empty|in_list[0,1]',
+            'include_transport' => 'permit_empty|in_list[0,1]',
         ])) {
             return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -805,6 +636,42 @@ class PackageController extends BaseController
 
             if (isset($data['is_active'])) {
                 $data['is_active'] = (int) $data['is_active'];
+            }
+            if (isset($data['include_hotel'])) {
+                $data['include_hotel'] = (int) $data['include_hotel'];
+            }
+            if (isset($data['include_ticket'])) {
+                $data['include_ticket'] = (int) $data['include_ticket'];
+            }
+            if (isset($data['include_transport'])) {
+                $data['include_transport'] = (int) $data['include_transport'];
+            }
+
+            // Activation guard: when activating a package, verify included components have links
+            if (isset($data['is_active']) && $data['is_active'] === 1) {
+                $dbCheck = db_connect();
+                $effectiveIncludeHotel     = (int) ($data['include_hotel']     ?? $existing['include_hotel']     ?? 1);
+                $effectiveIncludeTicket    = (int) ($data['include_ticket']    ?? $existing['include_ticket']    ?? 1);
+                $effectiveIncludeTransport = (int) ($data['include_transport'] ?? $existing['include_transport'] ?? 1);
+
+                if ($effectiveIncludeHotel === 1) {
+                    $hotelCount = $dbCheck->table('package_hotels')->where('package_id', $packageId)->countAllResults();
+                    if ($hotelCount < 1) {
+                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes hotel accommodation but no hotel is linked. Please attach a hotel or uncheck "Hotel Accommodation" in Package Includes.');
+                    }
+                }
+                if ($effectiveIncludeTicket === 1) {
+                    $flightCount = $dbCheck->table('package_flights')->where('package_id', $packageId)->countAllResults();
+                    if ($flightCount < 1) {
+                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes flights but no flight is linked. Please attach flights or uncheck "Flight / Ticket" in Package Includes.');
+                    }
+                }
+                if ($effectiveIncludeTransport === 1) {
+                    $transportCount = $dbCheck->table('package_transports')->where('package_id', $packageId)->countAllResults();
+                    if ($transportCount < 1) {
+                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes transport but no transport is linked. Please attach a transport or uncheck "Transport" in Package Includes.');
+                    }
+                }
             }
 
             if ($data !== []) {

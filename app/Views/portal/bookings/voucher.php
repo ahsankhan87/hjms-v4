@@ -443,9 +443,21 @@
                         <td><?= esc((string) count($pilgrimRows)) ?></td>
                         <td>0</td>
                         <td>0</td>
-                        <td><?= esc((string) ($booking['arrival_date'] ?? '')) ?></td>
-                        <td><?= esc((string) ($booking['departure_date'] ?? '')) ?></td>
-                        <td><?= esc((string) ($booking['duration_days'] ?? '')) ?></td>
+                        <?php
+                        $arrRaw = (string) ($booking['package_departure_date'] ?? '');
+                        $depRaw = (string) ($booking['package_arrival_date'] ?? '');
+                        $arrTs  = $arrRaw !== '' ? strtotime($arrRaw) : false;
+                        $depTs  = $depRaw !== '' ? strtotime($depRaw) : false;
+                        $arrFmt = $arrTs ? (strlen($arrRaw) > 10 ? date('d M Y H:i', $arrTs) : date('d M Y', $arrTs)) : '—';
+                        $depFmt = $depTs ? (strlen($depRaw) > 10 ? date('d M Y H:i', $depTs) : date('d M Y', $depTs)) : '—';
+                        $nights = ($arrTs && $depTs && $depTs > $arrTs)
+                            ? (int) floor(($depTs - $arrTs) / 86400)
+                            : (int) ($booking['duration_days'] ?? 0);
+                        $nightsFmt = $nights > 0 ? (string) $nights : '—';
+                        ?>
+                        <td><?= esc($arrFmt) ?></td>
+                        <td><?= esc($depFmt) ?></td>
+                        <td><?= esc($nightsFmt) ?></td>
                         <td><?= esc((string) ($booking['package_name'] ?? '')) ?></td>
                         <td><?= esc((string) ($booking['package_code'] ?? '')) ?></td>
                     </tr>
@@ -480,6 +492,15 @@
                         </tr>
                     </tbody>
                 </table>
+            <?php elseif (!($includeTicket ?? true)): ?>
+                <div class="section-title">Flight To KSA</div>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td colspan="8" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
+                        </tr>
+                    </tbody>
+                </table>
             <?php endif; ?>
 
             <?php if (!empty($returnFlight)): ?>
@@ -507,6 +528,15 @@
                             <td><?= esc(!empty($returnFlight['arrival_at']) ? date('d M Y', strtotime((string) $returnFlight['arrival_at'])) : '') ?></td>
                             <td><?= esc(!empty($returnFlight['arrival_at']) ? date('H:i:s', strtotime((string) $returnFlight['arrival_at'])) : '') ?></td>
                             <td><?= esc((string) ($returnFlight['pnr'] ?? '')) ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            <?php elseif (!($includeTicket ?? true)): ?>
+                <div class="section-title">Return Flight From KSA</div>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td colspan="8" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
                         </tr>
                     </tbody>
                 </table>
@@ -562,6 +592,15 @@
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            <?php elseif (!($includeHotel ?? true)): ?>
+                <div class="section-title">Accommodation Detail</div>
+                <table class="hotel-table">
+                    <tbody>
+                        <tr>
+                            <td colspan="7" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
+                        </tr>
+                    </tbody>
+                </table>
             <?php endif; ?>
 
             <?php if (!empty($transportRows)): ?>
@@ -592,6 +631,15 @@
                                 <td><?= esc($ziaratLabel) ?></td>
                             </tr>
                         <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php elseif (!($includeTransport ?? true)): ?>
+                <div class="section-title">Transportation Detail</div>
+                <table>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
+                        </tr>
                     </tbody>
                 </table>
             <?php endif; ?>

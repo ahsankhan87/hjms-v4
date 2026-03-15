@@ -31,6 +31,7 @@ $routes->get('pilgrims/add', 'PilgrimController::add', ['filter' => 'webauth:pil
 $routes->get('pilgrims/(:num)/edit', 'PilgrimController::edit/$1', ['filter' => 'webauth:pilgrims.manage']);
 $routes->get('bookings', 'BookingController::index', ['filter' => 'webauth:bookings.view']);
 $routes->get('bookings/add', 'BookingController::add', ['filter' => 'webauth:bookings.manage']);
+$routes->get('bookings/(:num)', 'BookingController::show/$1', ['filter' => 'webauth:bookings.view']);
 $routes->get('bookings/(:num)/edit', 'BookingController::edit/$1', ['filter' => 'webauth:bookings.manage']);
 $routes->get('bookings/(:num)/voucher', 'BookingController::voucher/$1', ['filter' => 'webauth:bookings.view']);
 $routes->post('bookings', 'BookingController::createBooking', ['filter' => 'webauth:bookings.manage']);

@@ -1,46 +1,68 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
-    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
+<main class="space-y-5 max-w-4xl">
 
-    <section class="max-w-5xl">
-        <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div class="flex items-center justify-between gap-3">
-                <h2 class="text-sm font-semibold text-slate-900">Add Booking</h2>
-                <a href="<?= site_url('/bookings') ?>" class="btn btn-sm btn-secondary">Back to List</a>
+    <?php if (!empty($success)): ?>
+        <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm">
+            <i class="fa-solid fa-circle-check shrink-0"></i> <?= esc($success) ?>
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($error)): ?>
+        <div class="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 shadow-sm">
+            <i class="fa-solid fa-circle-exclamation shrink-0"></i> <?= esc($error) ?>
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($errors)): ?>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
+            <div class="flex items-center gap-2 font-semibold mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Please fix the following:</div>
+            <?php foreach ($errors as $err): ?><div class="ml-5 list-item"><?= esc($err) ?></div><?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" action="<?= site_url('/bookings') ?>">
+        <?= csrf_field() ?>
+        <input type="hidden" name="return_url" value="/bookings/add">
+
+        <!-- ── Package & Tier ─────────────────────────────────── -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+            <div class="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                <i class="fa-solid fa-box-open text-emerald-600"></i>
+                <h3 class="text-sm font-semibold text-slate-800">Package Details</h3>
             </div>
-
-            <form method="post" action="<?= site_url('/bookings') ?>" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <?= csrf_field() ?>
-                <input type="hidden" name="return_url" value="/bookings/add">
-
+            <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="text-sm font-medium">Package</label>
-                    <select id="booking-package" name="package_id" required class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <option value="">Select package</option>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Package <span class="text-rose-500">*</span></label>
+                    <select id="booking-package" name="package_id" required class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="">Select package…</option>
                         <?php foreach ($packages as $item): ?>
-                            <option value="<?= esc($item['id']) ?>" <?= (string) old('package_id', (string) ($selectedPackageId ?? '')) === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?> (<?= esc($item['code']) ?>)</option>
+                            <option value="<?= esc($item['id']) ?>" <?= (string) old('package_id', (string) ($selectedPackageId ?? '')) === (string) $item['id'] ? 'selected' : '' ?>>
+                                <?= esc($item['name']) ?> (<?= esc($item['code']) ?>)
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <?php $tierValue = (string) old('pricing_tier', 'sharing'); ?>
                 <div>
-                    <label class="text-sm font-medium">Pricing Tier</label>
-                    <select id="booking-pricing-tier" name="pricing_tier" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Pricing Tier <span class="text-rose-500">*</span></label>
+                    <div class="grid grid-cols-4 gap-2" id="tier-buttons">
+                        <?php $tierValue = (string) old('pricing_tier', 'sharing'); ?>
                         <?php foreach (($pricingTiers ?? ['sharing', 'quad', 'triple', 'double']) as $tier): ?>
-                            <option value="<?= esc($tier) ?>" <?= $tierValue === $tier ? 'selected' : '' ?>><?= esc(ucfirst($tier)) ?></option>
+                            <label class="tier-btn relative cursor-pointer rounded-lg border-2 py-2 text-center text-xs font-semibold transition-all
+                                <?= $tierValue === $tier ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300' ?>">
+                                <input type="radio" name="pricing_tier" value="<?= esc($tier) ?>" class="sr-only" <?= $tierValue === $tier ? 'checked' : '' ?>>
+                                <?= esc(ucfirst($tier)) ?>
+                                <span class="tier-price block text-[10px] font-normal text-slate-400 mt-0.5" data-tier="<?= esc($tier) ?>">—</span>
+                                <span class="tier-seats block text-[10px] font-medium mt-0.5" data-tier-seats="<?= esc($tier) ?>"></span>
+                            </label>
                         <?php endforeach; ?>
-                    </select>
+                    </div>
                 </div>
 
-                <?php $statusValue = old('status', 'draft'); ?>
                 <div>
-                    <label class="text-sm font-medium">Status</label>
-                    <select name="status" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                    <select name="status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <?php $statusValue = old('status', 'draft'); ?>
                         <option value="draft" <?= $statusValue === 'draft' ? 'selected' : '' ?>>Draft</option>
                         <option value="confirmed" <?= $statusValue === 'confirmed' ? 'selected' : '' ?>>Confirmed</option>
                         <option value="cancelled" <?= $statusValue === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
@@ -48,8 +70,18 @@
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium">Agent (optional)</label>
-                    <select name="agent_id" class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Shirka Company <span class="text-rose-500">*</span></label>
+                    <select name="company_id" required class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="">Select shirka company…</option>
+                        <?php foreach (($companies ?? []) as $item): ?>
+                            <option value="<?= esc($item['id']) ?>" <?= (string) old('company_id') === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Agent <span class="text-slate-400 font-normal">(optional)</span></label>
+                    <select name="agent_id" class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">None</option>
                         <?php foreach ($agents as $item): ?>
                             <option value="<?= esc($item['id']) ?>" <?= (string) old('agent_id') === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?></option>
@@ -58,110 +90,226 @@
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium">Branch (optional)</label>
-                    <select name="branch_id" class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Branch <span class="text-slate-400 font-normal">(optional)</span></label>
+                    <select name="branch_id" class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">None</option>
                         <?php foreach ($branches as $item): ?>
                             <option value="<?= esc($item['id']) ?>" <?= (string) old('branch_id') === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
+            </div>
+        </div>
 
-                <div>
-                    <label class="text-sm font-medium">Shirka Company</label>
-                    <select name="company_id" required class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <option value="">Select shirka company</option>
-                        <?php foreach (($companies ?? []) as $item): ?>
-                            <option value="<?= esc($item['id']) ?>" <?= (string) old('company_id') === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
+        <!-- ── Pilgrims ───────────────────────────────────────── -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+            <div class="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                <i class="fa-solid fa-users text-emerald-600"></i>
+                <h3 class="text-sm font-semibold text-slate-800">Select Pilgrims</h3>
+            </div>
+            <div class="p-5">
                 <?php $oldPilgrimIds = array_map('intval', (array) old('pilgrim_ids')); ?>
-                <div class="md:col-span-2">
-                    <label class="text-sm font-medium">Select Pilgrims</label>
-                    <select id="booking-pilgrims" name="pilgrim_ids[]" multiple required class="js-select2 mt-1 h-36 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <?php foreach ($pilgrims as $item): ?>
-                            <option value="<?= esc($item['id']) ?>" <?= in_array((int) $item['id'], $oldPilgrimIds, true) ? 'selected' : '' ?>>#<?= esc($item['id']) ?> - <?= esc($item['first_name'] . ' ' . $item['last_name']) ?><?= !empty($item['passport_no']) ? ' (' . esc($item['passport_no']) . ')' : '' ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="mt-1 text-xs text-slate-500">Hold Ctrl/Cmd to select multiple pilgrims.</p>
-                </div>
+                <select id="booking-pilgrims" name="pilgrim_ids[]" multiple required class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <?php foreach ($pilgrims as $item): ?>
+                        <option value="<?= esc($item['id']) ?>" <?= in_array((int) $item['id'], $oldPilgrimIds, true) ? 'selected' : '' ?>>
+                            #<?= esc($item['id']) ?> — <?= esc($item['first_name'] . ' ' . $item['last_name']) ?><?= !empty($item['passport_no']) ? ' (' . esc($item['passport_no']) . ')' : '' ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="mt-2 text-xs text-slate-400"><i class="fa-solid fa-circle-info mr-1"></i>Only pilgrims not in a confirmed booking are shown.</p>
+            </div>
+        </div>
 
-                <div class="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <h4 class="text-sm font-semibold text-slate-800">Booking Financial Summary</h4>
-                    <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <div>
-                            <label class="text-xs font-medium text-slate-600">Unit Price</label>
-                            <input id="booking-unit-price" type="text" readonly class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value="0.00">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-slate-600">Pilgrim Count</label>
-                            <input id="booking-pilgrim-count" type="text" readonly class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value="0">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-slate-600">Estimated Total</label>
-                            <input id="booking-estimated-total" type="text" readonly class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold" value="0.00">
-                        </div>
-                    </div>
+        <!-- ── Financial Summary ──────────────────────────────── -->
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl shadow-md overflow-hidden mb-4">
+            <div class="px-5 py-3 border-b border-white/10 flex items-center gap-2">
+                <i class="fa-solid fa-calculator text-white/80"></i>
+                <h3 class="text-sm font-semibold text-white">Financial Summary</h3>
+            </div>
+            <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center border border-white/20">
+                    <div class="text-xs text-white/70 mb-1">Unit Price</div>
+                    <div id="booking-unit-price" class="text-lg font-bold text-white">—</div>
                 </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center border border-white/20">
+                    <div class="text-xs text-white/70 mb-1">Pilgrims</div>
+                    <div id="booking-pilgrim-count" class="text-lg font-bold text-white">0</div>
+                </div>
+                <div id="seats-stat" class="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center border border-white/20 hidden">
+                    <div class="text-xs text-white/70 mb-1">Seats Left</div>
+                    <div id="booking-seats-left" class="text-lg font-bold text-white">—</div>
+                    <div id="booking-seats-total" class="text-[10px] text-white/50 mt-0.5"></div>
+                </div>
+                <div class="bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center border border-white/30">
+                    <div class="text-xs text-white/80 mb-1 font-medium">Estimated Total</div>
+                    <div id="booking-estimated-total" class="text-xl font-extrabold text-white">—</div>
+                </div>
+            </div>
+            <div id="pricing-warning" class="hidden px-5 pb-4">
+                <div class="rounded-lg bg-amber-400/20 border border-amber-300/40 px-3 py-2 text-xs text-amber-100 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    No price configured for the selected package &amp; tier. Please add a cost in Package Management.
+                </div>
+            </div>
+            <div id="seats-warning" class="hidden px-5 pb-4">
+                <div class="rounded-lg bg-rose-500/30 border border-rose-300/40 px-3 py-2 text-xs text-rose-100 flex items-center gap-2">
+                    <i class="fa-solid fa-ban"></i>
+                    <span id="seats-warning-text">Seats limit exceeded. Reduce the number of pilgrims.</span>
+                </div>
+            </div>
+        </div>
 
-                <div class="md:col-span-2">
-                    <label class="text-sm font-medium">Remarks</label>
-                    <textarea name="remarks" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('remarks')) ?></textarea>
-                </div>
+        <!-- ── Remarks & Submit ───────────────────────────────── -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+            <div class="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                <i class="fa-solid fa-comment-dots text-emerald-600"></i>
+                <h3 class="text-sm font-semibold text-slate-800">Remarks</h3>
+            </div>
+            <div class="p-5">
+                <textarea name="remarks" rows="3" placeholder="Optional notes about this booking…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"><?= esc(old('remarks')) ?></textarea>
+            </div>
+        </div>
 
-                <div class="md:col-span-2">
-                    <button type="submit" class="btn btn-md btn-primary">Create Booking</button>
-                </div>
-            </form>
-        </article>
-    </section>
+        <div class="flex items-center gap-3">
+            <button type="submit" id="submit-btn" class="btn btn-md btn-primary px-8">
+                <i class="fa-solid fa-floppy-disk mr-2"></i>Create Booking
+            </button>
+            <a href="<?= site_url('/bookings') ?>" class="btn btn-md btn-secondary">Cancel</a>
+        </div>
+    </form>
 </main>
-<script>
-    (function() {
-        const pricingByPackage = <?= json_encode($packagePricingOptions ?? [], JSON_UNESCAPED_UNICODE) ?>;
-        const packageInput = document.getElementById('booking-package');
-        const tierInput = document.getElementById('booking-pricing-tier');
-        const pilgrimInput = document.getElementById('booking-pilgrims');
-        const unitPriceInput = document.getElementById('booking-unit-price');
-        const pilgrimCountInput = document.getElementById('booking-pilgrim-count');
-        const totalInput = document.getElementById('booking-estimated-total');
 
-        function selectedPilgrimCount() {
-            if (!pilgrimInput) return 0;
-            return Array.prototype.filter.call(pilgrimInput.options, function(opt) {
-                return opt.selected;
-            }).length;
+<script>
+    (function($) {
+        const pricingByPackage = <?= json_encode($packagePricingOptions ?? [], JSON_UNESCAPED_UNICODE) ?>;
+        const seatsLimit = <?= json_encode($seatsLimitByPackage ?? [], JSON_UNESCAPED_UNICODE) ?>;
+        const bookedSeats = <?= json_encode($bookedSeatsCountByPackage ?? [], JSON_UNESCAPED_UNICODE) ?>;
+
+        const $package = $('#booking-package');
+        const $pilgrims = $('#booking-pilgrims');
+        const $tiers = $('input[name="pricing_tier"]');
+
+        const fmt = function(n) {
+            return n > 0 ? 'PKR ' + n.toLocaleString('en-PK', {
+                minimumFractionDigits: 0
+            }) : '—';
+        };
+
+        function selectedTier() {
+            return $('input[name="pricing_tier"]:checked').val() || '';
         }
 
-        function unitPriceForSelection() {
-            const pkg = packageInput ? packageInput.value : '';
-            const tier = tierInput ? tierInput.value : '';
-            if (!pkg || !tier) {
-                return 0;
-            }
-            if (!pricingByPackage[pkg] || typeof pricingByPackage[pkg][tier] === 'undefined') {
-                return 0;
-            }
-            const value = Number(pricingByPackage[pkg][tier]);
-            return isNaN(value) ? 0 : value;
+        function unitPrice() {
+            const pkg = $package.val();
+            const tier = selectedTier();
+            if (!pkg || !tier) return 0;
+            const map = pricingByPackage[pkg];
+            if (!map || typeof map[tier] === 'undefined') return 0;
+            const v = Number(map[tier]);
+            return isNaN(v) ? 0 : v;
+        }
+
+        function pilgrimCount() {
+            const val = $pilgrims.val();
+            return Array.isArray(val) ? val.length : (val ? 1 : 0);
         }
 
         function refreshSummary() {
-            const unit = unitPriceForSelection();
-            const count = selectedPilgrimCount();
+            const unit = unitPrice();
+            const count = pilgrimCount();
             const total = unit * count;
+            const pkg = $package.val();
+            const tier = selectedTier();
 
-            if (unitPriceInput) unitPriceInput.value = unit.toFixed(2);
-            if (pilgrimCountInput) pilgrimCountInput.value = String(count);
-            if (totalInput) totalInput.value = total.toFixed(2);
+            $('#booking-unit-price').text(fmt(unit));
+            $('#booking-pilgrim-count').text(count);
+            $('#booking-estimated-total').text(total > 0 ? fmt(total) : '—');
+
+            // Warn if package selected but no price
+            const hasPkg = !!pkg;
+            const hasPrice = unit > 0;
+            $('#pricing-warning').toggleClass('hidden', !(hasPkg && !hasPrice));
+
+            // ── Seats ────────────────────────────────────────────────────────
+            const limitMap = pkg ? (seatsLimit[pkg] || {}) : {};
+            const bookedMap = pkg ? (bookedSeats[pkg] || {}) : {};
+            const tierSelected = !!pkg && !!tier;
+
+            const rawCap = (tierSelected && limitMap[tier] !== undefined) ? limitMap[tier] : null;
+            const noSeatsConfigured = tierSelected && (rawCap === null || rawCap === 0);
+            const seatCap = (rawCap !== null && rawCap > 0) ? rawCap : null;
+
+            const alreadyBook = (tierSelected && bookedMap[tier] !== undefined) ? bookedMap[tier] : 0;
+            const remaining = seatCap !== null ? Math.max(0, seatCap - alreadyBook) : null;
+            const exceeded = remaining !== null && count > remaining;
+            const blocked = noSeatsConfigured || exceeded;
+
+            // Seats stat box
+            if (seatCap !== null) {
+                $('#seats-stat').removeClass('hidden');
+                $('#booking-seats-left').text(remaining);
+                $('#booking-seats-total').text('of ' + seatCap + ' total');
+                const ratio = seatCap > 0 ? remaining / seatCap : 0;
+                $('#booking-seats-left')
+                    .toggleClass('text-rose-200', ratio < 0.2)
+                    .toggleClass('text-amber-200', ratio >= 0.2 && ratio < 0.5)
+                    .toggleClass('text-white', ratio >= 0.5);
+            } else {
+                $('#seats-stat').addClass('hidden');
+            }
+
+            // Seats warning
+            if (noSeatsConfigured) {
+                $('#seats-warning-text').text('No seats configured for this package & tier. Please set a seats limit in Package Management before booking.');
+                $('#seats-warning').removeClass('hidden');
+            } else if (exceeded) {
+                $('#seats-warning-text').text(
+                    'Only ' + remaining + ' seat(s) left for this tier. You selected ' + count + ' pilgrim(s).');
+                $('#seats-warning').removeClass('hidden');
+            } else {
+                $('#seats-warning').addClass('hidden');
+            }
+
+            // Disable submit when no seats configured or limit exceeded
+            $('#submit-btn').prop('disabled', blocked).toggleClass('opacity-50 cursor-not-allowed', blocked);
+
+            // Update tier pills with prices AND seats for selected package
+            const priceMap = pkg ? (pricingByPackage[pkg] || {}) : {};
+            $('[data-tier]').each(function() {
+                const t = $(this).data('tier');
+                $(this).text(priceMap[t] ? 'PKR ' + Number(priceMap[t]).toLocaleString('en-PK') : '—');
+            });
+            $('[data-tier-seats]').each(function() {
+                const t = $(this).data('tier-seats');
+                const cap = (pkg && limitMap[t] !== undefined) ? limitMap[t] : null;
+                const bkd = (pkg && bookedMap[t] !== undefined) ? bookedMap[t] : 0;
+                if (cap !== null) {
+                    const left = Math.max(0, cap - bkd);
+                    const ratio = cap > 0 ? left / cap : 0;
+                    $(this).text(left + ' seats left')
+                        .removeClass('text-emerald-600 text-amber-500 text-rose-500')
+                        .addClass(ratio < 0.2 ? 'text-rose-500' : ratio < 0.5 ? 'text-amber-500' : 'text-emerald-600');
+                } else {
+                    $(this).text('');
+                }
+            });
         }
 
-        if (packageInput) packageInput.addEventListener('change', refreshSummary);
-        if (tierInput) tierInput.addEventListener('change', refreshSummary);
-        if (pilgrimInput) pilgrimInput.addEventListener('change', refreshSummary);
+        // Tier pill visual toggle
+        $(document).on('change', 'input[name="pricing_tier"]', function() {
+            $('.tier-btn').removeClass('border-emerald-500 bg-emerald-50 text-emerald-700')
+                .addClass('border-slate-200 bg-white text-slate-600');
+            $(this).closest('.tier-btn')
+                .addClass('border-emerald-500 bg-emerald-50 text-emerald-700')
+                .removeClass('border-slate-200 bg-white text-slate-600');
+            refreshSummary();
+        });
+
+        // Select2 fires jQuery 'change' on the underlying <select>
+        $package.on('change', refreshSummary);
+        $pilgrims.on('change', refreshSummary);
+
         refreshSummary();
-    })();
+    }(jQuery));
 </script>
 <?php $this->endSection() ?>
