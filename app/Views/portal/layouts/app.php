@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="<?= base_url('assets/js/select2/select2.min.css') ?>">
 
     <link rel="stylesheet" href="<?= base_url('assets/fontawesome-free-7.0.0-web/css/all.min.css') ?>">
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"> -->
     <!-- Custom configuration -->
     <script>
         tailwind.config = {
@@ -370,6 +371,93 @@
         main button,
         main a.btn {
             transition: all 0.2s ease;
+        }
+
+        /* ── Select2: match native select styling ───────────────────── */
+        .select2-container--default .select2-selection--single {
+            height: auto !important;
+            padding: 0.375rem 0.75rem !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            background-color: #ffffff !important;
+            font-size: 0.875rem !important;
+            color: #374151 !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05) !important;
+            line-height: 1.5 !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding: 0 !important;
+            line-height: 1.5 !important;
+            color: #374151 !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #9ca3af !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            top: 50% !important;
+            right: 0.5rem !important;
+            transform: translateY(-50%) !important;
+            height: auto !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            border-color: #6b7280 transparent transparent transparent !important;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #4ade80 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, .15) !important;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+            border-color: transparent transparent #6b7280 transparent !important;
+        }
+
+        .select2-dropdown {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06) !important;
+            font-size: 0.875rem !important;
+            overflow: hidden !important;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 0.35rem 0.6rem !important;
+            font-size: 0.875rem !important;
+            color: #374151 !important;
+            outline: none !important;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+            border-color: #4ade80 !important;
+            box-shadow: 0 0 0 2px rgba(74, 222, 128, .15) !important;
+        }
+
+        .select2-container--default .select2-results__option {
+            padding: 0.45rem 0.75rem !important;
+            color: #374151 !important;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #f0fdf4 !important;
+            color: #15803d !important;
+        }
+
+        .select2-container--default .select2-results__option[aria-selected=true] {
+            background-color: #dcfce7 !important;
+            color: #15803d !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            color: #9ca3af !important;
+            font-size: 1rem !important;
+            line-height: 1 !important;
         }
     </style>
 </head>

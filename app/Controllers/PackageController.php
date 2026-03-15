@@ -676,49 +676,30 @@ class PackageController extends BaseController
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
+        // Normalize datetime-local (Y-m-dTH:i) → Y-m-d H:i:s for DB
+        $normDatetime = static function (string $v): string {
+            if ($v === '') return '';
+            return date('Y-m-d H:i:s', strtotime(str_replace('T', ' ', $v)));
+        };
+
         $payload = [
             'code'           => (string) $this->request->getPost('code'),
             'name'           => (string) $this->request->getPost('name'),
             'package_type'   => (string) $this->request->getPost('package_type'),
-            'airline'        => (string) $this->request->getPost('airline'),
-            'airline_logo'   => (string) $this->request->getPost('airline_logo'),
             'duration_days'  => (string) $this->request->getPost('duration_days'),
-            'departure_date' => (string) $this->request->getPost('departure_date'),
-            'arrival_date'   => (string) $this->request->getPost('arrival_date'),
-            'makkah_hotel'   => (string) $this->request->getPost('makkah_hotel'),
-            'makkah_hotel_link' => (string) $this->request->getPost('makkah_hotel_link'),
-            'madina_hotel'   => (string) $this->request->getPost('madina_hotel'),
-            'madina_hotel_link' => (string) $this->request->getPost('madina_hotel_link'),
-            'sharing_types'  => (string) $this->request->getPost('sharing_types'),
-            'total_seats'    => (string) $this->request->getPost('total_seats'),
-            'selling_price'  => (string) $this->request->getPost('selling_price'),
-            'purchase_price_total' => (string) $this->request->getPost('purchase_price_total'),
-            'purchase_price_visa' => (string) $this->request->getPost('purchase_price_visa'),
-            'purchase_price_ticket' => (string) $this->request->getPost('purchase_price_ticket'),
-            'purchase_price_transport' => (string) $this->request->getPost('purchase_price_transport'),
-            'purchase_price_makkah' => (string) $this->request->getPost('purchase_price_makkah'),
-            'purchase_price_madina' => (string) $this->request->getPost('purchase_price_madina'),
-            'passport_attachment' => (string) $this->request->getPost('passport_attachment'),
+            'departure_date' => $normDatetime((string) $this->request->getPost('departure_date')),
+            'arrival_date'   => $normDatetime((string) $this->request->getPost('arrival_date')),
             'notes'          => (string) $this->request->getPost('notes'),
         ];
 
         if (! $this->validateData($payload, [
-            'code'           => 'required|alpha_numeric_punct|min_length[2]|max_length[40]',
-            'name'           => 'required|min_length[3]|max_length[180]',
-            'package_type'   => 'required|in_list[hajj,umrah]',
-            'airline'        => 'permit_empty|max_length[120]',
-            'airline_logo'   => 'permit_empty|max_length[255]',
-            'duration_days'  => 'required|integer|greater_than[0]',
-            'departure_date' => 'required|valid_date[Y-m-d]',
-            'arrival_date'   => 'permit_empty|valid_date[Y-m-d]',
-            'purchase_price_total' => 'permit_empty|decimal',
-            'purchase_price_visa' => 'permit_empty|decimal',
-            'purchase_price_ticket' => 'permit_empty|decimal',
-            'purchase_price_transport' => 'permit_empty|decimal',
-            'purchase_price_makkah' => 'permit_empty|decimal',
-            'purchase_price_madina' => 'permit_empty|decimal',
-            'total_seats'    => 'required|integer|greater_than[0]',
-            'selling_price'  => 'required|decimal',
+            'code'          => 'required|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'name'          => 'required|min_length[3]|max_length[180]',
+            'package_type'  => 'required|in_list[hajj,umrah]',
+            'duration_days' => 'required|integer|greater_than[0]',
+            'departure_date' => 'required',
+            'arrival_date'  => 'permit_empty',
+            'notes'         => 'permit_empty',
         ])) {
             return redirect()->to('/packages/add')->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -734,30 +715,15 @@ class PackageController extends BaseController
                 'code'           => $payload['code'],
                 'name'           => $payload['name'],
                 'package_type'   => $payload['package_type'],
-                // 'airline'        => $payload['airline'] !== '' ? $payload['airline'] : null,
-                // 'airline_logo'   => $payload['airline_logo'] !== '' ? $payload['airline_logo'] : null,
                 'duration_days'  => (int) $payload['duration_days'],
                 'departure_date' => $payload['departure_date'],
                 'arrival_date'   => $arrivalDate,
-                // 'makkah_hotel'   => $payload['makkah_hotel'] !== '' ? $payload['makkah_hotel'] : null,
-                // 'makkah_hotel_link' => $payload['makkah_hotel_link'] !== '' ? $payload['makkah_hotel_link'] : null,
-                // 'madina_hotel'   => $payload['madina_hotel'] !== '' ? $payload['madina_hotel'] : null,
-                // 'madina_hotel_link' => $payload['madina_hotel_link'] !== '' ? $payload['madina_hotel_link'] : null,
-                // 'sharing_types'  => $payload['sharing_types'] !== '' ? $payload['sharing_types'] : null,
-                'total_seats'    => (int) $payload['total_seats'],
-                'selling_price'  => (float) $payload['selling_price'],
-                // 'purchase_price_total' => $payload['purchase_price_total'] !== '' ? (float) $payload['purchase_price_total'] : null,
-                // 'purchase_price_visa' => $payload['purchase_price_visa'] !== '' ? (float) $payload['purchase_price_visa'] : null,
-                // 'purchase_price_ticket' => $payload['purchase_price_ticket'] !== '' ? (float) $payload['purchase_price_ticket'] : null,
-                // 'purchase_price_transport' => $payload['purchase_price_transport'] !== '' ? (float) $payload['purchase_price_transport'] : null,
-                // 'purchase_price_makkah' => $payload['purchase_price_makkah'] !== '' ? (float) $payload['purchase_price_makkah'] : null,
-                // 'purchase_price_madina' => $payload['purchase_price_madina'] !== '' ? (float) $payload['purchase_price_madina'] : null,
-                // 'passport_attachment' => $payload['passport_attachment'] !== '' ? $payload['passport_attachment'] : null,
                 'is_active'      => 1,
                 'notes'          => $payload['notes'] !== '' ? $payload['notes'] : null,
                 'created_at'     => date('Y-m-d H:i:s'),
                 'updated_at'     => date('Y-m-d H:i:s'),
             ]);
+
 
             return redirect()->to('/packages')->with('success', 'Package created successfully.');
         } catch (\Throwable $e) {
@@ -772,29 +738,19 @@ class PackageController extends BaseController
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
+        // Normalize datetime-local (Y-m-dTH:i) → Y-m-d H:i:s for DB
+        $normDatetime = static function (string $v): string {
+            if ($v === '') return '';
+            return date('Y-m-d H:i:s', strtotime(str_replace('T', ' ', $v)));
+        };
+
         $payload = [
             'code'           => (string) $this->request->getPost('code'),
             'name'           => (string) $this->request->getPost('name'),
             'package_type'   => (string) $this->request->getPost('package_type'),
-            'airline'        => (string) $this->request->getPost('airline'),
-            'airline_logo'   => (string) $this->request->getPost('airline_logo'),
             'duration_days'  => (string) $this->request->getPost('duration_days'),
-            'departure_date' => (string) $this->request->getPost('departure_date'),
-            'arrival_date'   => (string) $this->request->getPost('arrival_date'),
-            'makkah_hotel'   => (string) $this->request->getPost('makkah_hotel'),
-            'makkah_hotel_link' => (string) $this->request->getPost('makkah_hotel_link'),
-            'madina_hotel'   => (string) $this->request->getPost('madina_hotel'),
-            'madina_hotel_link' => (string) $this->request->getPost('madina_hotel_link'),
-            'sharing_types'  => (string) $this->request->getPost('sharing_types'),
-            'total_seats'    => (string) $this->request->getPost('total_seats'),
-            'selling_price'  => (string) $this->request->getPost('selling_price'),
-            'purchase_price_total' => (string) $this->request->getPost('purchase_price_total'),
-            'purchase_price_visa' => (string) $this->request->getPost('purchase_price_visa'),
-            'purchase_price_ticket' => (string) $this->request->getPost('purchase_price_ticket'),
-            'purchase_price_transport' => (string) $this->request->getPost('purchase_price_transport'),
-            'purchase_price_makkah' => (string) $this->request->getPost('purchase_price_makkah'),
-            'purchase_price_madina' => (string) $this->request->getPost('purchase_price_madina'),
-            'passport_attachment' => (string) $this->request->getPost('passport_attachment'),
+            'departure_date' => $normDatetime((string) $this->request->getPost('departure_date')),
+            'arrival_date'   => $normDatetime((string) $this->request->getPost('arrival_date')),
             'notes'          => (string) $this->request->getPost('notes'),
             'is_active'      => (string) $this->request->getPost('is_active'),
         ];
@@ -804,24 +760,14 @@ class PackageController extends BaseController
         }
 
         if (! $this->validateData($payload, [
-            'code'           => 'permit_empty|alpha_numeric_punct|min_length[2]|max_length[40]',
-            'name'           => 'permit_empty|min_length[3]|max_length[180]',
-            'package_type'   => 'permit_empty|in_list[hajj,umrah]',
-            'airline'        => 'permit_empty|max_length[120]',
-            'airline_logo'   => 'permit_empty|max_length[255]',
-            'duration_days'  => 'permit_empty|integer|greater_than[0]',
-            'departure_date' => 'permit_empty|valid_date[Y-m-d]',
-            'arrival_date'   => 'permit_empty|valid_date[Y-m-d]',
-            'total_seats'    => 'permit_empty|integer|greater_than[0]',
-            'selling_price'  => 'permit_empty|decimal',
-            'purchase_price_total' => 'permit_empty|decimal',
-            'purchase_price_visa' => 'permit_empty|decimal',
-            'purchase_price_ticket' => 'permit_empty|decimal',
-            'purchase_price_transport' => 'permit_empty|decimal',
-            'purchase_price_makkah' => 'permit_empty|decimal',
-            'purchase_price_madina' => 'permit_empty|decimal',
-            'notes'          => 'permit_empty',
-            'is_active'      => 'permit_empty|in_list[0,1]',
+            'code'          => 'permit_empty|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'name'          => 'permit_empty|min_length[3]|max_length[180]',
+            'package_type'  => 'permit_empty|in_list[hajj,umrah]',
+            'duration_days' => 'permit_empty|integer|greater_than[0]',
+            'departure_date' => 'permit_empty',
+            'arrival_date'  => 'permit_empty',
+            'notes'         => 'permit_empty',
+            'is_active'     => 'permit_empty|in_list[0,1]',
         ])) {
             return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -836,30 +782,6 @@ class PackageController extends BaseController
 
         if (isset($data['duration_days'])) {
             $data['duration_days'] = (int) $data['duration_days'];
-        }
-        if (isset($data['total_seats'])) {
-            $data['total_seats'] = (int) $data['total_seats'];
-        }
-        if (isset($data['selling_price'])) {
-            $data['selling_price'] = (float) $data['selling_price'];
-        }
-        if (isset($data['purchase_price_total'])) {
-            $data['purchase_price_total'] = (float) $data['purchase_price_total'];
-        }
-        if (isset($data['purchase_price_visa'])) {
-            $data['purchase_price_visa'] = (float) $data['purchase_price_visa'];
-        }
-        if (isset($data['purchase_price_ticket'])) {
-            $data['purchase_price_ticket'] = (float) $data['purchase_price_ticket'];
-        }
-        if (isset($data['purchase_price_transport'])) {
-            $data['purchase_price_transport'] = (float) $data['purchase_price_transport'];
-        }
-        if (isset($data['purchase_price_makkah'])) {
-            $data['purchase_price_makkah'] = (float) $data['purchase_price_makkah'];
-        }
-        if (isset($data['purchase_price_madina'])) {
-            $data['purchase_price_madina'] = (float) $data['purchase_price_madina'];
         }
 
         try {
@@ -930,6 +852,7 @@ class PackageController extends BaseController
             'package_id'  => (int) $this->request->getPost('package_id'),
             'cost_type'   => (string) $this->request->getPost('cost_type'),
             'cost_amount' => (string) $this->request->getPost('cost_amount'),
+            'seats_limit' => (string) $this->request->getPost('seats_limit'),
             'supplier_id' => (string) $this->request->getPost('supplier_id'),
             'description' => (string) $this->request->getPost('description'),
         ];
@@ -938,6 +861,7 @@ class PackageController extends BaseController
             'package_id'  => 'required|integer',
             'cost_type'   => 'required|in_list[sharing,quad,triple,double]|max_length[100]',
             'cost_amount' => 'required|decimal',
+            'seats_limit' => 'permit_empty|integer|greater_than[0]',
             'supplier_id' => 'permit_empty|integer',
             'description' => 'permit_empty',
         ])) {
@@ -950,6 +874,7 @@ class PackageController extends BaseController
                 'package_id'  => $payload['package_id'],
                 'cost_type'   => $payload['cost_type'],
                 'cost_amount' => (float) $payload['cost_amount'],
+                'seats_limit' => $payload['seats_limit'] !== '' ? (int) $payload['seats_limit'] : null,
                 'supplier_id' => $payload['supplier_id'] !== '' ? (int) $payload['supplier_id'] : null,
                 'description' => $payload['description'] !== '' ? $payload['description'] : null,
                 'created_at'  => date('Y-m-d H:i:s'),
@@ -1342,9 +1267,19 @@ class PackageController extends BaseController
 
     private function packageStayWindow(array $package): array
     {
-        $start = (string) ($package['departure_date'] ?? '');
+        $rawStart = (string) ($package['departure_date'] ?? '');
         $durationDays = (int) ($package['duration_days'] ?? 0);
-        $end = (string) ($package['arrival_date'] ?? '');
+        $rawEnd = (string) ($package['arrival_date'] ?? '');
+
+        // Normalize to date-only (Y-m-d) — departure/arrival may be stored as DATETIME
+        $toDate = static function (string $v): string {
+            if ($v === '') return '';
+            $ts = strtotime($v);
+            return $ts !== false ? date('Y-m-d', $ts) : '';
+        };
+
+        $start = $toDate($rawStart);
+        $end   = $toDate($rawEnd);
 
         if ($end === '') {
             $end = (string) ($this->deriveArrivalDate($start, $durationDays) ?? '');

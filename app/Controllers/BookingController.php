@@ -5,9 +5,12 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\BookingModel;
 use App\Models\BookingPilgrimModel;
+use App\Services\AgentLedgerService;
 
 class BookingController extends BaseController
 {
+    const PRICING_TIERS = ['sharing', 'quad', 'triple', 'double'];
+
     public function index()
     {
         $db = db_connect();
@@ -15,6 +18,29 @@ class BookingController extends BaseController
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
+
+        $bookingFields = $db->getFieldNames('bookings');
+        $hasPricing = in_array('pricing_tier', $bookingFields, true)
+            && in_array('total_amount', $bookingFields, true)
+            && in_array('unit_price', $bookingFields, true);
+
+        $pricingSelect = $hasPricing
+            ? ", b.pricing_tier, b.unit_price, b.total_amount,
+                    COALESCE((
+                        SELECT SUM(CASE WHEN pm.payment_type = 'refund' THEN -pm.amount ELSE pm.amount END)
+                        FROM payments pm
+                        WHERE pm.booking_id = b.id
+                          AND pm.season_id = b.season_id
+                          AND IFNULL(pm.status, 'posted') = 'posted'
+                    ), 0) AS paid_amount,
+                    (COALESCE(b.total_amount, 0) - COALESCE((
+                        SELECT SUM(CASE WHEN pm2.payment_type = 'refund' THEN -pm2.amount ELSE pm2.amount END)
+                        FROM payments pm2
+                        WHERE pm2.booking_id = b.id
+                          AND pm2.season_id = b.season_id
+                          AND IFNULL(pm2.status, 'posted') = 'posted'
+                    ), 0)) AS outstanding_amount"
+            : ", '' AS pricing_tier, 0 AS unit_price, 0 AS total_amount, 0 AS paid_amount, 0 AS outstanding_amount";
 
         return view('portal/bookings/index', [
             'title'      => 'HJMS ERP | Bookings',
@@ -34,7 +60,7 @@ class BookingController extends BaseController
                     DATE_FORMAT(b.created_at, '%Y-%m-%d') AS voucher_date,
                     (SELECT GROUP_CONCAT(DISTINCT TRIM(ph.room_type) ORDER BY ph.room_type SEPARATOR ', ')
                      FROM package_hotels ph
-                     WHERE ph.package_id = b.package_id AND TRIM(IFNULL(ph.room_type, '')) <> '') AS room_types")
+                     WHERE ph.package_id = b.package_id AND TRIM(IFNULL(ph.room_type, '')) <> '') AS room_types" . $pricingSelect)
                 ->join('packages p', 'p.id = b.package_id', 'left')
                 ->join('companies c', 'c.id = b.company_id', 'left')
                 ->where('b.season_id', $seasonId)
@@ -60,10 +86,11 @@ class BookingController extends BaseController
             'activePage'      => 'bookings',
             'userEmail'       => (string) session('user_email'),
             'selectedPackageId' => (int) ($this->request->getGet('package_id') ?? 0),
+            'pricingTiers'    => self::PRICING_TIERS,
             'success'         => session()->getFlashdata('success'),
             'error'           => session()->getFlashdata('error'),
             'errors'          => session()->getFlashdata('errors') ?: [],
-        ] + $this->bookingFormData($seasonId));
+        ] + $this->bookingFormData($seasonId, null));
     }
 
     public function edit(int $id)
@@ -95,11 +122,12 @@ class BookingController extends BaseController
             'activePage'        => 'bookings',
             'userEmail'         => (string) session('user_email'),
             'row'               => $row,
+            'pricingTiers'      => self::PRICING_TIERS,
             'selectedPilgrimIds' => $selectedPilgrimIds,
             'success'           => session()->getFlashdata('success'),
             'error'             => session()->getFlashdata('error'),
             'errors'            => session()->getFlashdata('errors') ?: [],
-        ] + $this->bookingFormData($seasonId));
+        ] + $this->bookingFormData($seasonId, $id));
     }
 
     public function createBooking()
@@ -115,6 +143,7 @@ class BookingController extends BaseController
 
         $payload = [
             'package_id'  => (int) $this->request->getPost('package_id'),
+            'pricing_tier' => trim((string) $this->request->getPost('pricing_tier')),
             'agent_id'    => $this->request->getPost('agent_id') !== '' ? (int) $this->request->getPost('agent_id') : null,
             'branch_id'   => $this->request->getPost('branch_id') !== '' ? (int) $this->request->getPost('branch_id') : null,
             'company_id'  => $this->request->getPost('company_id') !== '' ? (int) $this->request->getPost('company_id') : null,
@@ -125,6 +154,7 @@ class BookingController extends BaseController
 
         if (! $this->validateData($payload, [
             'package_id'  => 'required|integer',
+            'pricing_tier' => 'required|in_list[sharing,quad,triple,double]',
             'agent_id'    => 'permit_empty|integer',
             'branch_id'   => 'permit_empty|integer',
             'company_id'  => 'required|integer',
@@ -158,28 +188,54 @@ class BookingController extends BaseController
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Please select at least one pilgrim.');
             }
 
+            $priceContext = $this->resolvePackageTierPrice((int) $payload['package_id'], (string) $payload['pricing_tier']);
+            if ($priceContext === null) {
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Selected package does not have pricing configured for chosen tier.');
+            }
+
             $seasonPilgrimCount = $db->table('pilgrims')->where('season_id', $seasonId)->whereIn('id', $pilgrimIds)->countAllResults();
             if ($seasonPilgrimCount !== count($pilgrimIds)) {
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Some selected pilgrims do not belong to active season.');
             }
 
+            $confirmedLinkCount = $db->table('booking_pilgrims bp')
+                ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                ->where('b.season_id', $seasonId)
+                ->where('b.status', 'confirmed')
+                ->whereIn('bp.pilgrim_id', $pilgrimIds)
+                ->countAllResults();
+            if ($confirmedLinkCount > 0) {
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Some selected pilgrims are already in confirmed bookings.');
+            }
+
+            $unitPrice = (float) ($priceContext['unit_price'] ?? 0);
+            $totalAmount = round($unitPrice * count($pilgrimIds), 2);
+
             $db->transStart();
 
             $bookingNo = 'BKG-' . date('YmdHis') . '-' . mt_rand(100, 999);
-            $bookingModel->insert([
+            $bookingData = [
                 'season_id'      => $seasonId,
                 'booking_no'     => $bookingNo,
                 'package_id'     => $payload['package_id'],
+                'package_variant_id' => $priceContext['package_variant_id'],
                 'agent_id'       => $payload['agent_id'],
                 'branch_id'      => $payload['branch_id'],
                 'company_id'     => $payload['company_id'],
                 'status'         => $payload['status'],
+                'pricing_tier'   => $payload['pricing_tier'],
+                'unit_price'     => $unitPrice,
+                'total_amount'   => $totalAmount,
+                'pricing_source' => (string) ($priceContext['source'] ?? 'package_costs'),
+                'price_locked_at' => date('Y-m-d H:i:s'),
                 'total_pilgrims' => count($pilgrimIds),
                 'remarks'        => $payload['remarks'] !== '' ? $payload['remarks'] : null,
                 'created_by'     => session('user_id') ? (int) session('user_id') : null,
                 'created_at'     => date('Y-m-d H:i:s'),
                 'updated_at'     => date('Y-m-d H:i:s'),
-            ]);
+            ];
+
+            $bookingModel->insert($this->filterBookingColumns($bookingData));
 
             $bookingId = (int) $bookingModel->getInsertID();
             foreach ($pilgrimIds as $pilgrimId) {
@@ -195,6 +251,8 @@ class BookingController extends BaseController
             if (! $db->transStatus()) {
                 throw new \RuntimeException('Failed to create booking.');
             }
+
+            (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
 
             return redirect()->to('/bookings')->with('success', 'Booking created successfully.');
         } catch (\Throwable $e) {
@@ -214,6 +272,7 @@ class BookingController extends BaseController
 
         $payload = [
             'package_id'  => (string) $this->request->getPost('package_id'),
+            'pricing_tier' => trim((string) $this->request->getPost('pricing_tier')),
             'agent_id'    => (string) $this->request->getPost('agent_id'),
             'branch_id'   => (string) $this->request->getPost('branch_id'),
             'company_id'  => (string) $this->request->getPost('company_id'),
@@ -227,6 +286,7 @@ class BookingController extends BaseController
 
         if (! $this->validateData($payload, [
             'package_id' => 'permit_empty|integer',
+            'pricing_tier' => 'permit_empty|in_list[sharing,quad,triple,double]',
             'agent_id'   => 'permit_empty|integer',
             'branch_id'  => 'permit_empty|integer',
             'company_id' => 'permit_empty|integer',
@@ -239,6 +299,9 @@ class BookingController extends BaseController
         $data = [];
         if ($payload['package_id'] !== '') {
             $data['package_id'] = (int) $payload['package_id'];
+        }
+        if ($payload['pricing_tier'] !== '') {
+            $data['pricing_tier'] = $payload['pricing_tier'];
         }
         if ($payload['agent_id'] !== '') {
             $data['agent_id'] = (int) $payload['agent_id'];
@@ -297,14 +360,58 @@ class BookingController extends BaseController
                 }
             }
 
+            $effectivePackageId = isset($data['package_id']) ? (int) $data['package_id'] : (int) ($existing['package_id'] ?? 0);
+            $effectivePricingTier = isset($data['pricing_tier'])
+                ? (string) $data['pricing_tier']
+                : trim((string) ($existing['pricing_tier'] ?? ''));
+
+            $shouldReprice = isset($data['package_id']) || isset($data['pricing_tier']) || $postedPilgrims !== null;
+            if ($shouldReprice) {
+                if ($effectivePricingTier === '') {
+                    return redirect()->to($returnUrl)->withInput()->with('error', 'Please select a pricing tier.');
+                }
+
+                $priceContext = $this->resolvePackageTierPrice($effectivePackageId, $effectivePricingTier);
+                if ($priceContext === null) {
+                    return redirect()->to($returnUrl)->withInput()->with('error', 'Selected package does not have pricing configured for chosen tier.');
+                }
+
+                $effectivePilgrimCount = $postedPilgrims !== null
+                    ? count($pilgrimIds)
+                    : (int) ($existing['total_pilgrims'] ?? 0);
+
+                if ($effectivePilgrimCount < 1) {
+                    return redirect()->to($returnUrl)->withInput()->with('error', 'At least one pilgrim is required to price booking.');
+                }
+
+                $unitPrice = (float) ($priceContext['unit_price'] ?? 0);
+                $data['package_variant_id'] = $priceContext['package_variant_id'];
+                $data['pricing_tier'] = $effectivePricingTier;
+                $data['unit_price'] = $unitPrice;
+                $data['total_amount'] = round($unitPrice * $effectivePilgrimCount, 2);
+                $data['pricing_source'] = (string) ($priceContext['source'] ?? 'package_costs');
+                $data['price_locked_at'] = date('Y-m-d H:i:s');
+            }
+
             $db->transStart();
 
-            $bookingModel->update($bookingId, $data + ['updated_at' => date('Y-m-d H:i:s')]);
+            $bookingModel->update($bookingId, $this->filterBookingColumns($data + ['updated_at' => date('Y-m-d H:i:s')]));
 
             if ($postedPilgrims !== null) {
                 $seasonPilgrimCount = $db->table('pilgrims')->where('season_id', $seasonId)->whereIn('id', $pilgrimIds)->countAllResults();
                 if ($seasonPilgrimCount !== count($pilgrimIds)) {
                     return redirect()->to($returnUrl)->withInput()->with('error', 'Some selected pilgrims do not belong to active season.');
+                }
+
+                $confirmedLinkCount = $db->table('booking_pilgrims bp')
+                    ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                    ->where('b.season_id', $seasonId)
+                    ->where('b.status', 'confirmed')
+                    ->where('b.id !=', $bookingId)
+                    ->whereIn('bp.pilgrim_id', $pilgrimIds)
+                    ->countAllResults();
+                if ($confirmedLinkCount > 0) {
+                    return redirect()->to($returnUrl)->withInput()->with('error', 'Some selected pilgrims are already in confirmed bookings.');
                 }
 
                 $bookingPilgrimModel->where('booking_id', $bookingId)->delete();
@@ -322,18 +429,66 @@ class BookingController extends BaseController
                 throw new \RuntimeException('Failed to update booking.');
             }
 
+            (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
+
             return redirect()->to('/bookings')->with('success', 'Booking updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->to($returnUrl)->withInput()->with('error', $e->getMessage());
         }
     }
 
-    private function bookingFormData(int $seasonId): array
+    private function bookingFormData(int $seasonId, $editingBookingId = null): array
     {
         $db = db_connect();
 
+        $packages = $db->table('packages')->where('season_id', $seasonId)->orderBy('departure_date', 'DESC')->get()->getResultArray();
+        $packageIds = array_values(array_unique(array_map(static function (array $row): int {
+            return (int) ($row['id'] ?? 0);
+        }, $packages)));
+
+        $packagePricingOptions = [];
+        if ($packageIds !== []) {
+            $costRows = $db->table('package_costs')
+                ->select('package_id, cost_type, cost_amount, id')
+                ->whereIn('package_id', $packageIds)
+                ->whereIn('cost_type', self::PRICING_TIERS)
+                ->orderBy('id', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            foreach ($costRows as $costRow) {
+                $packageId = (int) ($costRow['package_id'] ?? 0);
+                $tier = strtolower(trim((string) ($costRow['cost_type'] ?? '')));
+                if ($packageId < 1 || $tier === '' || ! in_array($tier, self::PRICING_TIERS, true)) {
+                    continue;
+                }
+
+                if (! isset($packagePricingOptions[$packageId])) {
+                    $packagePricingOptions[$packageId] = [];
+                }
+
+                if (! isset($packagePricingOptions[$packageId][$tier])) {
+                    $packagePricingOptions[$packageId][$tier] = (float) ($costRow['cost_amount'] ?? 0);
+                }
+            }
+        }
+
+        $excludeConfirmedCondition = 'NOT EXISTS (
+            SELECT 1
+            FROM booking_pilgrims bp
+            INNER JOIN bookings b ON b.id = bp.booking_id
+            WHERE bp.pilgrim_id = pilgrims.id
+              AND b.season_id = ' . (int) $seasonId . '
+              AND b.status = "confirmed"';
+        if ($editingBookingId !== null && $editingBookingId > 0) {
+            $excludeConfirmedCondition .= ' AND b.id != ' . (int) $editingBookingId;
+        }
+        $excludeConfirmedCondition .= '
+        )';
+
         return [
-            'packages'  => $db->table('packages')->where('season_id', $seasonId)->orderBy('departure_date', 'DESC')->get()->getResultArray(),
+            'packages'  => $packages,
+            'packagePricingOptions' => $packagePricingOptions,
             'agents'    => $db->table('agents')->orderBy('name', 'ASC')->get()->getResultArray(),
             'branches'  => $db->table('branches')->orderBy('name', 'ASC')->get()->getResultArray(),
             'companies' => company_table_ready()
@@ -342,10 +497,93 @@ class BookingController extends BaseController
             'pilgrims'  => $db->table('pilgrims')
                 ->select('id, first_name, last_name, passport_no')
                 ->where('season_id', $seasonId)
+                ->where($excludeConfirmedCondition, null, false)
                 ->orderBy('id', 'DESC')
                 ->get()
                 ->getResultArray(),
         ];
+    }
+
+    private function resolvePackageTierPrice(int $packageId, string $pricingTier)
+    {
+        if ($packageId < 1) {
+            return null;
+        }
+
+        $tier = strtolower(trim($pricingTier));
+        if (! in_array($tier, self::PRICING_TIERS, true)) {
+            return null;
+        }
+
+        $db = db_connect();
+
+        $costRow = $db->table('package_costs')
+            ->select('cost_amount')
+            ->where('package_id', $packageId)
+            ->where('cost_type', $tier)
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        if (! empty($costRow)) {
+            return [
+                'unit_price' => (float) ($costRow['cost_amount'] ?? 0),
+                'source' => 'package_costs',
+                'package_variant_id' => null,
+            ];
+        }
+
+        $priceLine = $db->table('package_price_lines ppl')
+            ->select('ppl.sell_price_pkr')
+            ->join('package_cost_sheets pcs', 'pcs.id = ppl.cost_sheet_id', 'inner')
+            ->where('pcs.package_id', $packageId)
+            ->where('pcs.is_published', 1)
+            ->where('ppl.sharing_type', $tier)
+            ->orderBy('pcs.version_no', 'DESC')
+            ->orderBy('ppl.id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        if (! empty($priceLine)) {
+            return [
+                'unit_price' => (float) ($priceLine['sell_price_pkr'] ?? 0),
+                'source' => 'package_price_lines',
+                'package_variant_id' => null,
+            ];
+        }
+
+        $variantRow = $db->table('package_variants')
+            ->select('id, selling_price')
+            ->where('package_id', $packageId)
+            ->where('LOWER(room_type)', $tier)
+            ->where('is_active', 1)
+            ->orderBy('sequence_no', 'ASC')
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        if (! empty($variantRow)) {
+            return [
+                'unit_price' => (float) ($variantRow['selling_price'] ?? 0),
+                'source' => 'package_variants',
+                'package_variant_id' => (int) ($variantRow['id'] ?? 0),
+            ];
+        }
+
+        return null;
+    }
+
+    private function filterBookingColumns(array $data): array
+    {
+        $fields = db_connect()->getFieldNames('bookings');
+
+        return array_filter(
+            $data,
+            static function ($value, $key) use ($fields): bool {
+                return in_array($key, $fields, true);
+            },
+            ARRAY_FILTER_USE_BOTH
+        );
     }
 
     private function resolveReturnUrl(string $default): string
@@ -387,6 +625,8 @@ class BookingController extends BaseController
             if (! $db->transStatus()) {
                 throw new \RuntimeException('Failed to delete booking.');
             }
+
+            (new AgentLedgerService())->removeBookingLedger($bookingId);
 
             return redirect()->to('/bookings')->with('success', 'Booking deleted successfully.');
         } catch (\Throwable $e) {

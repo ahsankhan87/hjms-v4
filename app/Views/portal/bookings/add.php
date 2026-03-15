@@ -19,10 +19,20 @@
 
                 <div>
                     <label class="text-sm font-medium">Package</label>
-                    <select name="package_id" required class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <select id="booking-package" name="package_id" required class="js-select2 mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">Select package</option>
                         <?php foreach ($packages as $item): ?>
                             <option value="<?= esc($item['id']) ?>" <?= (string) old('package_id', (string) ($selectedPackageId ?? '')) === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?> (<?= esc($item['code']) ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <?php $tierValue = (string) old('pricing_tier', 'sharing'); ?>
+                <div>
+                    <label class="text-sm font-medium">Pricing Tier</label>
+                    <select id="booking-pricing-tier" name="pricing_tier" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <?php foreach (($pricingTiers ?? ['sharing', 'quad', 'triple', 'double']) as $tier): ?>
+                            <option value="<?= esc($tier) ?>" <?= $tierValue === $tier ? 'selected' : '' ?>><?= esc(ucfirst($tier)) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -70,12 +80,30 @@
                 <?php $oldPilgrimIds = array_map('intval', (array) old('pilgrim_ids')); ?>
                 <div class="md:col-span-2">
                     <label class="text-sm font-medium">Select Pilgrims</label>
-                    <select name="pilgrim_ids[]" multiple required class="js-select2 mt-1 h-36 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <select id="booking-pilgrims" name="pilgrim_ids[]" multiple required class="js-select2 mt-1 h-36 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <?php foreach ($pilgrims as $item): ?>
                             <option value="<?= esc($item['id']) ?>" <?= in_array((int) $item['id'], $oldPilgrimIds, true) ? 'selected' : '' ?>>#<?= esc($item['id']) ?> - <?= esc($item['first_name'] . ' ' . $item['last_name']) ?><?= !empty($item['passport_no']) ? ' (' . esc($item['passport_no']) . ')' : '' ?></option>
                         <?php endforeach; ?>
                     </select>
                     <p class="mt-1 text-xs text-slate-500">Hold Ctrl/Cmd to select multiple pilgrims.</p>
+                </div>
+
+                <div class="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <h4 class="text-sm font-semibold text-slate-800">Booking Financial Summary</h4>
+                    <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div>
+                            <label class="text-xs font-medium text-slate-600">Unit Price</label>
+                            <input id="booking-unit-price" type="text" readonly class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value="0.00">
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-slate-600">Pilgrim Count</label>
+                            <input id="booking-pilgrim-count" type="text" readonly class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" value="0">
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-slate-600">Estimated Total</label>
+                            <input id="booking-estimated-total" type="text" readonly class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold" value="0.00">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="md:col-span-2">
@@ -90,4 +118,50 @@
         </article>
     </section>
 </main>
+<script>
+    (function() {
+        const pricingByPackage = <?= json_encode($packagePricingOptions ?? [], JSON_UNESCAPED_UNICODE) ?>;
+        const packageInput = document.getElementById('booking-package');
+        const tierInput = document.getElementById('booking-pricing-tier');
+        const pilgrimInput = document.getElementById('booking-pilgrims');
+        const unitPriceInput = document.getElementById('booking-unit-price');
+        const pilgrimCountInput = document.getElementById('booking-pilgrim-count');
+        const totalInput = document.getElementById('booking-estimated-total');
+
+        function selectedPilgrimCount() {
+            if (!pilgrimInput) return 0;
+            return Array.prototype.filter.call(pilgrimInput.options, function(opt) {
+                return opt.selected;
+            }).length;
+        }
+
+        function unitPriceForSelection() {
+            const pkg = packageInput ? packageInput.value : '';
+            const tier = tierInput ? tierInput.value : '';
+            if (!pkg || !tier) {
+                return 0;
+            }
+            if (!pricingByPackage[pkg] || typeof pricingByPackage[pkg][tier] === 'undefined') {
+                return 0;
+            }
+            const value = Number(pricingByPackage[pkg][tier]);
+            return isNaN(value) ? 0 : value;
+        }
+
+        function refreshSummary() {
+            const unit = unitPriceForSelection();
+            const count = selectedPilgrimCount();
+            const total = unit * count;
+
+            if (unitPriceInput) unitPriceInput.value = unit.toFixed(2);
+            if (pilgrimCountInput) pilgrimCountInput.value = String(count);
+            if (totalInput) totalInput.value = total.toFixed(2);
+        }
+
+        if (packageInput) packageInput.addEventListener('change', refreshSummary);
+        if (tierInput) tierInput.addEventListener('change', refreshSummary);
+        if (pilgrimInput) pilgrimInput.addEventListener('change', refreshSummary);
+        refreshSummary();
+    })();
+</script>
 <?php $this->endSection() ?>

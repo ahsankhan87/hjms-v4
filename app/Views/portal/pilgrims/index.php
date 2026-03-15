@@ -29,6 +29,7 @@
                             <th>CNIC</th>
                             <th>Visa Type</th>
                             <th>Visa Status</th>
+                            <th>Booking</th>
                             <th>Phone</th>
                             <th>Actions</th>
                         </tr>
@@ -36,7 +37,7 @@
                     <tbody>
                         <?php if (empty($pilgrims)): ?>
                             <tr>
-                                <td colspan="9" class="text-center text-slate-500">No pilgrims found.</td>
+                                <td colspan="10" class="text-center text-slate-500">No pilgrims found.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($pilgrims as $pilgrim): ?>
@@ -110,6 +111,24 @@
                                         <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium <?= esc($visaStatusBadgeClass) ?>">
                                             <?= esc($visaStatusLabel) ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <?php $bookingStatus = strtolower(trim((string) ($pilgrim['booking_status'] ?? ''))); ?>
+                                        <?php if ($bookingStatus === 'confirmed'): ?>
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-700">
+                                                Confirmed <?= !empty($pilgrim['booking_no']) ? '(' . esc((string) $pilgrim['booking_no']) . ')' : '' ?>
+                                            </span>
+                                        <?php elseif ($bookingStatus === 'draft'): ?>
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-700">
+                                                Draft <?= !empty($pilgrim['booking_no']) ? '(' . esc((string) $pilgrim['booking_no']) . ')' : '' ?>
+                                            </span>
+                                        <?php elseif ($bookingStatus === 'cancelled'): ?>
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-rose-100 text-rose-700">
+                                                Cancelled
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-700">Unbooked</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?= esc($pilgrim['phone'] ?? '-') ?></td>
                                     <td>

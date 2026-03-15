@@ -8,7 +8,7 @@ class ReportController extends BaseController
 {
     public function index(): string
     {
-$filters = [
+        $filters = [
             'from_date' => (string) $this->request->getGet('from_date'),
             'to_date'   => (string) $this->request->getGet('to_date'),
         ];
@@ -77,21 +77,21 @@ $filters = [
 
         $bookingStatusRows = $db->table('bookings')
             ->select('status, COUNT(*) AS booking_count, COALESCE(SUM(total_pilgrims),0) AS pilgrim_count')
-            
+
             ->groupBy('status')
             ->get()
             ->getResultArray();
 
         $visaStatusRows = $db->table('visas')
             ->select('status, COUNT(*) AS visa_count')
-            
+
             ->groupBy('status')
             ->get()
             ->getResultArray();
 
         $channelQuery = $db->table('payments')
             ->select('channel, COUNT(*) AS payment_count, COALESCE(SUM(amount),0) AS total_amount')
-            
+            ->where('status', 'posted')
             ->where('payment_type', 'payment')
             ->groupBy('channel');
         if ($filters['from_date'] !== '') {
@@ -101,6 +101,105 @@ $filters = [
             $channelQuery->where('DATE(payment_date) <=', $filters['to_date']);
         }
         $collectionByChannel = $channelQuery->get()->getResultArray();
+
+        $receivableQuery = $db->table('bookings b')
+            ->select('b.agent_id, a.name AS agent_name, COUNT(*) AS booking_count, COALESCE(SUM(b.total_amount), 0) AS receivable_amount')
+            ->join('agents a', 'a.id = b.agent_id', 'left')
+            ->where('b.agent_id IS NOT NULL', null, false)
+            ->where('b.status !=', 'cancelled')
+            ->groupBy('b.agent_id')
+            ->groupBy('a.name');
+        if ($filters['from_date'] !== '') {
+            $receivableQuery->where('DATE(b.created_at) >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $receivableQuery->where('DATE(b.created_at) <=', $filters['to_date']);
+        }
+        $receivableRows = $receivableQuery->get()->getResultArray();
+
+        $collectedQuery = $db->table('payments p')
+            ->select('b.agent_id, a.name AS agent_name, COALESCE(SUM(CASE WHEN p.payment_type = "refund" THEN -p.amount ELSE p.amount END), 0) AS collected_amount')
+            ->join('bookings b', 'b.id = p.booking_id', 'left')
+            ->join('agents a', 'a.id = b.agent_id', 'left')
+            ->where('p.status', 'posted')
+            ->where('b.agent_id IS NOT NULL', null, false)
+            ->groupBy('b.agent_id')
+            ->groupBy('a.name');
+        if ($filters['from_date'] !== '') {
+            $collectedQuery->where('DATE(p.payment_date) >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $collectedQuery->where('DATE(p.payment_date) <=', $filters['to_date']);
+        }
+        $collectedRows = $collectedQuery->get()->getResultArray();
+
+        $agentMetrics = [];
+        foreach ($receivableRows as $row) {
+            $agentId = (int) ($row['agent_id'] ?? 0);
+            if ($agentId < 1) {
+                continue;
+            }
+
+            $agentMetrics[$agentId] = [
+                'agent_id' => $agentId,
+                'agent_name' => (string) ($row['agent_name'] ?? ('Agent #' . $agentId)),
+                'booking_count' => (int) ($row['booking_count'] ?? 0),
+                'receivable_amount' => (float) ($row['receivable_amount'] ?? 0),
+                'collected_amount' => 0.0,
+                'outstanding_amount' => 0.0,
+            ];
+        }
+
+        foreach ($collectedRows as $row) {
+            $agentId = (int) ($row['agent_id'] ?? 0);
+            if ($agentId < 1) {
+                continue;
+            }
+
+            if (! isset($agentMetrics[$agentId])) {
+                $agentMetrics[$agentId] = [
+                    'agent_id' => $agentId,
+                    'agent_name' => (string) ($row['agent_name'] ?? ('Agent #' . $agentId)),
+                    'booking_count' => 0,
+                    'receivable_amount' => 0.0,
+                    'collected_amount' => 0.0,
+                    'outstanding_amount' => 0.0,
+                ];
+            }
+
+            $agentMetrics[$agentId]['collected_amount'] = (float) ($row['collected_amount'] ?? 0);
+        }
+
+        $agentTotals = [
+            'receivable' => 0.0,
+            'collected' => 0.0,
+            'outstanding' => 0.0,
+            'active_agents' => 0,
+        ];
+
+        foreach ($agentMetrics as &$metric) {
+            $metric['outstanding_amount'] = max(0, (float) $metric['receivable_amount'] - (float) $metric['collected_amount']);
+            $agentTotals['receivable'] += (float) $metric['receivable_amount'];
+            $agentTotals['collected'] += (float) $metric['collected_amount'];
+            $agentTotals['outstanding'] += (float) $metric['outstanding_amount'];
+            if ((float) $metric['receivable_amount'] > 0 || (float) $metric['collected_amount'] !== 0.0) {
+                $agentTotals['active_agents']++;
+            }
+        }
+        unset($metric);
+
+        $agentLedgerRows = array_values($agentMetrics);
+        usort($agentLedgerRows, static function (array $a, array $b) {
+            $aOutstanding = (float) ($a['outstanding_amount'] ?? 0);
+            $bOutstanding = (float) ($b['outstanding_amount'] ?? 0);
+            if ($aOutstanding === $bOutstanding) {
+                return strcmp((string) ($a['agent_name'] ?? ''), (string) ($b['agent_name'] ?? ''));
+            }
+
+            return $aOutstanding < $bOutstanding ? 1 : -1;
+        });
+
+        $topOutstandingAgents = array_slice($agentLedgerRows, 0, 10);
 
         return view('portal/reports/index', [
             'title'               => 'HJMS ERP | Reports',
@@ -114,6 +213,8 @@ $filters = [
             'bookingStatus'       => $bookingStatusRows,
             'visaStatus'          => $visaStatusRows,
             'collectionByChannel' => $collectionByChannel,
+            'agentTotals'         => $agentTotals,
+            'topOutstandingAgents' => $topOutstandingAgents,
         ]);
     }
 }

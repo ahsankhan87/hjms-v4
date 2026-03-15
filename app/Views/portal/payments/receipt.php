@@ -181,6 +181,10 @@
                         <td><?= esc((string) ($payment['booking_no'] ?? '')) ?></td>
                     </tr>
                     <tr>
+                        <th>Agent</th>
+                        <td><?= esc((string) ($payment['agent_name'] ?? '-')) ?></td>
+                    </tr>
+                    <tr>
                         <th>Package</th>
                         <td><?= esc((string) ($payment['package_code'] ?? '')) ?> - <?= esc((string) ($payment['package_name'] ?? '')) ?></td>
                     </tr>
@@ -207,6 +211,14 @@
                     <tr>
                         <th>Amount</th>
                         <td class="amount"><?= esc(number_format((float) ($payment['amount'] ?? 0), 2)) ?></td>
+                    </tr>
+                    <tr>
+                        <th>Booking Paid To Date</th>
+                        <td><?= esc(number_format((float) ($bookingPaidAmount ?? 0), 2)) ?></td>
+                    </tr>
+                    <tr>
+                        <th>Booking Outstanding</th>
+                        <td><?= esc(number_format((float) ($bookingOutstandingAmount ?? 0), 2)) ?></td>
                     </tr>
                     <tr>
                         <th>Note</th>

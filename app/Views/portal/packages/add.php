@@ -34,27 +34,13 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-sm font-medium">Departure Date</label>
-                        <input type="date" name="departure_date" value="<?= esc(old('departure_date')) ?>" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <label class="text-sm font-medium">Departure Date &amp; Time</label>
+                        <input type="datetime-local" name="departure_date" value="<?= esc(old('departure_date')) ?>" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </div>
                     <div>
-                        <label class="text-sm font-medium">Arrival Date</label>
-                        <input type="date" name="arrival_date" value="<?= esc(old('arrival_date')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <label class="text-sm font-medium">Arrival Date &amp; Time <span class="text-xs font-normal text-slate-400">(auto)</span></label>
+                        <input type="datetime-local" name="arrival_date" value="<?= esc(old('arrival_date')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-sm font-medium">Total Seats</label>
-                        <input type="number" name="total_seats" value="<?= esc(old('total_seats')) ?>" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium">Selling Price</label>
-                        <input name="selling_price" value="<?= esc(old('selling_price')) ?>" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="0.00">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-sm font-medium">Passport Attachment (URL)</label>
-                    <input name="passport_attachment" value="<?= esc(old('passport_attachment')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="https://...">
                 </div>
                 <div>
                     <label class="text-sm font-medium">Notes</label>
@@ -97,13 +83,15 @@
                 return;
             }
 
-            const departureDate = new Date(departureInput.value + 'T00:00:00');
+            // Extract date part from datetime-local value for day arithmetic
+            const departureDate = new Date(departureInput.value.substring(0, 10) + 'T00:00:00');
             if (Number.isNaN(departureDate.getTime())) {
                 return;
             }
 
             departureDate.setDate(departureDate.getDate() + duration);
-            arrivalInput.value = formatDate(departureDate);
+            // Set arrival in datetime-local format (time defaults to 00:00)
+            arrivalInput.value = formatDate(departureDate) + 'T00:00';
         };
 
         durationInput.addEventListener('input', updateArrivalDate);

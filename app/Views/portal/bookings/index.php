@@ -37,8 +37,12 @@
                     <th class="px-3 py-2 text-left">KSA Arrival</th>
                     <th class="px-3 py-2 text-left">KSA Return</th>
                     <th class="px-3 py-2 text-left">Room Type</th>
+                    <th class="px-3 py-2 text-left">Tier</th>
                     <th class="px-3 py-2 text-left">Status</th>
                     <th class="px-3 py-2 text-left">Pilgrims</th>
+                    <th class="px-3 py-2 text-left">Total</th>
+                    <th class="px-3 py-2 text-left">Paid</th>
+                    <th class="px-3 py-2 text-left">Outstanding</th>
                     <th class="px-3 py-2 text-left">Created</th>
                     <th class="px-3 py-2 text-left">Actions</th>
                 </tr>
@@ -52,8 +56,12 @@
                         <td class="px-3 py-2"><?= esc((string) ($row['ksa_arrival_date'] ?? '')) ?></td>
                         <td class="px-3 py-2"><?= esc((string) ($row['ksa_return_date'] ?? '')) ?></td>
                         <td class="px-3 py-2"><?= esc((string) ($row['room_types'] ?? '')) ?></td>
+                        <td class="px-3 py-2"><?= esc((string) ($row['pricing_tier'] ?? '-')) ?></td>
                         <td class="px-3 py-2"><?= esc($row['status']) ?></td>
                         <td class="px-3 py-2"><?= esc($row['total_pilgrims']) ?></td>
+                        <td class="px-3 py-2"><?= esc(number_format((float) ($row['total_amount'] ?? 0), 2)) ?></td>
+                        <td class="px-3 py-2"><?= esc(number_format((float) ($row['paid_amount'] ?? 0), 2)) ?></td>
+                        <td class="px-3 py-2"><?= esc(number_format((float) ($row['outstanding_amount'] ?? 0), 2)) ?></td>
                         <td class="px-3 py-2"><?= esc($row['created_at']) ?></td>
                         <td class="px-3 py-2">
                             <div class="flex items-center gap-2">

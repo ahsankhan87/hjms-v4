@@ -37,9 +37,16 @@ class PilgrimController extends BaseController
         $rows = [];
         try {
             $db = db_connect();
+            $seasonSql = (int) $seasonId;
             $builder = $db->table('pilgrims p')
-                ->select('p.*, v.status AS latest_visa_status, v.visa_type AS latest_visa_type, v.visa_no AS latest_visa_no')
+                ->select('p.*, v.status AS latest_visa_status, v.visa_type AS latest_visa_type, v.visa_no AS latest_visa_no, bk.id AS booking_id, bk.booking_no, bk.status AS booking_status')
                 ->join('visas v', 'v.id = (SELECT MAX(v2.id) FROM visas v2 WHERE v2.pilgrim_id = p.id AND v2.season_id = p.season_id)', 'left')
+                ->join('(SELECT bp.pilgrim_id, MAX(b.id) AS booking_id
+                    FROM booking_pilgrims bp
+                    INNER JOIN bookings b ON b.id = bp.booking_id
+                    WHERE b.season_id = ' . $seasonSql . '
+                    GROUP BY bp.pilgrim_id) pb', 'pb.pilgrim_id = p.id', 'left')
+                ->join('bookings bk', 'bk.id = pb.booking_id', 'left')
                 ->where('p.season_id', $seasonId);
 
             if ($q !== '') {

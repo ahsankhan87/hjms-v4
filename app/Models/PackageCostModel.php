@@ -15,6 +15,7 @@ class PackageCostModel extends Model
         'package_id',
         'cost_type',
         'cost_amount',
+        'seats_limit',
         'supplier_id',
         'description',
         'created_at',

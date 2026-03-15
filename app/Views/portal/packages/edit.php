@@ -31,24 +31,19 @@
                     </label>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <label class="block text-xs font-medium text-slate-600">Departure Date
-                        <input type="date" name="departure_date" value="<?= esc(old('departure_date', $row['departure_date'])) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <?php
+                    $depVal = old('departure_date', $row['departure_date'] ?? '');
+                    $depVal = $depVal !== '' ? date('Y-m-d\TH:i', strtotime((string)$depVal)) : '';
+                    $arrVal = old('arrival_date', $row['arrival_date'] ?? '');
+                    $arrVal = $arrVal !== '' ? date('Y-m-d\TH:i', strtotime((string)$arrVal)) : '';
+                    ?>
+                    <label class="block text-xs font-medium text-slate-600">Departure Date &amp; Time
+                        <input type="datetime-local" name="departure_date" value="<?= esc($depVal) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
-                    <label class="block text-xs font-medium text-slate-600">Arrival Date
-                        <input type="date" name="arrival_date" value="<?= esc(old('arrival_date', $row['arrival_date'] ?? '')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="block text-xs font-medium text-slate-600">Total Seats
-                        <input type="number" name="total_seats" min="1" value="<?= esc(old('total_seats', $row['total_seats'])) ?>" placeholder="Total Seats" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Selling Price
-                        <input name="selling_price" value="<?= esc(old('selling_price', $row['selling_price'])) ?>" placeholder="Selling Price" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs font-medium text-slate-600">Arrival Date &amp; Time <span class="font-normal text-slate-400">(auto)</span>
+                        <input type="datetime-local" name="arrival_date" value="<?= esc($arrVal) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
                 </div>
-                <label class="block text-xs font-medium text-slate-600">Passport Attachment
-                    <input name="passport_attachment" value="<?= esc(old('passport_attachment', $row['passport_attachment'] ?? '')) ?>" placeholder="Passport Attachment" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                </label>
                 <label class="block text-xs font-medium text-slate-600">Notes
                     <textarea name="notes" rows="2" placeholder="Notes (optional)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('notes', $row['notes'])) ?></textarea>
                 </label>
@@ -74,146 +69,9 @@
         </article>
 
         <div class="space-y-6 lg:col-span-2">
-            <!-- <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
-                <h3 class="text-lg font-semibold mb-2">Package Cost Sheet Calculator</h3>
-                <p class="text-xs text-slate-500 mb-3">Save a versioned cost sheet from supplier purchase costs. Each save can create supplier ledger bills automatically.</p>
-
-                <form method="post" action="<?= site_url('packages/cost-sheet/save') ?>" class="grid gap-3 md:grid-cols-4">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
-
-                    <label class="block text-xs font-medium text-slate-600">Visa Price (SAR)
-                        <input name="visa_sar" value="<?= esc(old('visa_sar', (string) ($latestCostSheet['visa_sar'] ?? '0'))) ?>" placeholder="Visa Price (SAR)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Visa EX Rate
-                        <input name="visa_ex_rate" value="<?= esc(old('visa_ex_rate', (string) ($latestCostSheet['visa_ex_rate'] ?? '75'))) ?>" placeholder="Visa EX Rate" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Visa Supplier
-                        <select name="supplier_visa_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <option value="">Visa Supplier (optional)</option>
-                            <?php foreach (($supplierRows ?? []) as $supplier): ?>
-                                <option value="<?= esc((string) $supplier['id']) ?>" <?= old('supplier_visa_id') === (string) $supplier['id'] ? 'selected' : '' ?>><?= esc($supplier['supplier_name']) ?> (<?= esc($supplier['supplier_type']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <div></div>
-
-                    <label class="block text-xs font-medium text-slate-600">Transport Price (SAR)
-                        <input name="transport_sar" value="<?= esc(old('transport_sar', (string) ($latestCostSheet['transport_sar'] ?? '0'))) ?>" placeholder="Transport Price (SAR)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Transport EX Rate
-                        <input name="transport_ex_rate" value="<?= esc(old('transport_ex_rate', (string) ($latestCostSheet['transport_ex_rate'] ?? '75'))) ?>" placeholder="Transport EX Rate" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Transport Supplier
-                        <select name="supplier_transport_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <option value="">Transport Supplier (optional)</option>
-                            <?php foreach (($supplierRows ?? []) as $supplier): ?>
-                                <option value="<?= esc((string) $supplier['id']) ?>" <?= old('supplier_transport_id') === (string) $supplier['id'] ? 'selected' : '' ?>><?= esc($supplier['supplier_name']) ?> (<?= esc($supplier['supplier_type']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Ticket Price (PKR)
-                        <input name="ticket_pkr" value="<?= esc(old('ticket_pkr', (string) ($latestCostSheet['ticket_pkr'] ?? '0'))) ?>" placeholder="Ticket Price (PKR)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-
-                    <label class="block text-xs font-medium text-slate-600">Makkah Room Rate (SAR)
-                        <input name="makkah_room_rate_sar" value="<?= esc(old('makkah_room_rate_sar', (string) ($latestCostSheet['makkah_room_rate_sar'] ?? '0'))) ?>" placeholder="Makkah Room Rate (SAR)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Makkah EX Rate
-                        <input name="makkah_ex_rate" value="<?= esc(old('makkah_ex_rate', (string) ($latestCostSheet['makkah_ex_rate'] ?? '75'))) ?>" placeholder="Makkah EX Rate" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Makkah Nights
-                        <input name="makkah_nights" value="<?= esc(old('makkah_nights', (string) ($latestCostSheet['makkah_nights'] ?? '0'))) ?>" placeholder="Makkah Nights" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Makkah Hotel Supplier
-                        <select name="supplier_makkah_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <option value="">Makkah Hotel Supplier (optional)</option>
-                            <?php foreach (($supplierRows ?? []) as $supplier): ?>
-                                <option value="<?= esc((string) $supplier['id']) ?>" <?= old('supplier_makkah_id') === (string) $supplier['id'] ? 'selected' : '' ?>><?= esc($supplier['supplier_name']) ?> (<?= esc($supplier['supplier_type']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-
-                    <label class="block text-xs font-medium text-slate-600">Madina Room Rate (SAR)
-                        <input name="madina_room_rate_sar" value="<?= esc(old('madina_room_rate_sar', (string) ($latestCostSheet['madina_room_rate_sar'] ?? '0'))) ?>" placeholder="Madina Room Rate (SAR)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Madina EX Rate
-                        <input name="madina_ex_rate" value="<?= esc(old('madina_ex_rate', (string) ($latestCostSheet['madina_ex_rate'] ?? '75'))) ?>" placeholder="Madina EX Rate" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Madina Nights
-                        <input name="madina_nights" value="<?= esc(old('madina_nights', (string) ($latestCostSheet['madina_nights'] ?? '0'))) ?>" placeholder="Madina Nights" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Madina Hotel Supplier
-                        <select name="supplier_madina_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <option value="">Madina Hotel Supplier (optional)</option>
-                            <?php foreach (($supplierRows ?? []) as $supplier): ?>
-                                <option value="<?= esc((string) $supplier['id']) ?>" <?= old('supplier_madina_id') === (string) $supplier['id'] ? 'selected' : '' ?>><?= esc($supplier['supplier_name']) ?> (<?= esc($supplier['supplier_type']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-
-                    <label class="block text-xs font-medium text-slate-600">Ticket Supplier
-                        <select name="supplier_ticket_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <option value="">Ticket Supplier (optional)</option>
-                            <?php foreach (($supplierRows ?? []) as $supplier): ?>
-                                <option value="<?= esc((string) $supplier['id']) ?>" <?= old('supplier_ticket_id') === (string) $supplier['id'] ? 'selected' : '' ?>><?= esc($supplier['supplier_name']) ?> (<?= esc($supplier['supplier_type']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Other (PKR)
-                        <input name="other_pkr" value="<?= esc(old('other_pkr', (string) ($latestCostSheet['other_pkr'] ?? '0'))) ?>" placeholder="Other (PKR)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Profit Per Pax (PKR)
-                        <input name="profit_pkr" value="<?= esc(old('profit_pkr', (string) ($latestCostSheet['profit_pkr'] ?? '0'))) ?>" placeholder="Profit Per Pax (PKR)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-                    <label class="block text-xs font-medium text-slate-600">Notes
-                        <input name="notes" value="<?= esc(old('notes', (string) ($latestCostSheet['notes'] ?? ''))) ?>" placeholder="Notes (optional)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </label>
-
-                    <button type="submit" class="btn btn-md btn-primary md:col-span-2">Save Cost Sheet Version</button>
-                    <?php if (!empty($latestCostSheet)): ?>
-                        <div class="md:col-span-2 flex items-center justify-end">
-                            <form method="post" action="<?= site_url('packages/cost-sheet/publish') ?>" class="inline-flex">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
-                                <input type="hidden" name="cost_sheet_id" value="<?= esc((string) $latestCostSheet['id']) ?>">
-                                <button type="submit" class="btn btn-md btn-secondary">Publish Latest Version</button>
-                            </form>
-                        </div>
-                    <?php endif; ?>
-                </form>
-
-                <div class="mt-4 overflow-auto">
-                    <h4 class="text-sm font-semibold mb-2">Latest Price Lines<?= !empty($latestCostSheet) ? ' (V' . esc((string) ($latestCostSheet['version_no'] ?? '')) . ')' : '' ?></h4>
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-left">
-                                <th class="py-2 pr-3">Sharing</th>
-                                <th class="py-2 pr-3">Total Cost (PKR)</th>
-                                <th class="py-2 pr-3">Sell Price (PKR)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($costSheetLines)): foreach ($costSheetLines as $line): ?>
-                                    <tr class="border-b border-slate-100">
-                                        <td class="py-2 pr-3"><?= esc(strtoupper((string) ($line['sharing_type'] ?? ''))) ?></td>
-                                        <td class="py-2 pr-3"><?= esc(number_format((float) ($line['total_cost_pkr'] ?? 0), 2)) ?></td>
-                                        <td class="py-2 pr-3"><?= esc(number_format((float) ($line['sell_price_pkr'] ?? 0), 2)) ?></td>
-                                    </tr>
-                                <?php endforeach;
-                            else: ?>
-                                <tr>
-                                    <td colspan="3" class="py-3 text-slate-500">No saved cost sheet yet.</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </article> -->
-
             <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
                 <h3 class="text-lg font-semibold mb-4">Package Costs</h3>
-                <form method="post" action="<?= site_url('packages/costs/create') ?>" class="grid gap-3 md:grid-cols-5">
+                <form method="post" action="<?= site_url('packages/costs/create') ?>" class="grid gap-3 md:grid-cols-6">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Cost Type
@@ -226,13 +84,18 @@
                         </select>
                     </label>
                     <label class="block text-xs font-medium text-slate-600">Amount
-                        <input name="cost_amount" placeholder="Amount" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <input name="cost_amount" placeholder="e.g. 5000" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                    </label>
+                    <label class="block text-xs font-medium text-slate-600">Seats Limit
+                        <input type="number" name="seats_limit" placeholder="e.g. 40" min="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
                     <label class="block text-xs font-medium text-slate-600">Supplier ID
                         <input name="supplier_id" placeholder="Supplier ID" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
-                    <button type="submit" class="btn btn-md btn-primary">Add Cost</button>
-                    <label class="block text-xs font-medium text-slate-600 md:col-span-5">Description
+                    <div class="flex items-end">
+                        <button type="submit" class="btn btn-md btn-primary w-full">Add Cost</button>
+                    </div>
+                    <label class="block text-xs font-medium text-slate-600 md:col-span-6">Description
                         <input name="description" placeholder="Description (optional)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
                 </form>
@@ -242,6 +105,7 @@
                             <tr class="border-b border-slate-200 text-left">
                                 <th class="py-2 pr-3">Type</th>
                                 <th class="py-2 pr-3">Amount</th>
+                                <th class="py-2 pr-3">Seats Limit</th>
                                 <th class="py-2 pr-3">Supplier</th>
                                 <th class="py-2 pr-3">Description</th>
                                 <th class="py-2">Action</th>
@@ -250,8 +114,9 @@
                         <tbody>
                             <?php if (!empty($costRows)): foreach ($costRows as $cost): ?>
                                     <tr class="border-b border-slate-100">
-                                        <td class="py-2 pr-3"><?= esc($cost['cost_type']) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) $cost['cost_amount']) ?></td>
+                                        <td class="py-2 pr-3 capitalize"><?= esc($cost['cost_type']) ?></td>
+                                        <td class="py-2 pr-3 font-semibold"><?= esc(number_format((float)$cost['cost_amount'], 2)) ?></td>
+                                        <td class="py-2 pr-3"><?= $cost['seats_limit'] !== null ? esc((string)$cost['seats_limit']) : '<span class="text-slate-400">—</span>' ?></td>
                                         <td class="py-2 pr-3"><?= esc((string) ($cost['supplier_id'] ?? '')) ?></td>
                                         <td class="py-2 pr-3"><?= esc((string) ($cost['description'] ?? '')) ?></td>
                                         <td class="py-2">
@@ -266,7 +131,7 @@
                                 <?php endforeach;
                             else: ?>
                                 <tr>
-                                    <td colspan="5" class="py-3 text-slate-500">No package costs added.</td>
+                                    <td colspan="6" class="py-3 text-slate-500">No package costs added.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -580,13 +445,15 @@
                 return;
             }
 
-            const departureDate = new Date(departureInput.value + 'T00:00:00');
+            // datetime-local value is "YYYY-MM-DDTHH:MM" — extract date part for day arithmetic
+            const departureDate = new Date(departureInput.value.substring(0, 10) + 'T00:00:00');
             if (Number.isNaN(departureDate.getTime())) {
                 return;
             }
 
             const arrivalDate = addDays(departureDate, duration);
-            arrivalInput.value = formatDate(arrivalDate);
+            // Set arrival as datetime-local: keep time at 00:00 by default
+            arrivalInput.value = formatDate(arrivalDate) + 'T00:00';
         };
 
         const updateHotelDates = function() {
@@ -600,10 +467,12 @@
             }
 
             const city = (selectedOption.dataset.city || '').toLowerCase();
-            const baseCheckInValue = hotelCheckInInput.value || (departureInput ? departureInput.value : '');
-            if (!baseCheckInValue) {
+            // hotel check-in input is type="date" (yyyy-MM-dd); departure is datetime-local — strip to date part
+            const rawCheckIn = hotelCheckInInput.value || (departureInput ? departureInput.value : '');
+            if (!rawCheckIn) {
                 return;
             }
+            const baseCheckInValue = rawCheckIn.substring(0, 10); // ensure yyyy-MM-dd
 
             const baseCheckInDate = new Date(baseCheckInValue + 'T00:00:00');
             if (Number.isNaN(baseCheckInDate.getTime())) {
@@ -626,7 +495,8 @@
                 addDays(baseCheckInDate, Math.max(1, makkahDays));
 
             if (packageStayEnd) {
-                const endDate = new Date(packageStayEnd + 'T00:00:00');
+                // packageStayEnd may be a full datetime string — use date part only
+                const endDate = new Date(packageStayEnd.substring(0, 10) + 'T00:00:00');
                 if (!Number.isNaN(endDate.getTime()) && checkOut > endDate) {
                     checkOut = endDate;
                 }

@@ -80,6 +80,45 @@
     </section>
 
     <section class="grid gap-6 lg:grid-cols-2">
+        <article class="rounded-xl border border-slate-200 bg-white p-5">
+            <h3 class="text-lg font-semibold">Agent Ledger Summary</h3>
+            <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-lg bg-slate-50 p-3">Total Receivable: <strong>PKR <?= esc(number_format((float) ($agentTotals['receivable'] ?? 0), 2)) ?></strong></div>
+                <div class="rounded-lg bg-slate-50 p-3">Total Collected: <strong>PKR <?= esc(number_format((float) ($agentTotals['collected'] ?? 0), 2)) ?></strong></div>
+                <div class="rounded-lg bg-slate-50 p-3">Total Outstanding: <strong>PKR <?= esc(number_format((float) ($agentTotals['outstanding'] ?? 0), 2)) ?></strong></div>
+                <div class="rounded-lg bg-slate-50 p-3">Active Agents: <strong><?= esc((int) ($agentTotals['active_agents'] ?? 0)) ?></strong></div>
+            </div>
+        </article>
+
+        <article class="list-card overflow-auto">
+            <h3 class="text-lg font-semibold mb-3">Top Outstanding Agents</h3>
+            <table class="list-table">
+                <thead class="bg-slate-50 text-slate-600">
+                    <tr>
+                        <th class="px-3 py-2 text-left">Agent</th>
+                        <th class="px-3 py-2 text-left">Bookings</th>
+                        <th class="px-3 py-2 text-left">Receivable</th>
+                        <th class="px-3 py-2 text-left">Collected</th>
+                        <th class="px-3 py-2 text-left">Outstanding</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($topOutstandingAgents)): ?><tr>
+                            <td colspan="5" class="px-3 py-4 text-slate-500">No records.</td>
+                        </tr><?php endif; ?>
+                    <?php foreach ($topOutstandingAgents as $row): ?><tr class="border-t border-slate-100">
+                            <td class="px-3 py-2"><?= esc((string) ($row['agent_name'] ?? '-')) ?></td>
+                            <td class="px-3 py-2"><?= esc((string) ($row['booking_count'] ?? 0)) ?></td>
+                            <td class="px-3 py-2">PKR <?= esc(number_format((float) ($row['receivable_amount'] ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2">PKR <?= esc(number_format((float) ($row['collected_amount'] ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2">PKR <?= esc(number_format((float) ($row['outstanding_amount'] ?? 0), 2)) ?></td>
+                        </tr><?php endforeach; ?>
+                </tbody>
+            </table>
+        </article>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-2">
         <article class="list-card overflow-auto">
             <h3 class="text-lg font-semibold mb-3">Booking Status</h3>
             <table class="list-table">
