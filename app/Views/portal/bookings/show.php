@@ -26,7 +26,7 @@ $pilgrimCount = (int)  ($row['total_pilgrims']     ?? 0);
 $paidPct     = $total > 0 ? min(100, max(0, ($paid / $total) * 100)) : 0;
 $isOverpaid  = $outstanding < 0;
 ?>
-<main class="space-y-6">
+<main class="space-y-4">
 
     <?php if (!empty($success)): ?>
         <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
@@ -235,12 +235,15 @@ $isOverpaid  = $outstanding < 0;
                                     <?php
                                     $pmStatus = (string) ($pm['status'] ?? 'posted');
                                     $pmType   = (string) ($pm['payment_type'] ?? 'payment');
-                                    $pmStc = match ($pmStatus) {
-                                        'posted'  => 'bg-emerald-100 text-emerald-700',
-                                        'voided'  => 'bg-rose-100 text-rose-700',
-                                        'pending' => 'bg-amber-100 text-amber-700',
-                                        default   => 'bg-slate-100 text-slate-600',
-                                    };
+                                    if ($pmStatus === 'posted') {
+                                        $pmStc = 'bg-emerald-100 text-emerald-700';
+                                    } elseif ($pmStatus === 'voided') {
+                                        $pmStc = 'bg-rose-100 text-rose-700';
+                                    } elseif ($pmStatus === 'pending') {
+                                        $pmStc = 'bg-amber-100 text-amber-700';
+                                    } else {
+                                        $pmStc = 'bg-slate-100 text-slate-600';
+                                    }
                                     $pmTc = $pmType === 'refund'
                                         ? 'bg-rose-100 text-rose-700'
                                         : 'bg-sky-100 text-sky-700';

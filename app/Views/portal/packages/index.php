@@ -1,23 +1,23 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="bg-slate-50 min-h-screen pb-2">
+<main class="space-y-4">
 
     <!-- Top Alert Messages -->
-    <div class="max-w-7xl mx-auto px-2 sm:px-3 lg:px-2 py-2">
+    <div class="space-y-4">
         <?php if (!empty($success)): ?>
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 flex items-center gap-2 shadow-sm">
+            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 flex items-center gap-2">
                 <i class="fa-solid fa-circle-check"></i> <?= esc($success) ?>
             </div>
         <?php endif; ?>
         <?php if (!empty($error)): ?>
-            <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800 flex items-center gap-2 shadow-sm">
+            <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 flex items-center gap-2">
                 <i class="fa-solid fa-circle-exclamation"></i> <?= esc($error) ?>
             </div>
         <?php endif; ?>
         <?php if (!empty($errors)): ?>
-            <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 shadow-sm">
-                <ul class="list-disc list-inside text-sm">
+            <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                <ul class="list-disc list-inside">
                     <?php foreach ($errors as $err): ?>
                         <li><?= esc($err) ?></li>
                     <?php endforeach; ?>
@@ -25,31 +25,30 @@
             </div>
         <?php endif; ?>
 
-        <!-- Page Header -->
-        <div class="flex items-center justify-between mb-3">
-            <div class="flex space-x-4">
+        <section class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h1 class="text-base font-semibold text-slate-800">Packages</h1>
+                    <p class="mt-1 text-xs text-slate-500">Browse package performance, facilities, prices, and availability with a richer card view.</p>
+                </div>
                 <a href="<?= site_url('/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Create New Package
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Create New Package</span>
                 </a>
             </div>
-            <!-- <div class="flex space-x-2">
-                <button class="px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium">All</button>
-                <button class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Hajj</button>
-                <button class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Umrah</button>
-            </div> -->
-        </div>
+        </section>
 
         <!-- Content Grid -->
         <?php if (empty($cards)): ?>
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-400 mb-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-8 text-center">
+                <div class="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <i class="fa-solid fa-box-open text-2xl"></i>
                 </div>
-                <h3 class="text-lg font-medium text-slate-900">No packages found</h3>
-                <p class="text-slate-500 mt-1">Get started by creating a new package.</p>
+                <h3 class="text-base font-semibold text-slate-900">No packages found</h3>
+                <p class="mt-1 text-sm text-slate-500">Get started by creating a new package.</p>
             </div>
         <?php else: ?>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-2">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 <?php foreach ($cards as $card): ?>
                     <?php
                     $formatDateTime = static function ($value): string {
@@ -69,14 +68,15 @@
                     $outbound = $card['outbound_flight'] ?? null;
                     $return = $card['return_flight'] ?? null;
                     ?>
-                    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-200/70">
 
                         <!-- Card Header / Image Area -->
-                        <div class="bg-slate-50 px-2 py-1.5 border-b border-slate-100">
+                        <div class="relative border-b border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-3 py-3 text-white">
+                            <div class="pointer-events-none absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 20% 20%, #ffffff 1px, transparent 1px); background-size: 14px 14px;"></div>
                             <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0">
-                                    <h3 class="text-lg font-bold text-slate-800 leading-tight line-clamp-2"><?= esc($card['name']) ?></h3>
-                                    <div class="mt-1 text-xs text-slate-500">
+                                <div class="min-w-0 relative z-10">
+                                    <h3 class="line-clamp-2 text-lg font-bold leading-tight text-white"><?= esc($card['name']) ?></h3>
+                                    <div class="mt-1 text-xs text-emerald-100/90">
                                         <?= esc($card['code'] ?: 'Route TBA') ?>
                                     </div>
                                     <?php
@@ -86,19 +86,19 @@
                                     $pkgArrTs = $pkgArr !== '' ? strtotime($pkgArr) : false;
                                     ?>
                                     <?php if ($pkgDepTs || $pkgArrTs): ?>
-                                        <div class="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
-                                            <i class="fa-solid fa-calendar-days text-slate-400"></i>
+                                        <div class="mt-1 flex items-center gap-1 text-[10px] text-slate-100/80">
+                                            <i class="fa-solid fa-calendar-days text-slate-100/70"></i>
                                             <span><?= esc($pkgDepTs ? date('d M Y', $pkgDepTs) : '—') ?></span>
-                                            <span class="text-slate-300">→</span>
+                                            <span class="text-slate-200/70">→</span>
                                             <span><?= esc($pkgArrTs ? date('d M Y', $pkgArrTs) : '—') ?></span>
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                                <div class="shrink-0 flex items-center gap-1">
-                                    <div class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">
+                                <div class="relative z-10 shrink-0 flex items-center gap-1">
+                                    <div class="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
                                         <?= esc($card['duration_days']) ?> Days
                                     </div>
-                                    <div class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">
+                                    <div class="rounded-full border border-emerald-200/40 bg-emerald-300/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-100 backdrop-blur">
                                         <?= esc($card['available_seats']) ?> Seats Left
                                     </div>
                                 </div>
@@ -106,12 +106,12 @@
                         </div>
 
                         <!-- Card Body -->
-                        <div class="p-2.5 flex-1">
+                        <div class="flex-1 space-y-2.5 p-3">
                             <div class="space-y-1 text-xs">
                                 <?php if (!(int) ($card['include_ticket'] ?? 1)): ?>
-                                    <div class="rounded-md bg-slate-50 border border-slate-200 px-2 py-2 text-[11px] text-slate-400 italic text-center col-span-full"><i class="fa-solid fa-plane mr-1"></i> Flight — Self-arranged</div>
+                                    <div class="col-span-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-center text-[11px] italic text-slate-400"><i class="fa-solid fa-plane mr-1"></i> Flight — Self-arranged</div>
                                 <?php else: ?>
-                                    <div class="grid grid-cols-[52px_1fr_auto] gap-1 items-center rounded-md bg-sky-50/80 px-1.5 py-1.5">
+                                    <div class="grid grid-cols-[52px_1fr_auto] items-center gap-1 rounded-lg border border-sky-200/70 bg-sky-50 px-2 py-2">
                                         <div class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
                                             <span>Out</span>
                                             <span class="relative inline-flex h-7 w-7 items-center justify-center rounded-sm border border-slate-300 bg-white shadow-sm">
@@ -138,7 +138,7 @@
                                         <div class="text-[10px] text-slate-600 whitespace-nowrap"><?= esc($formatDateTime($outbound['departure_at'] ?? ($card['departure_datetime'] ?? ''))) ?></div>
                                     </div>
 
-                                    <div class="grid grid-cols-[52px_1fr_auto] gap-1 items-center rounded-md bg-emerald-50/80 px-1.5 py-1.5">
+                                    <div class="grid grid-cols-[52px_1fr_auto] items-center gap-1 rounded-lg border border-emerald-200/70 bg-emerald-50 px-2 py-2">
                                         <div class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                                             <span>Ret</span>
                                             <span class="relative inline-flex h-7 w-7 items-center justify-center rounded-sm border border-slate-300 bg-white shadow-sm">
@@ -169,7 +169,7 @@
 
                             <!-- Hotel Info -->
                             <?php $hotelStays = $card['hotel_stays'] ?? []; ?>
-                            <div class="space-y-1 mb-2 mt-2.5 text-xs">
+                            <div class="mb-2 mt-2.5 space-y-1 text-xs">
                                 <?php if (!empty($hotelStays)): ?>
                                     <?php foreach ($hotelStays as $stay): ?>
                                         <?php
@@ -180,8 +180,8 @@
                                             : base_url('assets/uploads/makkah-logo.png');
                                         $cityAlt = $isMadina ? 'Madina' : 'Makkah';
                                         ?>
-                                        <div class="flex items-center gap-1.5 text-sm text-slate-600">
-                                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white p-0.5">
+                                        <div class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-600">
+                                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white p-0.5 shadow-sm">
                                                 <img src="<?= esc($cityLogo) ?>" alt="<?= esc($cityAlt) ?>" class="max-h-7 max-w-7 object-contain">
                                             </span>
                                             <div class="min-w-0 flex-1">
@@ -202,9 +202,9 @@
                                         </div>
                                     <?php endforeach; ?>
                                 <?php elseif (!(int) ($card['include_hotel'] ?? 1)): ?>
-                                    <div class="text-[11px] text-slate-400 italic"><i class="fa-solid fa-bed mr-1"></i> Hotel — Self-arranged</div>
+                                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] italic text-slate-400"><i class="fa-solid fa-bed mr-1"></i> Hotel — Self-arranged</div>
                                 <?php else: ?>
-                                    <div class="text-[11px] text-slate-500">Hotel stay distribution not available.</div>
+                                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-500">Hotel stay distribution not available.</div>
                                 <?php endif; ?>
                             </div>
 
@@ -214,14 +214,14 @@
                             <?php $transportTypeText = !empty($transportTypes) ? implode(' / ', $transportTypes) : 'TBA'; ?>
                             <?php $transportNameText = !empty($transportNames) ? implode(' | ', $transportNames) : 'Transport details pending'; ?>
                             <?php if (!(int) ($card['include_transport'] ?? 1)): ?>
-                                <div class="mb-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-400 italic">
+                                <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] italic text-slate-400">
                                     <div class="flex items-center gap-1">
                                         <i class="fa-solid fa-bus"></i>
                                         <span>Transport — Self-arranged</span>
                                     </div>
                                 </div>
                             <?php else: ?>
-                                <div class="mb-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
+                                <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-700">
                                     <div class="flex items-center gap-1 min-w-0">
                                         <i class="fa-solid fa-bus text-slate-600"></i>
                                         <span class="font-semibold shrink-0"><?= esc($transportTypeText) ?></span>
@@ -232,32 +232,32 @@
                             <?php endif; ?>
 
                             <!-- Pricing Grid -->
-                            <div class="bg-slate-50 rounded-md p-1.5 grid grid-cols-2 gap-1 text-xs">
+                            <div class="grid grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-emerald-50/60 p-2 text-xs">
                                 <?php $sharingPrice = $card['price_map']['sharing'] ?? null; ?>
                                 <?php if ($sharingPrice !== null): ?>
-                                    <div>
-                                        <span class="text-slate-500 block">Sharing</span>
+                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                        <span class="block text-slate-500">Sharing</span>
                                         <span class="font-bold text-slate-800">PKR <?= number_format((float) $sharingPrice) ?></span>
                                     </div>
                                 <?php endif; ?>
                                 <?php $quadPrice = $card['price_map']['quad'] ?? null; ?>
                                 <?php if ($quadPrice !== null): ?>
-                                    <div>
-                                        <span class="text-slate-500 block">Quad</span>
+                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                        <span class="block text-slate-500">Quad</span>
                                         <span class="font-bold text-slate-800">PKR <?= number_format((float) $quadPrice) ?></span>
                                     </div>
                                 <?php endif; ?>
                                 <?php $triplePrice = $card['price_map']['triple'] ?? null; ?>
                                 <?php if ($triplePrice !== null): ?>
-                                    <div>
-                                        <span class="text-slate-500 block">Triple</span>
+                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                        <span class="block text-slate-500">Triple</span>
                                         <span class="font-bold text-slate-800">PKR <?= number_format((float) $triplePrice) ?></span>
                                     </div>
                                 <?php endif; ?>
                                 <?php $doublePrice = $card['price_map']['double'] ?? null; ?>
                                 <?php if ($doublePrice !== null): ?>
-                                    <div>
-                                        <span class="text-slate-500 block">Double</span>
+                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                        <span class="block text-slate-500">Double</span>
                                         <span class="font-bold text-slate-800">PKR <?= number_format((float) $doublePrice) ?></span>
                                     </div>
                                 <?php endif; ?>
@@ -265,24 +265,25 @@
                         </div>
 
                         <!-- Card Footer / Actions -->
-                        <div class="px-2 py-1.5 bg-white border-t border-slate-100 flex items-center justify-between gap-1.5">
+                        <div class="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50/80 px-3 py-2">
                             <form method="post" action="<?= site_url('/packages/delete') ?>" class="shrink-0" onsubmit="return confirm('Are you sure you want to delete this package?');">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
-                                <button type="submit" class="w-10 h-10 rounded-lg border border-slate-200 text-rose-600 hover:bg-rose-100 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center" title="Delete Package">
+                                <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50" title="Delete Package">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </form>
 
                             <button type="button"
                                 onclick="sharePackage(<?= (int) $card['id'] ?>)"
-                                class="w-10 h-10 shrink-0 rounded-lg border border-slate-200 text-sky-600 hover:bg-sky-50 hover:border-sky-300 flex items-center justify-center"
+                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-200 bg-white text-sky-600 transition hover:bg-sky-50"
                                 title="Download package image">
                                 <i class="fa-solid fa-download"></i>
                             </button>
 
-                            <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="btn btn-md btn-primary flex-1 text-center">
-                                Manage Package
+                            <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="btn btn-md btn-primary inline-flex flex-1 items-center justify-center gap-2 text-center">
+                                <i class="fa-solid fa-gear"></i>
+                                <span>Manage Package</span>
                             </a>
                         </div>
                     </div>

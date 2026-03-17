@@ -1,15 +1,20 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
-    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
+<main class="space-y-4">
+    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
+    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
-    <section class="grid gap-6 lg:grid-cols-3">
-        <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-1">
-            <h3 class="text-lg font-semibold">Update Package</h3>
-            <form method="post" action="<?php echo site_url('packages/update') ?>" class="mt-4 space-y-3">
+    <section class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <h1 class="text-base font-semibold text-slate-800">Manage Package</h1>
+        <p class="mt-1 text-xs text-slate-500">Update package details and attach pricing, hotels, flights, and transport records from one place.</p>
+    </section>
+
+    <section class="grid gap-4 lg:grid-cols-3">
+        <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
+            <h3 class="text-sm font-semibold text-slate-800 inline-flex items-center gap-2"><i class="fa-solid fa-pen-to-square text-emerald-600"></i><span>Update Package</span></h3>
+            <form method="post" action="<?php echo site_url('packages/update') ?>" class="mt-3 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                 <label class="block text-xs font-medium text-slate-600">Code
@@ -81,22 +86,22 @@
                     </div>
                 </div>
                 <p class="text-xs text-slate-500">Flights, Hotels, Transports, and package price slabs are managed from the linked sections on the right.</p>
-                <button type="submit" class="btn btn-md btn-primary btn-block">Update Package</button>
+                <button type="submit" class="btn btn-md btn-primary btn-block inline-flex items-center justify-center gap-2"><i class="fa-solid fa-floppy-disk"></i><span>Update Package</span></button>
             </form>
 
-            <hr class="my-5 border-slate-200">
+            <hr class="my-4 border-slate-200">
 
-            <h3 class="text-lg font-semibold">Delete Package</h3>
+            <h3 class="text-sm font-semibold text-slate-800 inline-flex items-center gap-2"><i class="fa-solid fa-trash-can text-rose-600"></i><span>Delete Package</span></h3>
             <form method="post" action="/packages/delete" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
-                <button type="submit" class="btn btn-md btn-danger btn-block">Delete Package</button>
+                <button type="submit" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100" title="Delete Package" aria-label="Delete Package"><i class="fa-solid fa-trash-can"></i></button>
             </form>
         </article>
 
-        <div class="space-y-6 lg:col-span-2">
-            <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
-                <h3 class="text-lg font-semibold mb-4">Package Costs</h3>
+        <div class="space-y-4 lg:col-span-2">
+            <article class="rounded-xl border border-slate-200 bg-white p-4 overflow-auto">
+                <h3 class="mb-4 inline-flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-sack-dollar text-emerald-600"></i><span>Package Costs</span></h3>
                 <form method="post" action="<?= site_url('packages/costs/create') ?>" class="grid gap-3 md:grid-cols-6">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
@@ -119,45 +124,45 @@
                         <input name="supplier_id" placeholder="Supplier ID" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
                     <div class="flex items-end">
-                        <button type="submit" class="btn btn-md btn-primary w-full">Add Cost</button>
+                        <button type="submit" class="btn btn-md btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold"><i class="fa-solid fa-plus"></i><span>Add Cost</span></button>
                     </div>
                     <label class="block text-xs font-medium text-slate-600 md:col-span-6">Description
                         <input name="description" placeholder="Description (optional)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
                 </form>
-                <div class="mt-4 overflow-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-left">
-                                <th class="py-2 pr-3">Type</th>
-                                <th class="py-2 pr-3">Amount</th>
-                                <th class="py-2 pr-3">Seats Limit</th>
-                                <th class="py-2 pr-3">Supplier</th>
-                                <th class="py-2 pr-3">Description</th>
-                                <th class="py-2">Action</th>
+                <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-200 text-xs">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                <th class="px-2 py-1.5">Type</th>
+                                <th class="px-2 py-1.5">Amount</th>
+                                <th class="px-2 py-1.5">Seats Limit</th>
+                                <th class="px-2 py-1.5">Supplier</th>
+                                <th class="px-2 py-1.5">Description</th>
+                                <th class="px-2 py-1.5">Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-slate-100 bg-white">
                             <?php if (!empty($costRows)): foreach ($costRows as $cost): ?>
-                                    <tr class="border-b border-slate-100">
-                                        <td class="py-2 pr-3 capitalize"><?= esc($cost['cost_type']) ?></td>
-                                        <td class="py-2 pr-3 font-semibold"><?= esc(number_format((float)$cost['cost_amount'], 2)) ?></td>
-                                        <td class="py-2 pr-3"><?= $cost['seats_limit'] !== null ? esc((string)$cost['seats_limit']) : '<span class="text-slate-400">—</span>' ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($cost['supplier_id'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($cost['description'] ?? '')) ?></td>
-                                        <td class="py-2">
+                                    <tr class="hover:bg-slate-50/70">
+                                        <td class="px-2 py-1.5 capitalize"><?= esc($cost['cost_type']) ?></td>
+                                        <td class="px-2 py-1.5 font-semibold"><?= esc(number_format((float)$cost['cost_amount'], 2)) ?></td>
+                                        <td class="px-2 py-1.5"><?= $cost['seats_limit'] !== null ? esc((string)$cost['seats_limit']) : '<span class="text-slate-400">—</span>' ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($cost['supplier_id'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($cost['description'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5">
                                             <form method="post" action="<?= site_url('packages/costs/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_cost_id" value="<?= esc($cost['id']) ?>">
-                                                <button type="submit" class="btn btn-xs btn-danger">Delete</button>
+                                                <button type="submit" class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100" title="Delete Cost" aria-label="Delete Cost"><i class="fa-solid fa-trash-can text-[11px]"></i></button>
                                             </form>
                                         </td>
                                     </tr>
                                 <?php endforeach;
                             else: ?>
                                 <tr>
-                                    <td colspan="6" class="py-3 text-slate-500">No package costs added.</td>
+                                    <td colspan="6" class="px-2 py-3 text-slate-500">No package costs added.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -165,8 +170,8 @@
                 </div>
             </article>
 
-            <article id="hotel-section" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
-                <h3 class="text-lg font-semibold mb-4">Package Hotels</h3>
+            <article id="hotel-section" class="rounded-xl border border-slate-200 bg-white p-4 overflow-auto">
+                <h3 class="mb-4 inline-flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-hotel text-emerald-600"></i><span>Package Hotels</span></h3>
                 <p class="text-xs text-slate-500 mb-3">Hotels are linked directly from Hotel Management records.</p>
                 <p class="text-xs text-slate-500 mb-3">Sequence rule: next hotel check-in starts from previous hotel check-out, and total stay cannot exceed package end date (<?= esc((string) ($packageStayEnd ?? '-')) ?>).</p>
                 <form method="post" action="<?= site_url('packages/hotels/create') ?>" class="grid gap-3 md:grid-cols-4" data-package-end="<?= esc((string) ($packageStayEnd ?? '')) ?>">
@@ -197,41 +202,41 @@
                     <label class="block text-xs font-medium text-slate-600">Check-Out Date
                         <input type="date" name="check_out_date" value="<?= esc((string) ($stayCheckOut ?? '')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
                     </label>
-                    <button type="submit" class="btn btn-md btn-primary">Attach Hotel</button>
+                    <button type="submit" class="btn btn-primary h-9 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 text-xs font-semibold"><i class="fa-solid fa-link"></i><span>Attach Hotel</span></button>
                 </form>
-                <div class="mt-4 overflow-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-left">
-                                <th class="py-2 pr-3">Hotel</th>
-                                <th class="py-2 pr-3">City</th>
-                                <th class="py-2 pr-3">Check-In</th>
-                                <th class="py-2 pr-3">Check-Out</th>
-                                <th class="py-2 pr-3">Room</th>
-                                <th class="py-2">Action</th>
+                <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-200 text-xs">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                <th class="px-2 py-1.5">Hotel</th>
+                                <th class="px-2 py-1.5">City</th>
+                                <th class="px-2 py-1.5">Check-In</th>
+                                <th class="px-2 py-1.5">Check-Out</th>
+                                <th class="px-2 py-1.5">Room</th>
+                                <th class="px-2 py-1.5">Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-slate-100 bg-white">
                             <?php if (!empty($hotelRows)): foreach ($hotelRows as $hotelRow): ?>
-                                    <tr class="border-b border-slate-100">
-                                        <td class="py-2 pr-3"><?= esc((string) ($hotelRow['hotel_name'] ?: ($hotelRow['hotel_master_name'] ?? ''))) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($hotelRow['hotel_city'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($hotelRow['check_in_date'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($hotelRow['check_out_date'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) (($hotelRow['room_type'] ?? '') !== '' ? $hotelRow['room_type'] : ($hotelRow['hotel_room_type'] ?? ''))) ?></td>
-                                        <td class="py-2">
+                                    <tr class="hover:bg-slate-50/70">
+                                        <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['hotel_name'] ?: ($hotelRow['hotel_master_name'] ?? ''))) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['hotel_city'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['check_in_date'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['check_out_date'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) (($hotelRow['room_type'] ?? '') !== '' ? $hotelRow['room_type'] : ($hotelRow['hotel_room_type'] ?? ''))) ?></td>
+                                        <td class="px-2 py-1.5">
                                             <form method="post" action="<?= site_url('packages/hotels/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_hotel_id" value="<?= esc($hotelRow['id']) ?>">
-                                                <button type="submit" class="btn btn-xs btn-danger">Delete</button>
+                                                <button type="submit" class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100" title="Delete Hotel Link" aria-label="Delete Hotel Link"><i class="fa-solid fa-trash-can text-[11px]"></i></button>
                                             </form>
                                         </td>
                                     </tr>
                                 <?php endforeach;
                             else: ?>
                                 <tr>
-                                    <td colspan="6" class="py-3 text-slate-500">No package hotels attached.</td>
+                                    <td colspan="6" class="px-2 py-3 text-slate-500">No package hotels attached.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -239,8 +244,8 @@
                 </div>
             </article>
 
-            <article id="flight-section" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
-                <h3 class="text-lg font-semibold mb-4">Package Flights</h3>
+            <article id="flight-section" class="rounded-xl border border-slate-200 bg-white p-4 overflow-auto">
+                <h3 class="mb-4 inline-flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-plane-departure text-emerald-600"></i><span>Package Flights</span></h3>
                 <form method="post" action="<?= site_url('packages/flights/create') ?>" class="grid gap-3 md:grid-cols-4">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
@@ -272,42 +277,42 @@
                     <label class="block text-xs font-medium text-slate-600">Return Arrival (optional override)
                         <input type="datetime-local" name="return_arrival_at" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
-                    <button type="submit" class="btn btn-md btn-primary">Attach Flight</button>
+                    <button type="submit" class="btn btn-md btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold"><i class="fa-solid fa-link"></i><span>Attach Flight</span></button>
                 </form>
-                <div class="mt-4 overflow-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-left">
-                                <th class="py-2 pr-3">Journey</th>
-                                <th class="py-2 pr-3">Flight No</th>
-                                <th class="py-2 pr-3">Airline</th>
-                                <th class="py-2 pr-3">Departure</th>
-                                <th class="py-2 pr-3">Arrival</th>
-                                <th class="py-2">Action</th>
+                <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-200 text-xs">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                <th class="px-2 py-1.5">Journey</th>
+                                <th class="px-2 py-1.5">Flight No</th>
+                                <th class="px-2 py-1.5">Airline</th>
+                                <th class="px-2 py-1.5">Departure</th>
+                                <th class="px-2 py-1.5">Arrival</th>
+                                <th class="px-2 py-1.5">Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-slate-100 bg-white">
                             <?php if (!empty($flightRows)): foreach ($flightRows as $idx => $flightRow): ?>
                                     <?php $journeyLabel = ((int) $idx % 2 === 0) ? 'OUTBOUND' : 'RETURN'; ?>
-                                    <tr class="border-b border-slate-100">
-                                        <td class="py-2 pr-3"><?= esc($journeyLabel) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($flightRow['flight_no'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($flightRow['airline'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($flightRow['departure_at'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($flightRow['arrival_at'] ?? '')) ?></td>
-                                        <td class="py-2">
+                                    <tr class="hover:bg-slate-50/70">
+                                        <td class="px-2 py-1.5"><?= esc($journeyLabel) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($flightRow['flight_no'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($flightRow['airline'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($flightRow['departure_at'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($flightRow['arrival_at'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5">
                                             <form method="post" action="<?= site_url('packages/flights/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_flight_id" value="<?= esc($flightRow['id']) ?>">
-                                                <button type="submit" class="btn btn-xs btn-danger">Delete</button>
+                                                <button type="submit" class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100" title="Delete Flight Link" aria-label="Delete Flight Link"><i class="fa-solid fa-trash-can text-[11px]"></i></button>
                                             </form>
                                         </td>
                                     </tr>
                                 <?php endforeach;
                             else: ?>
                                 <tr>
-                                    <td colspan="6" class="py-3 text-slate-500">No package flights attached.</td>
+                                    <td colspan="6" class="px-2 py-3 text-slate-500">No package flights attached.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -315,8 +320,8 @@
                 </div>
             </article>
 
-            <article id="transport-section" class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 overflow-auto">
-                <h3 class="text-lg font-semibold mb-4">Package Transports</h3>
+            <article id="transport-section" class="rounded-xl border border-slate-200 bg-white p-4 overflow-auto">
+                <h3 class="mb-4 inline-flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-bus text-emerald-600"></i><span>Package Transports</span></h3>
                 <form method="post" action="<?= site_url('packages/transports/create') ?>" class="grid gap-3 md:grid-cols-4">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
@@ -331,39 +336,39 @@
                     <label class="block text-xs font-medium text-slate-600">Seat Capacity
                         <input name="seat_capacity" placeholder="Seat Capacity (optional)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
-                    <button type="submit" class="btn btn-md btn-primary">Attach Transport</button>
+                    <button type="submit" class="btn btn-primary h-9 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 text-xs font-semibold"><i class="fa-solid fa-link"></i><span>Attach Transport</span></button>
                 </form>
-                <div class="mt-4 overflow-auto">
-                    <table class="min-w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-200 text-left">
-                                <th class="py-2 pr-3">Name</th>
-                                <th class="py-2 pr-3">Provider</th>
-                                <th class="py-2 pr-3">Vehicle</th>
-                                <th class="py-2 pr-3">Seats</th>
-                                <th class="py-2">Action</th>
+                <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-200 text-xs">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                <th class="px-2 py-1.5">Name</th>
+                                <th class="px-2 py-1.5">Provider</th>
+                                <th class="px-2 py-1.5">Vehicle</th>
+                                <th class="px-2 py-1.5">Seats</th>
+                                <th class="px-2 py-1.5">Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-slate-100 bg-white">
                             <?php if (!empty($transportRows)): foreach ($transportRows as $transportRow): ?>
-                                    <tr class="border-b border-slate-100">
-                                        <td class="py-2 pr-3"><?= esc((string) (($transportRow['transport_name'] ?? '') !== '' ? $transportRow['transport_name'] : ($transportRow['master_transport_name'] ?? '-'))) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($transportRow['provider_name'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($transportRow['vehicle_type'] ?? '')) ?></td>
-                                        <td class="py-2 pr-3"><?= esc((string) ($transportRow['seat_capacity'] ?? '')) ?></td>
-                                        <td class="py-2">
+                                    <tr class="hover:bg-slate-50/70">
+                                        <td class="px-2 py-1.5"><?= esc((string) (($transportRow['transport_name'] ?? '') !== '' ? $transportRow['transport_name'] : ($transportRow['master_transport_name'] ?? '-'))) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($transportRow['provider_name'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($transportRow['vehicle_type'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) ($transportRow['seat_capacity'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5">
                                             <form method="post" action="<?= site_url('packages/transports/delete') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                                                 <input type="hidden" name="package_transport_id" value="<?= esc($transportRow['id']) ?>">
-                                                <button type="submit" class="btn btn-xs btn-danger">Delete</button>
+                                                <button type="submit" class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100" title="Delete Transport Link" aria-label="Delete Transport Link"><i class="fa-solid fa-trash-can text-[11px]"></i></button>
                                             </form>
                                         </td>
                                     </tr>
                                 <?php endforeach;
                             else: ?>
                                 <tr>
-                                    <td colspan="5" class="py-3 text-slate-500">No package transports attached.</td>
+                                    <td colspan="5" class="px-2 py-3 text-slate-500">No package transports attached.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>

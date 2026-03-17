@@ -1,20 +1,20 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-5 max-w-4xl">
+<main class="space-y-4">
 
     <?php if (!empty($success)): ?>
-        <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm">
+        <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
             <i class="fa-solid fa-circle-check shrink-0"></i> <?= esc($success) ?>
         </div>
     <?php endif; ?>
     <?php if (!empty($error)): ?>
-        <div class="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 shadow-sm">
+        <div class="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
             <i class="fa-solid fa-circle-exclamation shrink-0"></i> <?= esc($error) ?>
         </div>
     <?php endif; ?>
     <?php if (!empty($errors)): ?>
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
+        <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
             <div class="flex items-center gap-2 font-semibold mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Please fix the following:</div>
             <?php foreach ($errors as $err): ?><div class="ml-5 list-item"><?= esc($err) ?></div><?php endforeach; ?>
         </div>

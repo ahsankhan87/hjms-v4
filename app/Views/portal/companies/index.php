@@ -1,14 +1,19 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
-    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
+<main class="space-y-4">
+    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
+    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
-    <section class="grid gap-6 lg:grid-cols-3">
-        <article class="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-1">
-            <h3 class="text-lg font-semibold">Add Company</h3>
+    <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <h3 class="text-sm font-semibold text-slate-800">Companies</h3>
+        <p class="text-xs text-slate-500">Manage company records, logos, and tax identifiers used across the system.</p>
+    </article>
+
+    <section class="grid gap-3 lg:grid-cols-3">
+        <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
+            <h3 class="text-sm font-semibold text-slate-800">Add Company</h3>
             <form method="post" action="<?= site_url('/companies') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input name="name" value="<?= esc(old('name')) ?>" required placeholder="Company Name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -18,7 +23,7 @@
                 <input type="email" name="email" value="<?= esc(old('email')) ?>" placeholder="Email" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="website" value="<?= esc(old('website')) ?>" placeholder="Website" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <div>
-                    <label class="text-sm font-medium">Logo Image</label>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Logo Image</label>
                     <input type="file" name="logo_file" accept=".jpg,.jpeg,.png,.webp" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <input name="ntn" value="<?= esc(old('ntn')) ?>" placeholder="NTN" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -28,12 +33,12 @@
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
                 </select>
-                <button type="submit" class="btn btn-md btn-primary btn-block">Create Company</button>
+                <button type="submit" class="btn btn-md btn-primary btn-block"><i class="fa-solid fa-check"></i><span>Create Company</span></button>
             </form>
 
             <hr class="my-5 border-slate-200">
 
-            <h3 class="text-lg font-semibold">Update Company</h3>
+            <h3 class="text-sm font-semibold text-slate-800">Update Company</h3>
             <form method="post" action="<?= site_url('/companies/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="number" name="company_id" min="1" required placeholder="Company ID" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -44,7 +49,7 @@
                 <input type="email" name="email" placeholder="Email (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="website" placeholder="Website (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <div>
-                    <label class="text-sm font-medium">Logo Image (optional)</label>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Logo Image (optional)</label>
                     <input type="file" name="logo_file" accept=".jpg,.jpeg,.png,.webp" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <input name="ntn" placeholder="NTN (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -55,21 +60,21 @@
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
                 </select>
-                <button type="submit" class="btn btn-md btn-primary btn-block">Update Company</button>
+                <button type="submit" class="btn btn-md btn-primary btn-block"><i class="fa-solid fa-check"></i><span>Update Company</span></button>
             </form>
 
             <hr class="my-5 border-slate-200">
 
-            <h3 class="text-lg font-semibold">Delete Company</h3>
+            <h3 class="text-sm font-semibold text-slate-800">Delete Company</h3>
             <form method="post" action="<?= site_url('/companies/delete') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="number" name="company_id" min="1" required placeholder="Company ID" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <button type="submit" class="btn btn-md btn-danger btn-block">Delete Company</button>
+                <button type="submit" class="btn btn-md btn-danger btn-block"><i class="fa-solid fa-trash"></i><span>Delete Company</span></button>
             </form>
         </article>
 
         <article class="list-card lg:col-span-2 overflow-auto">
-            <h3 class="text-lg font-semibold mb-4">Company List</h3>
+            <h3 class="px-4 pt-4 text-sm font-semibold text-slate-800">Company List</h3>
             <table class="list-table">
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>

@@ -14,7 +14,7 @@ $tierMap = [
     'double'  => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],
 ];
 ?>
-<main class="space-y-6">
+<main class="space-y-4">
     <?php if (!empty($success)): ?>
         <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <i class="ri-checkbox-circle-line text-emerald-600"></i>

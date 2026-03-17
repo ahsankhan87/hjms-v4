@@ -12,24 +12,24 @@ $statusClasses = [
 $stClass  = $statusClasses[$status] ?? 'bg-slate-100 text-slate-600';
 $isVoided = $status === 'voided';
 ?>
-<main class="space-y-6">
+<main class="space-y-4">
 
     <?php if (!empty($success)): ?>
-        <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <i class="ri-checkbox-circle-line text-emerald-600"></i>
-            <p class="text-sm text-emerald-700"><?= esc($success) ?></p>
+        <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+            <p class="text-xs text-emerald-700"><?= esc($success) ?></p>
         </div>
     <?php endif; ?>
     <?php if (!empty($error)): ?>
-        <div class="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-            <i class="ri-error-warning-line text-rose-500"></i>
-            <p class="text-sm text-rose-700"><?= esc($error) ?></p>
+        <div class="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+            <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
+            <p class="text-xs text-rose-700"><?= esc($error) ?></p>
         </div>
     <?php endif; ?>
     <?php if (!empty($errors)): ?>
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-1">
+        <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 space-y-1">
             <?php foreach ($errors as $err): ?>
-                <p class="text-sm text-amber-700"><?= esc($err) ?></p>
+                <p class="text-xs text-amber-700"><?= esc($err) ?></p>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
@@ -38,7 +38,7 @@ $isVoided = $status === 'voided';
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
             <a href="<?= site_url('/payments') ?>" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50">
-                <i class="ri-arrow-left-line"></i>
+                <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -51,10 +51,10 @@ $isVoided = $status === 'voided';
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/view') ?>" class="btn btn-sm btn-secondary">
-                <i class="ri-eye-line mr-1"></i>View
+                <i class="fa-solid fa-eye"></i><span>View</span>
             </a>
             <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/receipt') ?>" target="_blank" class="btn btn-sm btn-secondary">
-                <i class="ri-receipt-line mr-1"></i>Receipt
+                <i class="fa-solid fa-receipt"></i><span>Receipt</span>
             </a>
         </div>
     </div>
@@ -167,7 +167,7 @@ $isVoided = $status === 'voided';
                     <!-- Submit -->
                     <div class="flex items-center gap-3 border-t border-slate-100 pt-4">
                         <button type="submit" class="btn btn-md btn-primary">
-                            <i class="ri-save-line mr-1.5"></i>Update Payment
+                            <i class="fa-solid fa-floppy-disk"></i><span>Update Payment</span>
                         </button>
                         <a href="<?= site_url('/payments') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     </div>
@@ -195,7 +195,7 @@ $isVoided = $status === 'voided';
                             </div>
                             <button type="submit" class="btn btn-md btn-danger shrink-0"
                                 onclick="return confirm('Are you sure you want to void payment <?= esc($payment['payment_no'] ?? '') ?>? This cannot be undone.')">
-                                <i class="ri-forbid-line mr-1.5"></i>Void Payment
+                                <i class="fa-solid fa-ban"></i><span>Void Payment</span>
                             </button>
                         </div>
                     </form>
@@ -288,7 +288,7 @@ $isVoided = $status === 'voided';
 
                     <?php if ((int) ($payment['agent_id'] ?? 0) > 0): ?>
                         <a href="<?= site_url('/agents/' . (int) $payment['agent_id'] . '/ledger') ?>" class="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline">
-                            <i class="ri-book-2-line"></i> Open Agent Ledger
+                            <i class="fa-solid fa-book-open"></i> Open Agent Ledger
                         </a>
                     <?php endif; ?>
                 </div>

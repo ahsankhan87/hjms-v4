@@ -62,19 +62,24 @@
             --surface-soft: #f8fafc;
             --text: #1f2937;
             --text-muted: #6b7280;
+            --radius-md: 10px;
+            --radius-sm: 8px;
+            --control-h: 36px;
         }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-            background: #f8fafc;
+            background: #f1f5f9;
+            color: var(--text);
+            font-size: 14px;
         }
 
         #appShell .card,
         main article.rounded-xl,
         main article.rounded-2xl {
             border: 1px solid #e2e8f0;
-            box-shadow: 0 8px 24px -14px rgba(15, 23, 42, 0.2);
-            border-radius: 14px;
+            box-shadow: 0 6px 16px -12px rgba(15, 23, 42, 0.2);
+            border-radius: 12px;
             background: var(--surface);
         }
 
@@ -84,6 +89,9 @@
             border-color: #cbd5e1;
             transition: all 0.2s ease;
             background: #fff;
+            min-height: var(--control-h);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
         }
 
         main input:focus,
@@ -105,6 +113,10 @@
         .sidebar-item {
             transition: all 0.2s ease;
             border-left: 3px solid transparent;
+            padding: 0.5rem 1rem !important;
+            min-height: 2.25rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
         }
 
         .sidebar-item:hover,
@@ -120,24 +132,48 @@
             box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
         }
 
+        #sidebar .rounded-xl {
+            border-radius: var(--radius-md);
+        }
+
+        #sidebar nav {
+            padding-top: 0.35rem;
+            padding-bottom: 0.5rem;
+        }
+
+        #sidebar nav .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        #sidebar nav .mt-6 {
+            margin-top: 0.85rem;
+        }
+
+        #sidebar nav .mb-2 {
+            margin-bottom: 0.35rem;
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            border-radius: 0.5rem;
+            border-radius: var(--radius-sm);
             font-weight: 500;
             transition: all 0.2s ease;
             border: 1px solid transparent;
+            min-height: var(--control-h);
+            line-height: 1.1;
         }
 
         .btn-md {
-            padding: 0.5rem 1rem;
+            padding: 0.45rem 0.85rem;
         }
 
         .btn-sm {
-            padding: 0.25rem 0.75rem;
-            font-size: 0.875rem;
+            padding: 0.3rem 0.65rem;
+            font-size: 0.8125rem;
         }
 
         .btn-block {
@@ -176,9 +212,9 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 0.5rem;
+            width: 1.9rem;
+            height: 1.9rem;
+            border-radius: var(--radius-sm);
             color: #4b5563;
             background: transparent;
             border: 1px solid transparent;
@@ -202,17 +238,19 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 1.25rem;
+            gap: 0.6rem;
+            margin-bottom: 0.8rem;
             flex-wrap: wrap;
         }
 
         .list-card {
             background: #fff;
             border: 1px solid #e5e7eb;
-            border-radius: 0.75rem;
+            border-radius: 0.7rem;
             box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
             overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .list-card .list-table {
@@ -226,9 +264,9 @@
         }
 
         .list-card .list-table th {
-            padding: 1rem 1.5rem;
+            padding: 0.6rem 0.8rem;
             text-align: left;
-            font-size: 0.75rem;
+            font-size: 0.6875rem;
             font-weight: 600;
             color: #6b7280;
             text-transform: uppercase;
@@ -236,9 +274,11 @@
         }
 
         .list-card .list-table td {
-            padding: 1rem 1.5rem;
+            padding: 0.58rem 0.8rem;
             color: #4b5563;
             border-top: 1px solid #f3f4f6;
+            font-size: 0.8125rem;
+            line-height: 1.25rem;
         }
 
         .list-card .list-table tbody tr:hover {
@@ -246,33 +286,36 @@
         }
 
         .list-footer {
-            padding: 1rem 1.5rem;
+            padding: 0.6rem 0.8rem;
             border-top: 1px solid #f3f4f6;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
             color: #6b7280;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             flex-wrap: wrap;
         }
 
         .dataTables_wrapper .dataTables_filter input,
         .dataTables_wrapper .dataTables_length select {
             border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            padding: 0.35rem 0.6rem;
+            border-radius: var(--radius-sm);
+            padding: 0.25rem 0.5rem;
             background: #fff;
             color: #374151;
+            min-height: 32px;
+            font-size: 0.8125rem;
         }
 
         .dataTables_wrapper .dataTables_paginate .paginate_button {
-            border-radius: 0.5rem !important;
+            border-radius: var(--radius-sm) !important;
             border: 1px solid #d1d5db !important;
             background: #fff !important;
             color: #374151 !important;
-            margin-left: 0.25rem;
-            padding: 0.25rem 0.6rem !important;
+            margin-left: 0.2rem;
+            padding: 0.2rem 0.5rem !important;
+            font-size: 0.8125rem;
         }
 
         .dataTables_wrapper .dataTables_paginate .paginate_button.current {
@@ -284,18 +327,18 @@
         .dataTables_wrapper .dt-buttons {
             display: inline-flex;
             gap: 0.35rem;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
+            margin-right: 0.4rem;
+            margin-bottom: 0.35rem;
         }
 
         .dataTables_wrapper .dt-buttons .dt-button {
             border: 1px solid #d1d5db !important;
-            border-radius: 0.5rem !important;
+            border-radius: var(--radius-sm) !important;
             background: #fff !important;
             color: #374151 !important;
-            font-size: 0.875rem !important;
+            font-size: 0.8125rem !important;
             line-height: 1.25rem;
-            padding: 0.3rem 0.65rem !important;
+            padding: 0.2rem 0.5rem !important;
         }
 
         .dataTables_wrapper .dt-buttons .dt-button:hover {
@@ -307,12 +350,12 @@
         .dataTables_wrapper .dataTables_length,
         .dataTables_wrapper .dataTables_filter {
             color: #6b7280;
-            font-size: 0.875rem;
-            margin-bottom: 0.75rem;
+            font-size: 0.8125rem;
+            margin-bottom: 0.4rem;
         }
 
         .list-card .dataTables_wrapper {
-            padding: 0.85rem 1rem 1rem;
+            padding: 0.55rem 0.65rem 0.65rem;
         }
 
         .list-card .dataTables_wrapper table.dataTable {
@@ -320,10 +363,25 @@
             margin-bottom: 0.35rem !important;
         }
 
+        @media (max-width: 767px) {
+
+            .list-card .list-table,
+            .list-card .dataTables_wrapper table.dataTable {
+                min-width: 860px;
+            }
+
+            .list-card .list-table th,
+            .list-card .list-table td,
+            .list-card .dataTables_wrapper table.dataTable th,
+            .list-card .dataTables_wrapper table.dataTable td {
+                white-space: nowrap;
+            }
+        }
+
         .status-badge {
-            padding: 4px 12px;
+            padding: 2px 8px;
             border-radius: 9999px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
@@ -376,11 +434,12 @@
         /* ── Select2: match native select styling ───────────────────── */
         .select2-container--default .select2-selection--single {
             height: auto !important;
-            padding: 0.375rem 0.75rem !important;
+            min-height: 34px !important;
+            padding: 0.28rem 0.65rem !important;
             border: 1px solid #d1d5db !important;
-            border-radius: 0.5rem !important;
+            border-radius: var(--radius-sm) !important;
             background-color: #ffffff !important;
-            font-size: 0.875rem !important;
+            font-size: 0.8125rem !important;
             color: #374151 !important;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05) !important;
             line-height: 1.5 !important;
@@ -419,9 +478,9 @@
 
         .select2-dropdown {
             border: 1px solid #d1d5db !important;
-            border-radius: 0.5rem !important;
+            border-radius: var(--radius-sm) !important;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06) !important;
-            font-size: 0.875rem !important;
+            font-size: 0.8125rem !important;
             overflow: hidden !important;
         }
 
@@ -464,7 +523,7 @@
 
 <body class="bg-slate-50 text-slate-800 antialiased">
     <div id="appShell" class="flex h-screen overflow-hidden">
-        <aside id="sidebar" class="w-72 bg-white shadow-lg flex flex-col transition-transform duration-200 ease-out motion-reduce:transition-none will-change-transform -translate-x-full md:translate-x-0 fixed md:static inset-y-0 left-0 z-40">
+        <aside id="sidebar" class="w-64 bg-white shadow-lg flex flex-col transition-transform duration-200 ease-out motion-reduce:transition-none will-change-transform -translate-x-full md:translate-x-0 fixed md:static inset-y-0 left-0 z-40">
             <div class="flex h-full flex-col">
                 <?php
                 $mainCompanyProfile = function_exists('main_company') ? (main_company() ?? []) : [];
@@ -472,8 +531,8 @@
                 $mainCompanyTagline = trim((string) ($mainCompanyProfile['tagline'] ?? 'Hajj & Umrah Management'));
                 $mainCompanyLogo = trim((string) ($mainCompanyProfile['logo_url'] ?? ''));
                 ?>
-                <div class="p-4 border-b border-gray-100">
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div class="p-3 border-b border-gray-100">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
                         <div class="flex items-center gap-3 min-w-0 overflow-hidden">
                             <?php if ($mainCompanyLogo !== ''): ?>
                                 <img src="<?= esc($mainCompanyLogo) ?>" alt="Main Company Logo" class="w-10 h-10 shrink-0 rounded-lg object-contain border border-slate-200 bg-white p-1">
@@ -483,10 +542,10 @@
                                 </div>
                             <?php endif; ?>
                             <div class="min-w-0 flex-1 overflow-hidden">
-                                <h1 class="text-sm font-bold text-gray-800 leading-tight truncate" title="<?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>">
+                                <h1 class="text-[13px] font-bold text-gray-800 leading-tight truncate" title="<?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>">
                                     <?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>
                                 </h1>
-                                <p class="mt-1 text-xs text-gray-500 leading-tight truncate" title="<?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>">
+                                <p class="mt-0.5 text-[11px] text-gray-500 leading-tight truncate" title="<?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>">
                                     <?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>
                                 </p>
                             </div>
@@ -601,15 +660,15 @@
         <div id="sidebarBackdrop" class="fixed inset-0 z-30 bg-slate-900/40 opacity-0 pointer-events-none transition-opacity duration-200 ease-out md:hidden" aria-hidden="true"></div>
 
         <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <header class="bg-white shadow-sm border-b border-gray-100 px-4 md:px-8 py-4">
+            <header class="bg-white shadow-sm border-b border-gray-100 px-4 md:px-6 py-3">
                 <div class="flex items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
                         <button id="menuToggle" class="p-2 hover:bg-gray-100 rounded-lg md:hidden" type="button">
                             <i class="fa-solid fa-bars"></i>
                         </button>
                         <div>
-                            <h2 class="text-2xl font-bold text-gray-800"><?= esc($headerTitle ?? $title ?? 'Dashboard') ?></h2>
-                            <p class="text-sm text-gray-500">Welcome back! Here's what's happening today.</p>
+                            <h2 class="text-xl font-bold text-gray-800"><?= esc($headerTitle ?? $title ?? 'Dashboard') ?></h2>
+                            <p class="text-xs text-gray-500">Welcome back! Here's what's happening today.</p>
                         </div>
                     </div>
 
@@ -692,11 +751,11 @@
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto px-4 py-6 md:px-8">
+            <main class="flex-1 overflow-y-auto px-3 py-4 md:px-6">
                 <?= $this->renderSection('main') ?>
             </main>
 
-            <footer class="mt-auto border-t border-gray-100 bg-white px-4 py-3 text-xs text-gray-500 md:px-8">
+            <footer class="mt-auto border-t border-gray-100 bg-white px-4 py-2 text-xs text-gray-500 md:px-6">
                 HJMS ERP © <?= date('Y') ?>
             </footer>
         </div>

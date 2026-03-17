@@ -1,18 +1,26 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
-    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
+<main class="space-y-4">
+    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
+    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
-    <section class="space-y-4">
-        <div class="list-toolbar">
-            <div class="flex space-x-3">
+    <section class="space-y-3">
+        <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-800">Visa Processing</h3>
+                    <p class="text-xs text-slate-500">Manage visa records, statuses, and bulk updates.</p>
+                </div>
                 <a href="<?= site_url('/visas/add') ?>" class="btn btn-md btn-primary">
-                    <i class="fa-solid fa-plus mr-2"></i>Add Visa
+                    <i class="fa-solid fa-plus"></i><span>Add Visa</span>
                 </a>
             </div>
+        </article>
+
+        <div class="list-toolbar">
+            <p class="text-xs text-slate-500">Select multiple rows and apply status in one action.</p>
         </div>
 
         <form method="post" action="<?= site_url('/visas/bulk-status') ?>" class="list-card overflow-auto">

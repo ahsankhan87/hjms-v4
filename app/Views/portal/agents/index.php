@@ -1,10 +1,10 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
-    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
+<main class="space-y-4">
+    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700\"><?= esc($success) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700\"><?= esc($error) ?></div><?php endif; ?>
+    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700\"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
     <?php
     $branchMap = [];
     foreach ($branches as $item) {
@@ -12,15 +12,20 @@
     }
     ?>
 
-    <section class="grid gap-6 lg:grid-cols-1">
-        <article class="lg:col-span-1">
-            <div class="list-toolbar">
-                <div class="flex space-x-3">
-                    <a href="<?= site_url('/agents/add') ?>" class="btn btn-md btn-primary">
-                        <i class="ri-user-add-line mr-2"></i>Add Agent
-                    </a>
+    <section class="space-y-3">
+        <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-800">Agents</h3>
+                    <p class="text-xs text-slate-500">Manage agency profiles, commissions, and ledger access.</p>
                 </div>
+                <a href="<?= site_url('/agents/add') ?>" class="btn btn-md btn-primary">
+                    <i class="fa-solid fa-plus"></i><span>Add Agent</span>
+                </a>
             </div>
+        </article>
+
+        <article>
             <div class="list-card">
                 <table class="list-table">
                     <thead>

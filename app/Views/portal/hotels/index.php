@@ -1,25 +1,30 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
-    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
+<main class="space-y-4">
+    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
+    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
-    <section class="space-y-4">
-        <div class="list-toolbar">
-            <div class="flex space-x-3">
-                <a href="<?= site_url('/hotels/add') ?>" class="btn btn-md btn-primary">
-                    <i class="fa-solid fa-plus mr-2"></i>Add Hotel
-                </a>
-                <a href="<?= site_url('/hotels/rooming-list') ?>" class="btn btn-md btn-secondary">
-                    <i class="fa-solid fa-bed mr-2"></i>Rooming List Report
-                </a>
+    <section class="space-y-3">
+        <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-800">Hotels</h3>
+                    <p class="text-xs text-slate-500">Manage hotel profiles, inventory, and media assets.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="<?= site_url('/hotels/add') ?>" class="btn btn-md btn-primary">
+                        <i class="fa-solid fa-plus"></i><span>Add Hotel</span>
+                    </a>
+                    <a href="<?= site_url('/hotels/rooming-list') ?>" class="btn btn-md btn-secondary">
+                        <i class="fa-solid fa-bed"></i><span>Rooming List Report</span>
+                    </a>
+                </div>
             </div>
-        </div>
+        </article>
 
         <div class="list-card overflow-auto">
-            <h3 class="text-lg font-semibold mb-4 px-4 pt-4">Hotel List</h3>
             <table class="list-table">
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>
@@ -45,7 +50,9 @@
                             if (! empty($row['image_gallery'])) {
                                 $decodedGallery = json_decode((string) $row['image_gallery'], true);
                                 if (is_array($decodedGallery)) {
-                                    $galleryImages = array_values(array_filter($decodedGallery, static fn($url) => is_string($url) && trim($url) !== ''));
+                                    $galleryImages = array_values(array_filter($decodedGallery, static function ($url) {
+                                        return is_string($url) && trim($url) !== '';
+                                    }));
                                 }
                             }
                             ?>

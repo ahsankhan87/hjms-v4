@@ -1,24 +1,24 @@
 ﻿<?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
+<main class="space-y-4">
 
     <?php if (!empty($success)): ?>
-        <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+        <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
             <i class="fa-solid fa-circle-check text-emerald-600"></i>
-            <p class="text-sm text-emerald-700"><?= esc($success) ?></p>
+            <p class="text-xs text-emerald-700"><?= esc($success) ?></p>
         </div>
     <?php endif; ?>
     <?php if (!empty($error)): ?>
-        <div class="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+        <div class="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
             <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
-            <p class="text-sm text-rose-700"><?= esc($error) ?></p>
+            <p class="text-xs text-rose-700"><?= esc($error) ?></p>
         </div>
     <?php endif; ?>
     <?php if (!empty($errors) || !empty($filterErrors)): ?>
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-1">
+        <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 space-y-1">
             <?php foreach (array_merge((array) ($errors ?? []), (array) ($filterErrors ?? [])) as $err): ?>
-                <p class="text-sm text-amber-700"><?= esc($err) ?></p>
+                <p class="text-xs text-amber-700"><?= esc($err) ?></p>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
@@ -30,7 +30,7 @@
             <p class="text-sm text-slate-500">View, filter, and manage all payment transactions</p>
         </div>
         <a href="<?= site_url('/payments/create') ?>" class="btn btn-md btn-primary">
-            <i class="fa-solid fa-plus mr-1.5"></i>Post New Payment
+            <i class="fa-solid fa-plus"></i><span>Post New Payment</span>
         </a>
     </div>
 
@@ -98,10 +98,10 @@
             </div>
             <div class="md:col-span-4 lg:col-span-7 flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-md btn-primary">
-                    <i class="fa-solid fa-filter mr-1"></i>Apply Filters
+                    <i class="fa-solid fa-filter"></i><span>Apply Filters</span>
                 </button>
                 <a href="<?= site_url('/payments') ?>" class="btn btn-md btn-secondary">
-                    <i class="fa-solid fa-rotate-right mr-1"></i>Reset
+                    <i class="fa-solid fa-rotate-right"></i><span>Reset</span>
                 </a>
             </div>
         </form>

@@ -1,22 +1,22 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><?= esc($error) ?></div><?php endif; ?>
+<main class="space-y-4">
+    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="rounded-xl border border-slate-200 bg-white p-4">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <h3 class="text-2xl font-bold text-slate-800"><?= esc((string) ($row['name'] ?? 'Hotel')) ?></h3>
-                <p class="mt-1 text-sm text-slate-500"><?= esc((string) ($row['city'] ?? '-')) ?> • <?= esc((string) ($row['star_rating'] ?? '-')) ?> Star</p>
+                <h3 class="text-lg font-semibold text-slate-800"><?= esc((string) ($row['name'] ?? 'Hotel')) ?></h3>
+                <p class="mt-1 text-xs text-slate-500"><?= esc((string) ($row['city'] ?? '-')) ?> • <?= esc((string) ($row['star_rating'] ?? '-')) ?> Star</p>
             </div>
             <div class="flex items-center gap-2">
                 <a href="<?= site_url('/hotels/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="btn btn-md btn-secondary">
-                    <i class="fa-solid fa-pen mr-2"></i>Edit
+                    <i class="fa-solid fa-pen"></i><span>Edit</span>
                 </a>
                 <a href="<?= site_url('/hotels') ?>" class="btn btn-md btn-primary">
-                    <i class="fa-solid fa-arrow-left mr-2"></i>Back
+                    <i class="fa-solid fa-arrow-left"></i><span>Back</span>
                 </a>
             </div>
         </div>
@@ -89,9 +89,9 @@
     }
     ?>
 
-    <section class="grid gap-6 lg:grid-cols-2">
-        <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h4 class="text-lg font-semibold text-slate-800">Gallery</h4>
+    <section class="grid gap-3 lg:grid-cols-2">
+        <article class="rounded-xl border border-slate-200 bg-white p-4">
+            <h4 class="text-sm font-semibold text-slate-800">Gallery</h4>
             <?php
             $coverImage = trim((string) ($row['image_url'] ?? ''));
             $allImages = [];
@@ -117,8 +117,8 @@
             <?php endif; ?>
         </article>
 
-        <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h4 class="text-lg font-semibold text-slate-800">Media & Preview</h4>
+        <article class="rounded-xl border border-slate-200 bg-white p-4">
+            <h4 class="text-sm font-semibold text-slate-800">Media & Preview</h4>
             <div class="mt-4 space-y-3 text-sm">
                 <div class="rounded-lg border border-slate-200 p-3">
                     <p class="text-xs font-medium uppercase text-slate-500">Video URL</p>
@@ -157,8 +157,8 @@
         </article>
     </section>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h4 class="text-lg font-semibold text-slate-800">Room Types & Allocation</h4>
+    <section class="rounded-xl border border-slate-200 bg-white p-4">
+        <h4 class="text-sm font-semibold text-slate-800">Room Types & Allocation</h4>
         <div class="mt-4 overflow-auto">
             <table class="list-table">
                 <thead class="bg-slate-50 text-slate-600">

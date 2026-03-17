@@ -1,18 +1,18 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-6">
+<main class="space-y-4">
 
     <?php if (!empty($error)): ?>
-        <div class="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+        <div class="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
             <i class="fa-solid fa-circle-exclamation mt-0.5 text-lg text-rose-500"></i>
-            <p class="text-sm text-rose-700"><?= esc($error) ?></p>
+            <p class="text-xs text-rose-700"><?= esc($error) ?></p>
         </div>
     <?php endif; ?>
     <?php if (!empty($errors)): ?>
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-1">
+        <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 space-y-1">
             <?php foreach ($errors as $err): ?>
-                <p class="text-sm text-amber-700"><?= esc($err) ?></p>
+                <p class="text-xs text-amber-700"><?= esc($err) ?></p>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
@@ -125,7 +125,7 @@
                     <!-- Actions -->
                     <div class="flex items-center gap-3 border-t border-slate-100 pt-4">
                         <button type="submit" class="btn btn-md btn-primary">
-                            <i class="fa-solid fa-check mr-1.5"></i>Post Payment
+                            <i class="fa-solid fa-check"></i><span>Post Payment</span>
                         </button>
                         <a href="<?= site_url('/payments') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     </div>
