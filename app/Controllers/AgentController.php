@@ -72,16 +72,10 @@ class AgentController extends BaseController
             return redirect()->to('/agents')->with('error', 'Agent not found.');
         }
 
-        $ledgerService = new AgentLedgerService();
-        $rows = $ledgerService->getAgentLedgerRows($id);
+        $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
+        $toDate = $this->normalizeDateFilter((string) $this->request->getGet('to'));
 
-        $runningBalance = 0.0;
-        foreach ($rows as &$item) {
-            $runningBalance += (float) ($item['debit_amount'] ?? 0);
-            $runningBalance -= (float) ($item['credit_amount'] ?? 0);
-            $item['running_balance'] = $runningBalance;
-        }
-        unset($item);
+        $ledgerData = $this->buildLedgerViewData($id, $fromDate, $toDate);
 
         return view('portal/agents/ledger', [
             'title'       => 'HJMS ERP | Agent Ledger',
@@ -89,11 +83,83 @@ class AgentController extends BaseController
             'activePage'  => 'agents',
             'userEmail'   => (string) session('user_email'),
             'agent'       => $agent,
-            'rows'        => $rows,
-            'closingBalance' => $runningBalance,
+            'rows'        => $ledgerData['rows'],
+            'entryCount'  => $ledgerData['entryCount'],
+            'periodFrom'  => $ledgerData['periodFrom'],
+            'periodTo'    => $ledgerData['periodTo'],
+            'totalDebit'  => $ledgerData['totalDebit'],
+            'totalCredit' => $ledgerData['totalCredit'],
+            'closingBalance' => $ledgerData['closingBalance'],
+            'filterFrom'  => $ledgerData['filterFrom'],
+            'filterTo'    => $ledgerData['filterTo'],
             'success'     => session()->getFlashdata('success'),
             'error'       => session()->getFlashdata('error'),
             'errors'      => session()->getFlashdata('errors') ?: [],
+        ]);
+    }
+
+    public function ledgerPrint(int $id)
+    {
+        $agent = (new AgentModel())->find($id);
+        if (empty($agent)) {
+            return redirect()->to('/agents')->with('error', 'Agent not found.');
+        }
+
+        $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
+        $toDate = $this->normalizeDateFilter((string) $this->request->getGet('to'));
+        $autoPrint = (string) $this->request->getGet('autoprint') === '1';
+
+        $ledgerData = $this->buildLedgerViewData($id, $fromDate, $toDate);
+
+        return view('portal/agents/ledger_print', [
+            'title'          => 'Agent Ledger Print',
+            'agent'          => $agent,
+            'rows'           => $ledgerData['rows'],
+            'entryCount'     => $ledgerData['entryCount'],
+            'periodFrom'     => $ledgerData['periodFrom'],
+            'periodTo'       => $ledgerData['periodTo'],
+            'totalDebit'     => $ledgerData['totalDebit'],
+            'totalCredit'    => $ledgerData['totalCredit'],
+            'closingBalance' => $ledgerData['closingBalance'],
+            'autoPrint'      => $autoPrint,
+        ]);
+    }
+
+    public function manualEntry(int $id)
+    {
+        $agent = (new AgentModel())->find($id);
+        if (empty($agent)) {
+            return redirect()->to('/agents')->with('error', 'Agent not found.');
+        }
+
+        $ledgerService = new AgentLedgerService();
+        $rows = $ledgerService->getAgentLedgerRows($id);
+
+        $runningBalance = 0.0;
+        $totalDebit = 0.0;
+        $totalCredit = 0.0;
+        foreach ($rows as $item) {
+            $debitAmount = (float) ($item['debit_amount'] ?? 0);
+            $creditAmount = (float) ($item['credit_amount'] ?? 0);
+            $runningBalance += $debitAmount;
+            $runningBalance -= $creditAmount;
+            $totalDebit += $debitAmount;
+            $totalCredit += $creditAmount;
+        }
+
+        return view('portal/agents/ledger_entry', [
+            'title'          => 'HJMS ERP | Post Ledger Entry',
+            'headerTitle'    => 'Agent Management',
+            'activePage'     => 'agents',
+            'userEmail'      => (string) session('user_email'),
+            'agent'          => $agent,
+            'entryCount'     => count($rows),
+            'totalDebit'     => $totalDebit,
+            'totalCredit'    => $totalCredit,
+            'closingBalance' => $runningBalance,
+            'success'        => session()->getFlashdata('success'),
+            'error'          => session()->getFlashdata('error'),
+            'errors'         => session()->getFlashdata('errors') ?: [],
         ]);
     }
 
@@ -114,7 +180,7 @@ class AgentController extends BaseController
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
-            return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger/manual-entry')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -124,8 +190,78 @@ class AgentController extends BaseController
 
             return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger/manual-entry')->withInput()->with('error', $e->getMessage());
         }
+    }
+
+    private function buildLedgerViewData(int $agentId, string $fromDate = '', string $toDate = ''): array
+    {
+        $rows = (new AgentLedgerService())->getAgentLedgerRows($agentId);
+
+        $filteredRows = [];
+        foreach ($rows as $row) {
+            $entryDate = (string) ($row['entry_date'] ?? '');
+            if ($fromDate !== '' && $entryDate < $fromDate) {
+                continue;
+            }
+            if ($toDate !== '' && $entryDate > $toDate) {
+                continue;
+            }
+
+            $filteredRows[] = $row;
+        }
+
+        $runningBalance = 0.0;
+        $totalDebit = 0.0;
+        $totalCredit = 0.0;
+        $periodFrom = '';
+        $periodTo = '';
+
+        $dates = array_values(array_filter(array_map(static function (array $item): string {
+            return (string) ($item['entry_date'] ?? '');
+        }, $filteredRows)));
+        if (! empty($dates)) {
+            sort($dates);
+            $periodFrom = (string) $dates[0];
+            $periodTo = (string) $dates[count($dates) - 1];
+        }
+
+        foreach ($filteredRows as &$item) {
+            $debitAmount = (float) ($item['debit_amount'] ?? 0);
+            $creditAmount = (float) ($item['credit_amount'] ?? 0);
+            $runningBalance += $debitAmount;
+            $runningBalance -= $creditAmount;
+            $item['running_balance'] = $runningBalance;
+            $totalDebit += $debitAmount;
+            $totalCredit += $creditAmount;
+        }
+        unset($item);
+
+        return [
+            'rows'           => $filteredRows,
+            'entryCount'     => count($filteredRows),
+            'periodFrom'     => $periodFrom,
+            'periodTo'       => $periodTo,
+            'totalDebit'     => $totalDebit,
+            'totalCredit'    => $totalCredit,
+            'closingBalance' => $runningBalance,
+            'filterFrom'     => $fromDate,
+            'filterTo'       => $toDate,
+        ];
+    }
+
+    private function normalizeDateFilter(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return '';
+        }
+
+        return $value;
     }
 
     public function createAgent()
