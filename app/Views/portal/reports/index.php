@@ -4,6 +4,33 @@
 <main class="space-y-6">
     <?php if (!empty($filterErrors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><?php foreach ($filterErrors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
+    <section class="rounded-xl border border-slate-200 bg-white p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900">Report Center</h2>
+                <p class="text-xs text-slate-500">Open focused reports with compact filters and print-ready outputs.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a href="<?= site_url('/reports') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-chart-pie text-[10px]"></i>
+                    Executive Dashboard
+                </a>
+                <a href="<?= site_url('/reports/finance') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-coins text-[10px]"></i>
+                    Finance Reports
+                </a>
+                <a href="<?= site_url('/reports/operations') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-gears text-[10px]"></i>
+                    Operations Reports
+                </a>
+                <a href="<?= site_url('/reports/ksa-status') ?>" class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
+                    <i class="fa-solid fa-plane-departure text-[10px]"></i>
+                    KSA Status Report
+                </a>
+            </div>
+        </div>
+    </section>
+
     <section class="rounded-xl border border-slate-200 bg-white p-5">
         <form method="get" action="/reports" class="grid gap-4 md:grid-cols-3">
             <div>
