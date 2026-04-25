@@ -13,6 +13,9 @@ $tierMap = [
     'triple'  => ['bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
     'double'  => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],
 ];
+$pricingModeMap = [
+    'flat' => ['bg' => 'bg-slate-100', 'text' => 'text-slate-700', 'label' => 'Package'],
+];
 ?>
 <main class="space-y-4">
     <?php if (!empty($success)): ?>
@@ -67,6 +70,7 @@ $tierMap = [
                         $stc    = $statusMap[$status] ?? $statusMap['draft'];
                         $tier   = strtolower((string) ($row['pricing_tier'] ?? ''));
                         $tc     = $tierMap[$tier] ?? ['bg' => 'bg-slate-100', 'text' => 'text-slate-600'];
+                        $isFlatPackage = (int) ($row['include_hotel'] ?? 1) !== 1;
                         $outstanding = (float) ($row['outstanding_amount'] ?? 0);
                         $isOverpaid  = $outstanding < 0;
                         ?>
@@ -88,7 +92,11 @@ $tierMap = [
                                 </span>
                             </td>
                             <td class="px-4 py-3">
-                                <?php if ($tier !== ''): ?>
+                                <?php if ($isFlatPackage): ?>
+                                    <span class="inline-flex items-center rounded-full <?= $pricingModeMap['flat']['bg'] ?> <?= $pricingModeMap['flat']['text'] ?> px-2.5 py-0.5 text-xs font-semibold">
+                                        <?= esc($pricingModeMap['flat']['label']) ?>
+                                    </span>
+                                <?php elseif ($tier !== ''): ?>
                                     <span class="inline-flex items-center rounded-full <?= $tc['bg'] ?> <?= $tc['text'] ?> px-2.5 py-0.5 text-xs font-semibold capitalize">
                                         <?= esc($tier) ?>
                                     </span>

@@ -17,6 +17,7 @@ $tierMap = [
 ];
 $tier    = strtolower((string) ($row['pricing_tier'] ?? ''));
 $tc      = $tierMap[$tier] ?? ['bg' => 'bg-slate-100', 'text' => 'text-slate-600'];
+$isFlatPackage = (int) ($row['include_hotel'] ?? 1) !== 1;
 
 $total       = (float) ($row['total_amount']      ?? 0);
 $paid        = (float) ($row['paid_amount']        ?? 0);
@@ -54,8 +55,10 @@ $isOverpaid  = $outstanding < 0;
                             <span class="rounded-full <?= $stc['bg'] ?> <?= $stc['text'] ?> px-2 py-0.5 text-[11px] font-semibold capitalize ring-1 <?= $stc['ring'] ?>">
                                 <?= esc($status) ?>
                             </span>
-                            <?php if ($tier !== ''): ?>
-                                <span class="rounded-full <?= $tc['bg'] ?> <?= $tc['text'] ?> px-2 py-0.5 text-[11px] font-semibold capitalize"><?= esc($tier) ?> room</span>
+                            <?php if ($isFlatPackage): ?>
+                                <span class="rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-[11px] font-semibold">package price</span>
+                            <?php elseif ($tier !== ''): ?>
+                                <span class="rounded-full <?= $tc['bg'] ?> <?= $tc['text'] ?> px-2 py-0.5 text-[11px] font-semibold capitalize"><?= esc($tier) ?></span>
                             <?php endif; ?>
                         </div>
                         <p class="mt-0.5 text-xs text-slate-300">
@@ -130,9 +133,11 @@ $isOverpaid  = $outstanding < 0;
                         </div>
                     <?php endif; ?>
                     <div class="border-b border-slate-100 px-4 py-2.5">
-                        <dt class="text-xs text-slate-500">Pricing Tier</dt>
+                        <dt class="text-xs text-slate-500">Pricing</dt>
                         <dd class="text-sm">
-                            <?php if ($tier !== ''): ?>
+                            <?php if ($isFlatPackage): ?>
+                                <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-[11px] font-semibold">Package price</span>
+                            <?php elseif ($tier !== ''): ?>
                                 <span class="inline-flex items-center rounded-full <?= $tc['bg'] ?> <?= $tc['text'] ?> px-2 py-0.5 text-[11px] font-semibold capitalize"><?= esc($tier) ?></span>
                             <?php else: ?>
                                 <span class="text-slate-400">—</span>
@@ -149,12 +154,6 @@ $isOverpaid  = $outstanding < 0;
                         <div class="border-b border-slate-100 px-4 py-2.5">
                             <dt class="text-xs text-slate-500">KSA Return</dt>
                             <dd class="text-sm font-semibold text-slate-900"><?= esc($row['ksa_return_date']) ?></dd>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($row['room_types'])): ?>
-                        <div class="border-b border-slate-100 px-4 py-2.5 sm:border-r">
-                            <dt class="text-xs text-slate-500">Room Types</dt>
-                            <dd class="text-sm font-semibold text-slate-900"><?= esc($row['room_types']) ?></dd>
                         </div>
                     <?php endif; ?>
                     <?php if (!empty($row['company_name'])): ?>

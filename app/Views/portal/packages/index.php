@@ -232,36 +232,45 @@
                             <?php endif; ?>
 
                             <!-- Pricing Grid -->
-                            <div class="grid grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-emerald-50/60 p-2 text-xs">
-                                <?php $sharingPrice = $card['price_map']['sharing'] ?? null; ?>
-                                <?php if ($sharingPrice !== null): ?>
-                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                        <span class="block text-slate-500">Sharing</span>
-                                        <span class="font-bold text-slate-800">PKR <?= number_format((float) $sharingPrice) ?></span>
+                            <?php if (($card['package_mode'] ?? 'tiered') === 'flat'): ?>
+                                <div class="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-emerald-50/60 p-2 text-xs">
+                                    <div class="rounded-lg border border-emerald-200 bg-white px-3 py-2">
+                                        <span class="block text-slate-500">Package Price</span>
+                                        <span class="font-bold text-slate-800">PKR <?= number_format((float) ($card['flat_price'] ?? 0)) ?></span>
                                     </div>
-                                <?php endif; ?>
-                                <?php $quadPrice = $card['price_map']['quad'] ?? null; ?>
-                                <?php if ($quadPrice !== null): ?>
-                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                        <span class="block text-slate-500">Quad</span>
-                                        <span class="font-bold text-slate-800">PKR <?= number_format((float) $quadPrice) ?></span>
-                                    </div>
-                                <?php endif; ?>
-                                <?php $triplePrice = $card['price_map']['triple'] ?? null; ?>
-                                <?php if ($triplePrice !== null): ?>
-                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                        <span class="block text-slate-500">Triple</span>
-                                        <span class="font-bold text-slate-800">PKR <?= number_format((float) $triplePrice) ?></span>
-                                    </div>
-                                <?php endif; ?>
-                                <?php $doublePrice = $card['price_map']['double'] ?? null; ?>
-                                <?php if ($doublePrice !== null): ?>
-                                    <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                        <span class="block text-slate-500">Double</span>
-                                        <span class="font-bold text-slate-800">PKR <?= number_format((float) $doublePrice) ?></span>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="grid grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-emerald-50/60 p-2 text-xs">
+                                    <?php $sharingPrice = $card['price_map']['sharing'] ?? null; ?>
+                                    <?php if ($sharingPrice !== null): ?>
+                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                            <span class="block text-slate-500">Sharing</span>
+                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $sharingPrice) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php $quadPrice = $card['price_map']['quad'] ?? null; ?>
+                                    <?php if ($quadPrice !== null): ?>
+                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                            <span class="block text-slate-500">Quad</span>
+                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $quadPrice) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php $triplePrice = $card['price_map']['triple'] ?? null; ?>
+                                    <?php if ($triplePrice !== null): ?>
+                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                            <span class="block text-slate-500">Triple</span>
+                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $triplePrice) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php $doublePrice = $card['price_map']['double'] ?? null; ?>
+                                    <?php if ($doublePrice !== null): ?>
+                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
+                                            <span class="block text-slate-500">Double</span>
+                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $doublePrice) ?></span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Card Footer / Actions -->

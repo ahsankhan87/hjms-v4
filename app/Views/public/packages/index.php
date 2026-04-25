@@ -82,6 +82,8 @@
                 $quad = $priceMap['quad'] ?? null;
                 $triple = $priceMap['triple'] ?? null;
                 $double = $priceMap['double'] ?? null;
+                $packageMode = (string) ($card['package_mode'] ?? 'tiered');
+                $flatPrice = $card['flat_price'] ?? null;
                 ?>
 
                 <article class="pkg-card">
@@ -147,24 +149,31 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sky-700">
-                                <div>
-                                    <div class="font-semibold">Sharing</div>
-                                    <div><?= $sharing !== null ? 'PKR ' . esc(number_format((float) $sharing, 0)) : 'N/A' ?></div>
+                            <?php if ($packageMode === 'flat'): ?>
+                                <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sky-700">
+                                    <div class="font-semibold">Package Price</div>
+                                    <div><?= $flatPrice !== null ? 'PKR ' . esc(number_format((float) $flatPrice, 0)) : 'N/A' ?></div>
                                 </div>
-                                <div>
-                                    <div class="font-semibold">Quad</div>
-                                    <div><?= $quad !== null ? 'PKR ' . esc(number_format((float) $quad, 0)) : 'N/A' ?></div>
+                            <?php else: ?>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sky-700">
+                                    <div>
+                                        <div class="font-semibold">Sharing</div>
+                                        <div><?= $sharing !== null ? 'PKR ' . esc(number_format((float) $sharing, 0)) : 'N/A' ?></div>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">Quad</div>
+                                        <div><?= $quad !== null ? 'PKR ' . esc(number_format((float) $quad, 0)) : 'N/A' ?></div>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">Triple</div>
+                                        <div><?= $triple !== null ? 'PKR ' . esc(number_format((float) $triple, 0)) : 'N/A' ?></div>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold">Double</div>
+                                        <div><?= $double !== null ? 'PKR ' . esc(number_format((float) $double, 0)) : 'N/A' ?></div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div class="font-semibold">Triple</div>
-                                    <div><?= $triple !== null ? 'PKR ' . esc(number_format((float) $triple, 0)) : 'N/A' ?></div>
-                                </div>
-                                <div>
-                                    <div class="font-semibold">Double</div>
-                                    <div><?= $double !== null ? 'PKR ' . esc(number_format((float) $double, 0)) : 'N/A' ?></div>
-                                </div>
-                            </div>
+                            <?php endif; ?>
                         </div>
 
                         <div class="lg:col-span-3 text-right space-y-3">

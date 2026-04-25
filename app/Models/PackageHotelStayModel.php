@@ -4,20 +4,18 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class PackageTransportModel extends Model
+class PackageHotelStayModel extends Model
 {
-    protected $table = 'package_transports';
+    protected $table = 'package_hotel_stays';
     protected $primaryKey = 'id';
     protected $returnType = 'array';
     protected $useAutoIncrement = true;
     protected $protectFields = true;
     protected $allowedFields = [
         'package_id',
-        'transport_id',
-        'provider_name',
-        'vehicle_type',
-        'seat_capacity',
-        'cost_amount',
+        'package_hotel_id',
+        'check_in_date',
+        'check_out_date',
         'created_at',
     ];
 }

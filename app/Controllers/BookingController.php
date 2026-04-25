@@ -5,11 +5,24 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\BookingModel;
 use App\Models\BookingPilgrimModel;
+use App\Services\PackagePricingService;
 use App\Services\AgentLedgerService;
 
 class BookingController extends BaseController
 {
     const PRICING_TIERS = ['sharing', 'quad', 'triple', 'double'];
+
+    private function packageStayDateExpr(string $packageField, string $aggregate): string
+    {
+        $db = db_connect();
+        if ($db->tableExists('package_hotel_stays')) {
+            $column = $aggregate === 'MIN' ? 'check_in_date' : 'check_out_date';
+            return '(SELECT ' . $aggregate . '(phs.' . $column . ') FROM package_hotel_stays phs WHERE phs.package_id = ' . $packageField . ')';
+        }
+
+        $column = $aggregate === 'MIN' ? 'check_in_date' : 'check_out_date';
+        return '(SELECT ' . $aggregate . '(ph.' . $column . ') FROM package_hotels ph WHERE ph.package_id = ' . $packageField . ')';
+    }
 
     public function index()
     {
@@ -42,25 +55,25 @@ class BookingController extends BaseController
                     ), 0)) AS outstanding_amount"
             : ", '' AS pricing_tier, 0 AS unit_price, 0 AS total_amount, 0 AS paid_amount, 0 AS outstanding_amount";
 
+        $stayStartExpr = $this->packageStayDateExpr('b.package_id', 'MIN');
+        $stayEndExpr = $this->packageStayDateExpr('b.package_id', 'MAX');
+
         return view('portal/bookings/index', [
             'title'      => 'HJMS ERP | Bookings',
             'headerTitle' => 'Booking Operations',
             'activePage' => 'bookings',
             'userEmail' => (string) session('user_email'),
             'rows'      => $db->table('bookings b')
-                ->select("b.*, c.name AS company_name, p.name AS package_name,
+                ->select("b.*, c.name AS company_name, p.name AS package_name, p.include_hotel,
                     DATE_FORMAT(COALESCE(
-                        (SELECT MIN(ph.check_in_date) FROM package_hotels ph WHERE ph.package_id = b.package_id),
+                        " . $stayStartExpr . ",
                         (SELECT DATE(MIN(pf.arrival_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
                     ), '%Y-%m-%d') AS ksa_arrival_date,
                     DATE_FORMAT(COALESCE(
-                        (SELECT MAX(ph.check_out_date) FROM package_hotels ph WHERE ph.package_id = b.package_id),
+                        " . $stayEndExpr . ",
                         (SELECT DATE(MAX(pf.departure_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
                     ), '%Y-%m-%d') AS ksa_return_date,
-                    DATE_FORMAT(b.created_at, '%Y-%m-%d') AS voucher_date,
-                    (SELECT GROUP_CONCAT(DISTINCT TRIM(ph.room_type) ORDER BY ph.room_type SEPARATOR ', ')
-                     FROM package_hotels ph
-                     WHERE ph.package_id = b.package_id AND TRIM(IFNULL(ph.room_type, '')) <> '') AS room_types" . $pricingSelect)
+                    DATE_FORMAT(b.created_at, '%Y-%m-%d') AS voucher_date" . $pricingSelect)
                 ->join('packages p', 'p.id = b.package_id', 'left')
                 ->join('companies c', 'c.id = b.company_id', 'left')
                 ->where('b.season_id', $seasonId)
@@ -105,25 +118,26 @@ class BookingController extends BaseController
 
         $db = db_connect();
 
+        $stayStartExpr = $this->packageStayDateExpr('b.package_id', 'MIN');
+        $stayEndExpr = $this->packageStayDateExpr('b.package_id', 'MAX');
+
         $row = $db->table('bookings b')
             ->select("b.*,
                 p.name AS package_name, p.code AS package_code,
+                p.include_hotel,
                 p.departure_date AS pkg_departure_date,
                 p.arrival_date   AS pkg_arrival_date,
                 c.name  AS company_name,
                 ag.name AS agent_name,
                 br.name AS branch_name,
                 DATE_FORMAT(COALESCE(
-                    (SELECT MIN(ph.check_in_date)  FROM package_hotels ph WHERE ph.package_id = b.package_id),
+                    " . $stayStartExpr . ",
                     (SELECT DATE(MIN(pf.arrival_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
                 ), '%d %b %Y') AS ksa_arrival_date,
                 DATE_FORMAT(COALESCE(
-                    (SELECT MAX(ph.check_out_date)  FROM package_hotels ph WHERE ph.package_id = b.package_id),
+                    " . $stayEndExpr . ",
                     (SELECT DATE(MAX(pf.departure_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
                 ), '%d %b %Y') AS ksa_return_date,
-                (SELECT GROUP_CONCAT(DISTINCT TRIM(ph.room_type) ORDER BY ph.room_type SEPARATOR ', ')
-                 FROM package_hotels ph
-                 WHERE ph.package_id = b.package_id AND TRIM(IFNULL(ph.room_type,'')) <> '') AS room_types,
                 COALESCE((
                     SELECT SUM(CASE WHEN pm.payment_type = 'refund' THEN -pm.amount ELSE pm.amount END)
                     FROM payments pm
@@ -252,11 +266,15 @@ class BookingController extends BaseController
             $bookingModel = new BookingModel();
             $bookingPilgrimModel = new BookingPilgrimModel();
             $db = db_connect();
+            $pricingService = new PackagePricingService($db);
 
             $package = $db->table('packages')->select('id')->where('id', $payload['package_id'])->where('season_id', $seasonId)->get()->getRowArray();
             if (empty($package)) {
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Selected package is not in active season.');
             }
+
+            $pricingSummary = $pricingService->summarizePackage((int) $payload['package_id']);
+            $payload['pricing_tier'] = $pricingService->normalizeRequestedTier((int) $payload['package_id'], (string) $payload['pricing_tier']);
 
             if ($payload['company_id'] === null || ! company_table_ready()) {
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Please select a valid shirka company.');
@@ -292,29 +310,44 @@ class BookingController extends BaseController
             }
 
             // Seats limit check
-            $seatRow = $db->table('package_costs')
-                ->select('seats_limit')
-                ->where('package_id', (int) $payload['package_id'])
-                ->where('cost_type', strtolower(trim((string) $payload['pricing_tier'])))
-                ->orderBy('id', 'DESC')
-                ->get()->getRowArray();
+            if (($pricingSummary['mode'] ?? 'tiered') === 'flat') {
+                $seatsLimit = $pricingSummary['flat_seats_limit'];
+                if ($seatsLimit === null || (int) $seatsLimit < 1) {
+                    return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package. Please set package total seats before creating a booking.');
+                }
 
-            if (empty($seatRow) || $seatRow['seats_limit'] === null || (int) $seatRow['seats_limit'] === 0) {
-                return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package & tier. Please set a seats limit before creating a booking.');
+                $alreadyBooked = $db->table('booking_pilgrims bp')
+                    ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                    ->where('b.package_id', (int) $payload['package_id'])
+                    ->where('b.status !=', 'cancelled')
+                    ->countAllResults();
+            } else {
+                $seatRow = $db->table('package_costs')
+                    ->select('seats_limit')
+                    ->where('package_id', (int) $payload['package_id'])
+                    ->where('cost_type', strtolower(trim((string) $payload['pricing_tier'])))
+                    ->orderBy('id', 'DESC')
+                    ->get()->getRowArray();
+
+                if (empty($seatRow) || $seatRow['seats_limit'] === null || (int) $seatRow['seats_limit'] === 0) {
+                    return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package & tier. Please set a seats limit before creating a booking.');
+                }
+
+                $seatsLimit = (int) $seatRow['seats_limit'];
+                $alreadyBooked = $db->table('booking_pilgrims bp')
+                    ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                    ->where('b.package_id', (int) $payload['package_id'])
+                    ->where('b.pricing_tier', strtolower(trim((string) $payload['pricing_tier'])))
+                    ->where('b.status !=', 'cancelled')
+                    ->countAllResults();
             }
 
-            $seatsLimit    = (int) $seatRow['seats_limit'];
-            $alreadyBooked = $db->table('booking_pilgrims bp')
-                ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                ->where('b.package_id', (int) $payload['package_id'])
-                ->where('b.pricing_tier', strtolower(trim((string) $payload['pricing_tier'])))
-                ->where('b.status !=', 'cancelled')
-                ->countAllResults();
             $remaining = max(0, $seatsLimit - $alreadyBooked);
             if (count($pilgrimIds) > $remaining) {
+                $seatScope = ($pricingSummary['mode'] ?? 'tiered') === 'flat' ? 'package' : 'package & tier';
                 return redirect()->to($returnUrl)->withInput()->with(
                     'error',
-                    "Only {$remaining} seat(s) available for this package & tier. You selected " . count($pilgrimIds) . ' pilgrim(s).'
+                    "Only {$remaining} seat(s) available for this {$seatScope}. You selected " . count($pilgrimIds) . ' pilgrim(s).'
                 );
             }
 
@@ -446,6 +479,7 @@ class BookingController extends BaseController
             $bookingModel = new BookingModel();
             $bookingPilgrimModel = new BookingPilgrimModel();
             $db = db_connect();
+            $pricingService = new PackagePricingService($db);
 
             $existing = $bookingModel->where('id', $bookingId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
@@ -474,6 +508,9 @@ class BookingController extends BaseController
             $effectivePricingTier = isset($data['pricing_tier'])
                 ? (string) $data['pricing_tier']
                 : trim((string) ($existing['pricing_tier'] ?? ''));
+            $pricingSummary = $pricingService->summarizePackage($effectivePackageId);
+            $effectivePricingTier = $pricingService->normalizeRequestedTier($effectivePackageId, $effectivePricingTier);
+            $data['pricing_tier'] = $effectivePricingTier;
 
             $shouldReprice = isset($data['package_id']) || isset($data['pricing_tier']) || $postedPilgrims !== null;
             if ($shouldReprice) {
@@ -538,30 +575,46 @@ class BookingController extends BaseController
                 $pilgrimsChanged = $pilgrimIds !== $existingPilgrimIds;
 
                 if ($packageChanged || $tierChanged || $pilgrimsChanged) {
-                    $updateSeatRow = $db->table('package_costs')
-                        ->select('seats_limit')
-                        ->where('package_id', $effectivePackageId)
-                        ->where('cost_type', strtolower(trim($effectivePricingTier)))
-                        ->orderBy('id', 'DESC')
-                        ->get()->getRowArray();
+                    if (($pricingSummary['mode'] ?? 'tiered') === 'flat') {
+                        $updateSeatsLimit = $pricingSummary['flat_seats_limit'];
+                        if ($updateSeatsLimit === null || (int) $updateSeatsLimit < 1) {
+                            return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package. Please set package total seats before updating.');
+                        }
 
-                    if (empty($updateSeatRow) || $updateSeatRow['seats_limit'] === null || (int) $updateSeatRow['seats_limit'] === 0) {
-                        return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package & tier. Please set a seats limit before updating.');
+                        $othersBooked = $db->table('booking_pilgrims bp')
+                            ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                            ->where('b.package_id', $effectivePackageId)
+                            ->where('b.status !=', 'cancelled')
+                            ->where('b.id !=', $bookingId)
+                            ->countAllResults();
+                    } else {
+                        $updateSeatRow = $db->table('package_costs')
+                            ->select('seats_limit')
+                            ->where('package_id', $effectivePackageId)
+                            ->where('cost_type', strtolower(trim($effectivePricingTier)))
+                            ->orderBy('id', 'DESC')
+                            ->get()->getRowArray();
+
+                        if (empty($updateSeatRow) || $updateSeatRow['seats_limit'] === null || (int) $updateSeatRow['seats_limit'] === 0) {
+                            return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package & tier. Please set a seats limit before updating.');
+                        }
+
+                        $updateSeatsLimit = (int) $updateSeatRow['seats_limit'];
+                        $othersBooked = $db->table('booking_pilgrims bp')
+                            ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                            ->where('b.package_id', $effectivePackageId)
+                            ->where('b.pricing_tier', strtolower(trim($effectivePricingTier)))
+                            ->where('b.status !=', 'cancelled')
+                            ->where('b.id !=', $bookingId)
+                            ->countAllResults();
                     }
 
-                    $updateSeatsLimit = (int) $updateSeatRow['seats_limit'];
-                    $othersBooked = $db->table('booking_pilgrims bp')
-                        ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                        ->where('b.package_id', $effectivePackageId)
-                        ->where('b.pricing_tier', strtolower(trim($effectivePricingTier)))
-                        ->where('b.status !=', 'cancelled')
-                        ->where('b.id !=', $bookingId)
-                        ->countAllResults();
                     $updateRemaining = max(0, $updateSeatsLimit - $othersBooked);
                     if (count($pilgrimIds) > $updateRemaining) {
+                        $seatScope = ($pricingSummary['mode'] ?? 'tiered') === 'flat' ? 'package' : 'package & tier';
                         return redirect()->to($returnUrl)->withInput()->with(
                             'error',
-                            "Only {$updateRemaining} seat(s) available for this package & tier. You selected " . count($pilgrimIds) . ' pilgrim(s).'
+                            "Only {$updateRemaining} seat(s) available for this {$seatScope}. You selected " . count($pilgrimIds) . ' pilgrim(s).'
                         );
                     }
                 }
@@ -592,6 +645,7 @@ class BookingController extends BaseController
     private function bookingFormData(int $seasonId, $editingBookingId = null): array
     {
         $db = db_connect();
+        $pricingService = new PackagePricingService($db);
 
         $packages = $db->table('packages')->where('season_id', $seasonId)->orderBy('departure_date', 'DESC')->get()->getResultArray();
         $packageIds = array_values(array_unique(array_map(static function (array $row): int {
@@ -600,40 +654,23 @@ class BookingController extends BaseController
 
         $packagePricingOptions = [];
         $seatsLimitByPackage    = [];
+        $packagePricingMeta = [];
         if ($packageIds !== []) {
-            $costRows = $db->table('package_costs')
-                ->select('package_id, cost_type, cost_amount, seats_limit, id')
-                ->whereIn('package_id', $packageIds)
-                ->whereIn('cost_type', self::PRICING_TIERS)
-                ->orderBy('id', 'DESC')
-                ->get()
-                ->getResultArray();
-
-            foreach ($costRows as $costRow) {
-                $packageId = (int) ($costRow['package_id'] ?? 0);
-                $tier = strtolower(trim((string) ($costRow['cost_type'] ?? '')));
-                if ($packageId < 1 || $tier === '' || ! in_array($tier, self::PRICING_TIERS, true)) {
-                    continue;
-                }
-
-                if (! isset($packagePricingOptions[$packageId])) {
-                    $packagePricingOptions[$packageId] = [];
-                }
-                if (! isset($packagePricingOptions[$packageId][$tier])) {
-                    $packagePricingOptions[$packageId][$tier] = (float) ($costRow['cost_amount'] ?? 0);
-                }
-
-                if (! isset($seatsLimitByPackage[$packageId])) {
-                    $seatsLimitByPackage[$packageId] = [];
-                }
-                if (! isset($seatsLimitByPackage[$packageId][$tier])) {
-                    $seatsLimitByPackage[$packageId][$tier] = $costRow['seats_limit'] !== null ? (int) $costRow['seats_limit'] : null;
-                }
+            foreach ($packageIds as $packageId) {
+                $summary = $pricingService->summarizePackage((int) $packageId);
+                $packagePricingMeta[$packageId] = $summary;
+                $packagePricingOptions[$packageId] = $summary['mode'] === 'flat'
+                    ? ['flat' => (float) ($summary['flat_price'] ?? 0)]
+                    : ($summary['price_map'] ?? []);
+                $seatsLimitByPackage[$packageId] = $summary['mode'] === 'flat'
+                    ? ['flat' => $summary['flat_seats_limit']]
+                    : ($summary['seat_limit_map'] ?? []);
             }
         }
 
         // Count already-booked pilgrims per package/tier (excludes cancelled bookings and, when editing, the current booking)
         $bookedSeatsCountByPackage = [];
+        $bookedPackageCountByPackage = [];
         if ($packageIds !== []) {
             $excludeBookingSql = ($editingBookingId !== null && $editingBookingId > 0)
                 ? ' AND b.id != ' . (int) $editingBookingId
@@ -656,6 +693,20 @@ class BookingController extends BaseController
                 }
                 $bookedSeatsCountByPackage[$pid][$tier] = (int) $row['booked_count'];
             }
+
+            $flatBookedRows = $db->query(
+                'SELECT b.package_id, COUNT(bp.pilgrim_id) AS booked_count
+                 FROM bookings b
+                 INNER JOIN booking_pilgrims bp ON bp.booking_id = b.id
+                 WHERE b.package_id IN (' . implode(',', $packageIds) . ")
+                   AND b.status != 'cancelled'"
+                    . $excludeBookingSql . '
+                 GROUP BY b.package_id'
+            )->getResultArray();
+
+            foreach ($flatBookedRows as $row) {
+                $bookedPackageCountByPackage[(int) ($row['package_id'] ?? 0)] = (int) ($row['booked_count'] ?? 0);
+            }
         }
 
         $excludeConfirmedCondition = 'NOT EXISTS (
@@ -674,8 +725,10 @@ class BookingController extends BaseController
         return [
             'packages'               => $packages,
             'packagePricingOptions'  => $packagePricingOptions,
+            'packagePricingMeta'     => $packagePricingMeta,
             'seatsLimitByPackage'    => $seatsLimitByPackage,
             'bookedSeatsCountByPackage' => $bookedSeatsCountByPackage,
+            'bookedPackageCountByPackage' => $bookedPackageCountByPackage,
             'agents'    => $db->table('agents')->orderBy('name', 'ASC')->get()->getResultArray(),
             'branches'  => $db->table('branches')->orderBy('name', 'ASC')->get()->getResultArray(),
             'companies' => company_table_ready()
@@ -697,12 +750,13 @@ class BookingController extends BaseController
             return null;
         }
 
-        $tier = strtolower(trim($pricingTier));
+        $db = db_connect();
+        $pricingService = new PackagePricingService($db);
+        $summary = $pricingService->summarizePackage($packageId);
+        $tier = $pricingService->normalizeRequestedTier($packageId, $pricingTier);
         if (! in_array($tier, self::PRICING_TIERS, true)) {
             return null;
         }
-
-        $db = db_connect();
 
         $costRow = $db->table('package_costs')
             ->select('cost_amount')
@@ -717,6 +771,25 @@ class BookingController extends BaseController
                 'unit_price' => (float) ($costRow['cost_amount'] ?? 0),
                 'source' => 'package_costs',
                 'package_variant_id' => null,
+                'package_mode' => $summary['mode'] ?? 'tiered',
+            ];
+        }
+
+        if (($summary['mode'] ?? 'tiered') === 'flat' && (float) ($summary['flat_price'] ?? 0) > 0) {
+            return [
+                'unit_price' => (float) ($summary['flat_price'] ?? 0),
+                'source' => 'package_components',
+                'package_variant_id' => null,
+                'package_mode' => 'flat',
+            ];
+        }
+
+        if (isset($summary['price_map'][$tier])) {
+            return [
+                'unit_price' => (float) ($summary['price_map'][$tier] ?? 0),
+                'source' => 'package_components',
+                'package_variant_id' => null,
+                'package_mode' => 'tiered',
             ];
         }
 
@@ -736,6 +809,7 @@ class BookingController extends BaseController
                 'unit_price' => (float) ($priceLine['sell_price_pkr'] ?? 0),
                 'source' => 'package_price_lines',
                 'package_variant_id' => null,
+                'package_mode' => $summary['mode'] ?? 'tiered',
             ];
         }
 
@@ -754,6 +828,7 @@ class BookingController extends BaseController
                 'unit_price' => (float) ($variantRow['selling_price'] ?? 0),
                 'source' => 'package_variants',
                 'package_variant_id' => (int) ($variantRow['id'] ?? 0),
+                'package_mode' => $summary['mode'] ?? 'tiered',
             ];
         }
 
@@ -860,7 +935,7 @@ class BookingController extends BaseController
         }
 
         $flightRows = $db->table('package_flights pf')
-            ->select('pf.*, f.departure_airport, f.arrival_airport, f.pnr')
+            ->select('pf.*, f.departure_airport, f.arrival_airport, f.pnr, f.return_airline, f.return_flight_no, f.return_pnr, f.return_departure_airport, f.return_arrival_airport, f.return_departure_at, f.return_arrival_at')
             ->join('flights f', 'f.id = pf.flight_id', 'left')
             ->where('pf.package_id', (int) $booking['package_id'])
             ->orderBy('pf.departure_at', 'ASC')
@@ -868,14 +943,26 @@ class BookingController extends BaseController
             ->get()
             ->getResultArray();
 
-        $hotelRows = $db->table('package_hotels ph')
-            ->select('ph.*, h.city AS hotel_city, h.name AS hotel_master_name')
-            ->join('hotels h', 'h.id = ph.hotel_id', 'left')
-            ->where('ph.package_id', (int) $booking['package_id'])
-            ->orderBy('ph.check_in_date', 'ASC')
-            ->orderBy('ph.id', 'ASC')
-            ->get()
-            ->getResultArray();
+        if ($db->tableExists('package_hotel_stays')) {
+            $hotelRows = $db->table('package_hotel_stays phs')
+                ->select('phs.id, phs.check_in_date, phs.check_out_date, ph.hotel_name, h.city AS hotel_city, h.name AS hotel_master_name')
+                ->join('package_hotels ph', 'ph.id = phs.package_hotel_id', 'left')
+                ->join('hotels h', 'h.id = ph.hotel_id', 'left')
+                ->where('phs.package_id', (int) $booking['package_id'])
+                ->orderBy('phs.check_in_date', 'ASC')
+                ->orderBy('phs.id', 'ASC')
+                ->get()
+                ->getResultArray();
+        } else {
+            $hotelRows = $db->table('package_hotels ph')
+                ->select('ph.*, h.city AS hotel_city, h.name AS hotel_master_name')
+                ->join('hotels h', 'h.id = ph.hotel_id', 'left')
+                ->where('ph.package_id', (int) $booking['package_id'])
+                ->orderBy('ph.check_in_date', 'ASC')
+                ->orderBy('ph.id', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
 
         $transportRows = $db->table('package_transports pt')
             ->select('pt.*, t.transport_name AS master_transport_name')
@@ -955,8 +1042,32 @@ class BookingController extends BaseController
             $totalPaid += (string) ($payment['payment_type'] ?? 'payment') === 'refund' ? -$amount : $amount;
         }
 
-        $outboundFlight = $flightRows[0] ?? null;
-        $returnFlight = count($flightRows) > 1 ? $flightRows[count($flightRows) - 1] : null;
+        $flightRow = $flightRows[0] ?? null;
+        $outboundFlight = $flightRow;
+        $returnFlight = null;
+
+        if (! empty($flightRow)) {
+            $returnFlight = [
+                'airline' => (string) ($flightRow['return_airline'] ?? $flightRow['airline'] ?? ''),
+                'flight_no' => (string) ($flightRow['return_flight_no'] ?? $flightRow['flight_no'] ?? ''),
+                'pnr' => (string) ($flightRow['return_pnr'] ?? $flightRow['pnr'] ?? ''),
+                'departure_airport' => (string) ($flightRow['return_departure_airport'] ?? ''),
+                'arrival_airport' => (string) ($flightRow['return_arrival_airport'] ?? ''),
+                'departure_at' => (string) ($flightRow['return_departure_at'] ?? ''),
+                'arrival_at' => (string) ($flightRow['return_arrival_at'] ?? ''),
+            ];
+
+            if (
+                $returnFlight['departure_airport'] === ''
+                && $returnFlight['arrival_airport'] === ''
+                && $returnFlight['departure_at'] === ''
+                && $returnFlight['arrival_at'] === ''
+                && $returnFlight['flight_no'] === ''
+                && $returnFlight['pnr'] === ''
+            ) {
+                $returnFlight = null;
+            }
+        }
 
         $arrivalAt = (string) ($outboundFlight['arrival_at'] ?? $outboundFlight['departure_at'] ?? '');
         $departureAt = (string) ($returnFlight['departure_at'] ?? $outboundFlight['departure_at'] ?? '');

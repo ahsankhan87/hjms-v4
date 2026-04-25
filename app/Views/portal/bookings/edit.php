@@ -48,8 +48,8 @@
 
                 <?php $tierValue = (string) old('pricing_tier', (string) ($row['pricing_tier'] ?? 'sharing')); ?>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Pricing Tier <span class="text-rose-500">*</span></label>
-                    <div class="grid grid-cols-4 gap-2" id="tier-buttons">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Package Pricing <span class="text-rose-500">*</span></label>
+                    <div class="grid grid-cols-4 gap-2" id="tier-selector">
                         <?php foreach (($pricingTiers ?? ['sharing', 'quad', 'triple', 'double']) as $tier): ?>
                             <label class="tier-btn relative cursor-pointer rounded-lg border-2 py-2 text-center text-xs font-semibold transition-all
                                 <?= $tierValue === $tier ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300' ?>">
@@ -59,6 +59,11 @@
                                 <span class="tier-seats block text-[10px] font-medium mt-0.5" data-tier-seats="<?= esc($tier) ?>"></span>
                             </label>
                         <?php endforeach; ?>
+                    </div>
+                    <div id="flat-price-panel" class="hidden rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Package Price</div>
+                        <div id="flat-package-price" class="mt-1 text-lg font-bold text-slate-800">—</div>
+                        <div class="mt-1 text-[11px] text-slate-500">Flat package pricing applies because this package does not use hotel room tiers.</div>
                     </div>
                 </div>
 
@@ -155,7 +160,7 @@
             <div id="pricing-warning" class="hidden px-5 pb-4">
                 <div class="rounded-lg bg-amber-400/20 border border-amber-300/40 px-3 py-2 text-xs text-amber-100 flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    No price configured for the selected package &amp; tier. Please add a cost in Package Management.
+                    No price configured for the selected package. Please add the required component costs in Package Management.
                 </div>
             </div>
             <div id="seats-warning" class="hidden px-5 pb-4">
@@ -188,9 +193,9 @@
 
 <script>
     (function($) {
-        const pricingByPackage = <?= json_encode($packagePricingOptions ?? [], JSON_UNESCAPED_UNICODE) ?>;
-        const seatsLimit = <?= json_encode($seatsLimitByPackage ?? [], JSON_UNESCAPED_UNICODE) ?>;
+        const pricingMeta = <?= json_encode($packagePricingMeta ?? [], JSON_UNESCAPED_UNICODE) ?>;
         const bookedSeats = <?= json_encode($bookedSeatsCountByPackage ?? [], JSON_UNESCAPED_UNICODE) ?>;
+        const bookedPackageCounts = <?= json_encode($bookedPackageCountByPackage ?? [], JSON_UNESCAPED_UNICODE) ?>;
 
         const $package = $('#booking-package');
         const $pilgrims = $('#booking-pilgrims');
@@ -205,13 +210,22 @@
             return $('input[name="pricing_tier"]:checked').val() || '';
         }
 
+        function selectedMeta() {
+            const pkg = $package.val();
+            return pkg && pricingMeta[pkg] ? pricingMeta[pkg] : {};
+        }
+
+        function isFlatPackage(meta) {
+            return meta && meta.mode === 'flat';
+        }
+
         function unitPrice() {
             const pkg = $package.val();
-            const tier = selectedTier();
-            if (!pkg || !tier) return 0;
-            const map = pricingByPackage[pkg];
-            if (!map || typeof map[tier] === 'undefined') return 0;
-            const v = Number(map[tier]);
+            const meta = selectedMeta();
+            if (!pkg) return 0;
+            const v = isFlatPackage(meta) ?
+                Number(meta.flat_price || 0) :
+                Number((meta.price_map || {})[selectedTier()] || 0);
             return isNaN(v) ? 0 : v;
         }
 
@@ -226,6 +240,16 @@
             const total = unit * count;
             const pkg = $package.val();
             const tier = selectedTier();
+            const meta = selectedMeta();
+            const flatMode = isFlatPackage(meta);
+
+            if (flatMode) {
+                $('input[name="pricing_tier"][value="sharing"]').prop('checked', true);
+            }
+
+            $('#tier-selector').toggleClass('hidden', flatMode);
+            $('#flat-price-panel').toggleClass('hidden', !flatMode);
+            $('#flat-package-price').text(unit > 0 ? fmt(unit) : '—');
 
             $('#booking-unit-price').text(fmt(unit));
             $('#booking-pilgrim-count').text(count);
@@ -235,15 +259,19 @@
             $('#pricing-warning').toggleClass('hidden', !(!!pkg && unit === 0));
 
             // ── Seats ──────────────────────────────────────────────
-            const limitMap = pkg ? (seatsLimit[pkg] || {}) : {};
+            const limitMap = meta.seat_limit_map || {};
             const bookedMap = pkg ? (bookedSeats[pkg] || {}) : {};
-            const tierSelected = !!pkg && !!tier;
+            const tierSelected = !!pkg && (!!tier || flatMode);
 
-            const rawCap = (tierSelected && limitMap[tier] !== undefined) ? limitMap[tier] : null;
+            const rawCap = flatMode ?
+                (meta.flat_seats_limit !== undefined ? meta.flat_seats_limit : null) :
+                ((tierSelected && limitMap[tier] !== undefined) ? limitMap[tier] : null);
             const noSeatsConfigured = tierSelected && (rawCap === null || rawCap === 0);
             const seatCap = (rawCap !== null && rawCap > 0) ? rawCap : null;
 
-            const alreadyBook = (tierSelected && bookedMap[tier] !== undefined) ? bookedMap[tier] : 0;
+            const alreadyBook = flatMode ?
+                Number(pkg && bookedPackageCounts[pkg] !== undefined ? bookedPackageCounts[pkg] : 0) :
+                Number((tierSelected && bookedMap[tier] !== undefined) ? bookedMap[tier] : 0);
             const remaining = seatCap !== null ? Math.max(0, seatCap - alreadyBook) : null;
             const exceeded = remaining !== null && count > remaining;
 
@@ -261,10 +289,10 @@
             }
 
             if (noSeatsConfigured) {
-                $('#seats-warning-text').text('No seats configured for this package & tier. Please set a seats limit in Package Management before updating.');
+                $('#seats-warning-text').text(flatMode ? 'No seats configured for this package. Please set package total seats before updating.' : 'No seats configured for this package & tier. Please set a seats limit in Package Management before updating.');
                 $('#seats-warning').removeClass('hidden');
             } else if (exceeded) {
-                $('#seats-warning-text').text('Only ' + remaining + ' seat(s) left for this tier. You selected ' + count + ' pilgrim(s).');
+                $('#seats-warning-text').text('Only ' + remaining + ' seat(s) left for this ' + (flatMode ? 'package' : 'tier') + '. You selected ' + count + ' pilgrim(s).');
                 $('#seats-warning').removeClass('hidden');
             } else {
                 $('#seats-warning').addClass('hidden');
@@ -275,14 +303,14 @@
             $('#submit-btn').prop('disabled', exceeded).toggleClass('opacity-50 cursor-not-allowed', exceeded);
 
             // Tier pill prices & seats badges
-            const priceMap = pkg ? (pricingByPackage[pkg] || {}) : {};
             $('[data-tier]').each(function() {
                 const t = $(this).data('tier');
-                $(this).text(priceMap[t] ? 'PKR ' + Number(priceMap[t]).toLocaleString('en-PK') : '—');
+                const tierPrice = (meta.price_map || {})[t];
+                $(this).text(tierPrice ? 'PKR ' + Number(tierPrice).toLocaleString('en-PK') : '—');
             });
             $('[data-tier-seats]').each(function() {
                 const t = $(this).data('tier-seats');
-                const cap = (pkg && limitMap[t] !== undefined) ? limitMap[t] : null;
+                const cap = (!flatMode && pkg && limitMap[t] !== undefined) ? limitMap[t] : null;
                 const bkd = (pkg && bookedMap[t] !== undefined) ? bookedMap[t] : 0;
                 if (cap !== null && cap > 0) {
                     const left = Math.max(0, cap - bkd);

@@ -553,7 +553,7 @@
                             <th>Check-In</th>
                             <th>Check-Out</th>
                             <th>Nights</th>
-                            <th>Room Type</th>
+                            <th>Selected Pricing</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -587,7 +587,13 @@
                                 <td><?= esc((string) ($hotel['check_in_date'] ?? '')) ?></td>
                                 <td><?= esc((string) ($hotel['check_out_date'] ?? '')) ?></td>
                                 <td><?= esc($nights) ?></td>
-                                <td><?= esc((string) ($hotel['room_type'] ?? '')) ?></td>
+                                <td>
+                                    <?php if ((int) ($booking['include_hotel'] ?? 1) !== 1): ?>
+                                        <?= esc('Package price') ?>
+                                    <?php else: ?>
+                                        <?= esc(ucfirst((string) ($booking['pricing_tier'] ?? ''))) ?>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

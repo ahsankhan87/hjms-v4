@@ -10,11 +10,13 @@ use App\Models\PackageCostSheetItemModel;
 use App\Models\PackageCostSheetModel;
 use App\Models\PackageFlightModel;
 use App\Models\PackageHotelModel;
+use App\Models\PackageHotelStayModel;
 use App\Models\PackageModel;
 use App\Models\PackagePriceLineModel;
 use App\Models\PackageTransportModel;
 use App\Models\SupplierLedgerEntryModel;
 use App\Models\SupplierModel;
+use App\Services\PackagePricingService;
 use App\Models\TransportModel;
 
 class PackageController extends BaseController
@@ -93,13 +95,7 @@ class PackageController extends BaseController
             ->get()
             ->getResultArray();
 
-        $hotelRows = $db->table('package_hotels ph')
-            ->select('ph.*, h.name AS master_hotel_name, h.city')
-            ->join('hotels h', 'h.id = ph.hotel_id', 'left')
-            ->whereIn('ph.package_id', $packageIds)
-            ->orderBy('ph.id', 'ASC')
-            ->get()
-            ->getResultArray();
+        $hotelRows = $this->packageHotelCardRows($packageIds, $db);
 
         $transportRows = $db->table('package_transports pt')
             ->select('pt.*, t.transport_name AS master_transport_name, t.vehicle_type AS master_vehicle_type')
@@ -259,6 +255,17 @@ class PackageController extends BaseController
                 $priceMap[$type] = (float) ($cost['cost_amount'] ?? 0);
             }
 
+            $packageMode = (int) ($row['include_hotel'] ?? 1) === 1 ? 'tiered' : 'flat';
+            $flatPrice = null;
+            if ($packageMode === 'flat') {
+                foreach ($priceMap as $value) {
+                    if ($value !== null && is_numeric($value)) {
+                        $flatPrice = (float) $value;
+                        break;
+                    }
+                }
+            }
+
             $transportTypes = [];
             $transportNames = [];
             foreach ($linkedTransports as $transport) {
@@ -298,6 +305,8 @@ class PackageController extends BaseController
                 'duration_days' => (int) ($row['duration_days'] ?? 0),
                 'available_seats' => (int) ($row['total_seats'] ?? 0),
                 'price_map' => $priceMap,
+                'package_mode' => $packageMode,
+                'flat_price' => $flatPrice,
                 'transport_count'   => count($linkedTransports),
                 'transport_types'   => $transportTypes,
                 'transport_names'   => array_slice($transportNames, 0, 3),
@@ -396,16 +405,12 @@ class PackageController extends BaseController
         $stayWindow = $this->packageStayWindow($row);
         $packageStayStart = (string) ($stayWindow['start'] ?? date('Y-m-d'));
         $packageStayEnd = (string) ($stayWindow['end'] ?? date('Y-m-d', strtotime('+1 day')));
+        $stayDistributionValue = trim((string) old('stay_distribution', (string) session('package_stay_distribution_' . $id)));
+        if ($stayDistributionValue === '') {
+            $stayDistributionValue = trim((string) ($row['notes'] ?? ''));
+        }
 
-        $lastHotelStay = $db->table('package_hotels')
-            ->select('check_out_date')
-            ->where('package_id', $id)
-            ->orderBy('check_out_date', 'DESC')
-            ->orderBy('id', 'DESC')
-            ->get()
-            ->getRowArray();
-
-        $stayCheckIn = (string) ($lastHotelStay['check_out_date'] ?? $packageStayStart);
+        $stayCheckIn = $this->lastPackageStayCheckout($id, $db);
         if ($stayCheckIn === '') {
             $stayCheckIn = $packageStayStart;
         }
@@ -421,25 +426,33 @@ class PackageController extends BaseController
             $stayCheckOut = date('Y-m-d', strtotime('+1 day', $stayStartTs ?: time()));
         }
 
-        $hotelRoomOptions = $db->table('hotel_rooms hr')
-            ->select('hr.id, hr.hotel_id, hr.room_type, hr.total_rooms, h.name AS hotel_name, h.city AS hotel_city')
-            ->join('hotels h', 'h.id = hr.hotel_id', 'inner')
-            ->orderBy('h.name', 'ASC')
-            ->orderBy('hr.room_type', 'ASC')
+        $hotelPricingRows = $db->table('package_hotels ph')
+            ->select('ph.*, h.name AS hotel_master_name, h.city AS hotel_city')
+            ->join('hotels h', 'h.id = ph.hotel_id', 'left')
+            ->where('ph.package_id', $id)
+            ->orderBy('ph.id', 'ASC')
             ->get()
             ->getResultArray();
 
-        foreach ($hotelRoomOptions as &$roomOption) {
-            $occupied = $db->table('package_hotels ph')
-                ->where('ph.hotel_room_id', (int) $roomOption['id'])
-                ->where('ph.check_in_date <', $stayCheckOut)
-                ->where('ph.check_out_date >', $stayCheckIn)
-                ->countAllResults();
+        $hotelStayRows = $this->packageHotelStayRows($id, $db);
+        $existingHotelPricing = [];
+        foreach ($hotelPricingRows as $hotelPricingRow) {
+            $hotelId = (int) ($hotelPricingRow['hotel_id'] ?? 0);
+            if ($hotelId < 1 || isset($existingHotelPricing[$hotelId])) {
+                continue;
+            }
 
-            $roomOption['occupied_rooms'] = (int) $occupied;
-            $roomOption['available_rooms'] = max(0, (int) ($roomOption['total_rooms'] ?? 0) - (int) $occupied);
+            $existingHotelPricing[$hotelId] = [
+                'sharing_cost' => (float) ($hotelPricingRow['sharing_cost'] ?? 0),
+                'quad_cost' => (float) ($hotelPricingRow['quad_cost'] ?? 0),
+                'triple_cost' => (float) ($hotelPricingRow['triple_cost'] ?? 0),
+                'double_cost' => (float) ($hotelPricingRow['double_cost'] ?? 0),
+                'hotel_name' => (string) ($hotelPricingRow['hotel_name'] ?: ($hotelPricingRow['hotel_master_name'] ?? '')),
+                'hotel_city' => (string) ($hotelPricingRow['hotel_city'] ?? ''),
+            ];
         }
-        unset($roomOption);
+
+        $pricingSummary = (new PackagePricingService($db))->summarizePackage($id);
 
         return view('portal/packages/edit', [
             'title'       => 'HJMS ERP | Edit Package',
@@ -455,21 +468,17 @@ class PackageController extends BaseController
                 ->orderBy('id', 'DESC')
                 ->get()
                 ->getResultArray(),
-            'hotelRows' => $db->table('package_hotels ph')
-                ->select('ph.*, h.name AS hotel_master_name, h.city AS hotel_city, hr.room_type AS hotel_room_type')
-                ->join('hotels h', 'h.id = ph.hotel_id', 'left')
-                ->join('hotel_rooms hr', 'hr.id = ph.hotel_room_id', 'left')
-                ->where('ph.package_id', $id)
-                ->orderBy('ph.id', 'DESC')
-                ->get()
-                ->getResultArray(),
-            'hotelRoomOptions' => $hotelRoomOptions,
+            'hotelRows' => $hotelStayRows,
+            'hotelPricingRows' => $hotelPricingRows,
+            'existingHotelPricing' => $existingHotelPricing,
+            'currentHotelStayCount' => count($hotelStayRows),
+            'stayDistributionValue' => $stayDistributionValue,
             'stayCheckIn' => $stayCheckIn,
             'stayCheckOut' => $stayCheckOut,
             'packageStayStart' => $packageStayStart,
             'packageStayEnd' => $packageStayEnd,
             'flightRows' => $db->table('package_flights pf')
-                ->select('pf.*, f.pnr')
+                ->select('pf.*, f.pnr, f.departure_airport, f.arrival_airport')
                 ->join('flights f', 'f.id = pf.flight_id', 'left')
                 ->where('pf.package_id', $id)
                 ->orderBy('pf.id', 'ASC')
@@ -482,6 +491,7 @@ class PackageController extends BaseController
                 ->orderBy('pt.id', 'DESC')
                 ->get()
                 ->getResultArray(),
+            'pricingSummary' => $pricingSummary,
             'supplierRows' => $db->tableExists('suppliers')
                 ? $db->table('suppliers')->where('is_active', 1)->orderBy('supplier_name', 'ASC')->get()->getResultArray()
                 : [],
@@ -678,6 +688,8 @@ class PackageController extends BaseController
                 $model->update($packageId, $data + ['updated_at' => date('Y-m-d H:i:s')]);
             }
 
+            (new PackagePricingService())->recalculatePackage($packageId);
+
             return redirect()->to('/packages')->with('success', 'Package updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', $e->getMessage());
@@ -778,38 +790,53 @@ class PackageController extends BaseController
     {
         $payload = [
             'package_id'    => (int) $this->request->getPost('package_id'),
-            'hotel_room_id' => (int) $this->request->getPost('hotel_room_id'),
+            'hotel_id' => (int) $this->request->getPost('hotel_id'),
             'check_in_date' => (string) $this->request->getPost('check_in_date'),
             'check_out_date' => (string) $this->request->getPost('check_out_date'),
             'stay_distribution' => trim((string) $this->request->getPost('stay_distribution')),
+            'sharing_cost' => trim((string) $this->request->getPost('sharing_cost')),
+            'quad_cost' => trim((string) $this->request->getPost('quad_cost')),
+            'triple_cost' => trim((string) $this->request->getPost('triple_cost')),
+            'double_cost' => trim((string) $this->request->getPost('double_cost')),
         ];
 
         if (! $this->validateData($payload, [
             'package_id'    => 'required|integer',
-            'hotel_room_id' => 'required|integer',
+            'hotel_id' => 'required|integer',
             'check_in_date' => 'permit_empty|valid_date[Y-m-d]',
             'check_out_date' => 'permit_empty|valid_date[Y-m-d]',
             'stay_distribution' => 'permit_empty|max_length[120]',
+            'sharing_cost' => 'permit_empty|decimal',
+            'quad_cost' => 'permit_empty|decimal',
+            'triple_cost' => 'permit_empty|decimal',
+            'double_cost' => 'permit_empty|decimal',
         ])) {
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $db = db_connect();
-            $room = $db->table('hotel_rooms hr')
-                ->select('hr.*, h.name AS hotel_name, h.city AS hotel_city')
-                ->join('hotels h', 'h.id = hr.hotel_id', 'inner')
-                ->where('hr.id', $payload['hotel_room_id'])
+            $hotel = $db->table('hotels h')
+                ->select('h.id, h.name AS hotel_name, h.city AS hotel_city')
+                ->where('h.id', $payload['hotel_id'])
                 ->get()
                 ->getRowArray();
 
-            if (empty($room)) {
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected hotel room type not found.');
+            if (empty($hotel)) {
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected hotel not found.');
             }
 
             $package = (new PackageModel())->find($payload['package_id']);
             if (empty($package)) {
                 return redirect()->to('/packages')->with('error', 'Package not found.');
+            }
+
+            if ($payload['stay_distribution'] === '') {
+                $payload['stay_distribution'] = trim((string) session('package_stay_distribution_' . $payload['package_id']));
+            }
+
+            if ($payload['stay_distribution'] === '') {
+                $payload['stay_distribution'] = trim((string) ($package['notes'] ?? ''));
             }
 
             $stayWindow = $this->packageStayWindow($package);
@@ -820,18 +847,23 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package departure/arrival dates are required before hotel allocation.');
             }
 
-            $lastHotelStay = $db->table('package_hotels')
-                ->select('check_out_date')
-                ->where('package_id', $payload['package_id'])
-                ->orderBy('check_out_date', 'DESC')
-                ->orderBy('id', 'DESC')
-                ->get()
-                ->getRowArray();
-
-            $expectedCheckIn = (string) ($lastHotelStay['check_out_date'] ?? $packageStayStart);
+            $expectedCheckIn = $this->lastPackageStayCheckout($payload['package_id'], $db);
+            if ($expectedCheckIn === '') {
+                $expectedCheckIn = $packageStayStart;
+            }
             if (strtotime($expectedCheckIn) >= strtotime($packageStayEnd)) {
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package hotel duration is already fully allocated.');
             }
+
+            $existingStayCount = $this->packageHotelStayCount($payload['package_id'], $db);
+            $window = $this->inferHotelStayWindow(
+                $package,
+                (string) ($hotel['hotel_city'] ?? ''),
+                $payload['stay_distribution'],
+                $existingStayCount,
+                $expectedCheckIn,
+                $packageStayEnd
+            );
 
             $checkInDate = $payload['check_in_date'] !== '' ? $payload['check_in_date'] : $expectedCheckIn;
             $checkOutDate = $payload['check_out_date'];
@@ -841,15 +873,16 @@ class PackageController extends BaseController
             }
 
             if ($checkInDate === '' || $checkOutDate === '') {
-                $window = $this->inferHotelStayWindow(
-                    $package,
-                    (string) ($room['hotel_city'] ?? ''),
-                    $payload['stay_distribution'],
-                    $checkInDate,
-                    $packageStayEnd
-                );
                 $checkInDate = $checkInDate !== '' ? $checkInDate : ($window['check_in_date'] ?? '');
                 $checkOutDate = $checkOutDate !== '' ? $checkOutDate : ($window['check_out_date'] ?? '');
+            }
+
+            if (! empty($window['expected_city']) && ! ($window['city_matches'] ?? true)) {
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'The next stay segment is for ' . ucfirst((string) $window['expected_city']) . '. Please select a ' . ucfirst((string) $window['expected_city']) . ' hotel for this leg.');
+            }
+
+            if ($payload['stay_distribution'] !== '' && ! empty($window['check_out_date'])) {
+                $checkOutDate = (string) $window['check_out_date'];
             }
 
             if ($checkInDate === '' || $checkOutDate === '') {
@@ -864,29 +897,62 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out cannot exceed package stay end date (' . $packageStayEnd . ').');
             }
 
-            $occupied = $db->table('package_hotels ph')
-                ->where('ph.hotel_room_id', (int) $payload['hotel_room_id'])
-                ->where('ph.check_in_date <', $checkOutDate)
-                ->where('ph.check_out_date >', $checkInDate)
-                ->countAllResults();
+            $hotelModel = new PackageHotelModel();
+            $hotelProfile = $hotelModel
+                ->where('package_id', $payload['package_id'])
+                ->where('hotel_id', (int) ($hotel['id'] ?? 0))
+                ->orderBy('id', 'ASC')
+                ->first();
 
-            $availableRooms = max(0, (int) ($room['total_rooms'] ?? 0) - (int) $occupied);
-            if ($availableRooms < 1) {
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'No room available for selected hotel room type in the selected date range.');
+            if (empty($hotelProfile)) {
+                foreach (['sharing_cost', 'quad_cost', 'triple_cost', 'double_cost'] as $costField) {
+                    if ($payload[$costField] === '') {
+                        return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Pricing is required the first time a hotel is attached to a package.');
+                    }
+                }
+
+                $hotelModel->insert([
+                    'package_id'    => $payload['package_id'],
+                    'hotel_id'      => (int) ($hotel['id'] ?? 0),
+                    'hotel_room_id' => null,
+                    'hotel_name'    => (string) ($hotel['hotel_name'] ?? ''),
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                    'room_type'     => null,
+                    'cost_amount'   => 0,
+                    'sharing_cost'  => (float) $payload['sharing_cost'],
+                    'quad_cost'     => (float) $payload['quad_cost'],
+                    'triple_cost'   => (float) $payload['triple_cost'],
+                    'double_cost'   => (float) $payload['double_cost'],
+                    'created_at'    => date('Y-m-d H:i:s'),
+                ]);
+                $packageHotelId = (int) $hotelModel->getInsertID();
+            } else {
+                $packageHotelId = (int) ($hotelProfile['id'] ?? 0);
             }
 
-            (new PackageHotelModel())->insert([
-                'package_id'    => $payload['package_id'],
-                'hotel_id'      => (int) ($room['hotel_id'] ?? 0),
-                'hotel_room_id' => $payload['hotel_room_id'],
-                'hotel_name'    => (string) ($room['hotel_name'] ?? ''),
-                'check_in_date' => $checkInDate,
-                'check_out_date' => $checkOutDate,
-                'room_type'     => (string) ($room['room_type'] ?? null),
-                'created_at'    => date('Y-m-d H:i:s'),
-            ]);
+            if ($packageHotelId < 1) {
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Unable to save the package hotel profile.');
+            }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Hotel attached to package successfully.');
+            if ($this->packageHotelStayTableExists($db)) {
+                (new PackageHotelStayModel())->insert([
+                    'package_id' => $payload['package_id'],
+                    'package_hotel_id' => $packageHotelId,
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+                $this->syncPackageHotelStayWindow($packageHotelId, $db);
+            }
+
+            if ($payload['stay_distribution'] !== '') {
+                session()->set('package_stay_distribution_' . $payload['package_id'], $payload['stay_distribution']);
+            }
+
+            (new PackagePricingService($db))->recalculatePackage($payload['package_id']);
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', empty($hotelProfile) ? 'Hotel pricing and stay added successfully.' : 'Hotel stay added using existing package pricing.');
         } catch (\Throwable $e) {
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
@@ -902,10 +968,34 @@ class PackageController extends BaseController
         }
 
         try {
-            $deleted = (new PackageHotelModel())->delete($rowId);
+            $db = db_connect();
+            $deleted = false;
+
+            if ($this->packageHotelStayTableExists($db)) {
+                $stayModel = new PackageHotelStayModel();
+                $stayRow = $stayModel->find($rowId);
+                if (! empty($stayRow)) {
+                    $profileId = (int) ($stayRow['package_hotel_id'] ?? 0);
+                    $deleted = (bool) $stayModel->delete($rowId);
+                    if ($deleted && $profileId > 0) {
+                        $remainingStays = $stayModel->where('package_hotel_id', $profileId)->countAllResults();
+                        if ($remainingStays > 0) {
+                            $this->syncPackageHotelStayWindow($profileId, $db);
+                        } else {
+                            $deleted = (bool) (new PackageHotelModel())->delete($profileId);
+                        }
+                    }
+                }
+            }
+
+            if (! $deleted) {
+                $deleted = (bool) (new PackageHotelModel())->delete($rowId);
+            }
             if (! $deleted) {
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package hotel attachment not found or already removed.');
             }
+
+            (new PackagePricingService())->recalculatePackage($packageId);
 
             return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package hotel attachment deleted successfully.');
         } catch (\Throwable $e) {
@@ -916,63 +1006,44 @@ class PackageController extends BaseController
     public function createPackageFlight()
     {
         $payload = [
-            'package_id'             => (int) $this->request->getPost('package_id'),
-            'outbound_flight_id'     => (int) $this->request->getPost('outbound_flight_id'),
-            'outbound_departure_at'  => $this->normalizeDateTimeInput((string) $this->request->getPost('outbound_departure_at')),
-            'outbound_arrival_at'    => $this->normalizeDateTimeInput((string) $this->request->getPost('outbound_arrival_at')),
-            'return_flight_id'       => (int) $this->request->getPost('return_flight_id'),
-            'return_departure_at'    => $this->normalizeDateTimeInput((string) $this->request->getPost('return_departure_at')),
-            'return_arrival_at'      => $this->normalizeDateTimeInput((string) $this->request->getPost('return_arrival_at')),
+            'package_id'   => (int) $this->request->getPost('package_id'),
+            'flight_id'    => (int) $this->request->getPost('flight_id'),
+            'cost_amount'  => (string) $this->request->getPost('cost_amount'),
         ];
 
         if (! $this->validateData($payload, [
-            'package_id'            => 'required|integer',
-            'outbound_flight_id'    => 'required|integer',
-            'outbound_departure_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',
-            'outbound_arrival_at'   => 'permit_empty|valid_date[Y-m-d H:i:s]',
-            'return_flight_id'      => 'required|integer',
-            'return_departure_at'   => 'permit_empty|valid_date[Y-m-d H:i:s]',
-            'return_arrival_at'     => 'permit_empty|valid_date[Y-m-d H:i:s]',
+            'package_id'  => 'required|integer',
+            'flight_id'   => 'required|integer',
+            'cost_amount' => 'required|decimal',
         ])) {
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        if ($payload['outbound_flight_id'] === $payload['return_flight_id']) {
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Outbound and return flights must be different.');
-        }
-
         try {
             $flightModel = new FlightModel();
-            $outboundFlight = $flightModel->find($payload['outbound_flight_id']);
-            $returnFlight = $flightModel->find($payload['return_flight_id']);
+            $flight = $flightModel->find($payload['flight_id']);
 
-            if (empty($outboundFlight) || empty($returnFlight)) {
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Outbound and return flights must both be selected.');
+            if (empty($flight)) {
+                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected flight was not found.');
             }
 
             $packageFlightModel = new PackageFlightModel();
 
+            // Insert single package_flights row using flight data
             $packageFlightModel->insert([
                 'package_id'   => $payload['package_id'],
-                'flight_id'    => $payload['outbound_flight_id'],
-                'airline'      => (string) ($outboundFlight['airline'] ?? ''),
-                'flight_no'    => (string) ($outboundFlight['flight_no'] ?? ''),
-                'departure_at' => $payload['outbound_departure_at'] !== '' ? $payload['outbound_departure_at'] : ($outboundFlight['departure_at'] ?? null),
-                'arrival_at'   => $payload['outbound_arrival_at'] !== '' ? $payload['outbound_arrival_at'] : ($outboundFlight['arrival_at'] ?? null),
+                'flight_id'    => $payload['flight_id'],
+                'airline'      => (string) ($flight['airline'] ?? ''),
+                'flight_no'    => (string) ($flight['flight_no'] ?? ''),
+                'departure_at' => (string) ($flight['departure_at'] ?? null),
+                'arrival_at'   => (string) ($flight['arrival_at'] ?? null),
+                'cost_amount'  => (float) $payload['cost_amount'],
                 'created_at'   => date('Y-m-d H:i:s'),
             ]);
 
-            $packageFlightModel->insert([
-                'package_id'   => $payload['package_id'],
-                'flight_id'    => $payload['return_flight_id'],
-                'airline'      => (string) ($returnFlight['airline'] ?? ''),
-                'flight_no'    => (string) ($returnFlight['flight_no'] ?? ''),
-                'departure_at' => $payload['return_departure_at'] !== '' ? $payload['return_departure_at'] : ($returnFlight['departure_at'] ?? null),
-                'arrival_at'   => $payload['return_arrival_at'] !== '' ? $payload['return_arrival_at'] : ($returnFlight['arrival_at'] ?? null),
-                'created_at'   => date('Y-m-d H:i:s'),
-            ]);
+            (new PackagePricingService())->recalculatePackage($payload['package_id']);
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Outbound and return flights attached to package successfully.');
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Flight attached to package successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
@@ -993,6 +1064,8 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package flight attachment not found or already removed.');
             }
 
+            (new PackagePricingService())->recalculatePackage($packageId);
+
             return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package flight attachment deleted successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
@@ -1005,12 +1078,14 @@ class PackageController extends BaseController
             'package_id'   => (int) $this->request->getPost('package_id'),
             'transport_id' => (int) $this->request->getPost('transport_id'),
             'seat_capacity' => (string) $this->request->getPost('seat_capacity'),
+            'cost_amount' => (string) $this->request->getPost('cost_amount'),
         ];
 
         if (! $this->validateData($payload, [
             'package_id'   => 'required|integer',
             'transport_id' => 'required|integer',
             'seat_capacity' => 'permit_empty|integer|greater_than_equal_to[0]',
+            'cost_amount' => 'required|decimal',
         ])) {
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -1027,8 +1102,11 @@ class PackageController extends BaseController
                 'provider_name' => (string) ($transport['provider_name'] ?? ''),
                 'vehicle_type' => (string) ($transport['vehicle_type'] ?? ''),
                 'seat_capacity' => $payload['seat_capacity'] !== '' ? (int) $payload['seat_capacity'] : (int) ($transport['seat_capacity'] ?? 0),
+                'cost_amount' => (float) $payload['cost_amount'],
                 'created_at'   => date('Y-m-d H:i:s'),
             ]);
+
+            (new PackagePricingService())->recalculatePackage($payload['package_id']);
 
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Transport attached to package successfully.');
         } catch (\Throwable $e) {
@@ -1050,6 +1128,8 @@ class PackageController extends BaseController
             if (! $deleted) {
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package transport attachment not found or already removed.');
             }
+
+            (new PackagePricingService())->recalculatePackage($packageId);
 
             return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package transport attachment deleted successfully.');
         } catch (\Throwable $e) {
@@ -1086,7 +1166,7 @@ class PackageController extends BaseController
         return date('Y-m-d', strtotime('+' . $durationDays . ' day', $timestamp));
     }
 
-    private function inferHotelStayWindow(array $package, string $hotelCity, string $stayDistribution = '', string $baseCheckIn = '', string $packageStayEnd = ''): array
+    private function inferHotelStayWindow(array $package, string $hotelCity, string $stayDistribution = '', int $existingStayCount = 0, string $baseCheckIn = '', string $packageStayEnd = ''): array
     {
         $departureDate = (string) ($package['departure_date'] ?? '');
         $arrivalDate = (string) ($package['arrival_date'] ?? '');
@@ -1095,25 +1175,30 @@ class PackageController extends BaseController
 
         $arrivalDate = $arrivalDate !== '' ? $arrivalDate : ($this->deriveArrivalDate($departureDate, $durationDays) ?? '');
         if ($departureDate === '' || $arrivalDate === '') {
-            return ['check_in_date' => '', 'check_out_date' => ''];
+            return ['check_in_date' => '', 'check_out_date' => '', 'expected_city' => '', 'city_matches' => true];
         }
 
-        $split = $this->parseDaysDistribution($distribution);
-        $makkahDays = (int) ($split['makkah_days'] ?? 0);
-        $madinaDays = (int) ($split['madina_days'] ?? 0);
-
-        if ($makkahDays === 0 && $madinaDays === 0 && $durationDays > 0) {
-            $makkahDays = $durationDays;
+        $segments = $this->buildStaySegments($distribution, $durationDays);
+        if ($segments === []) {
+            $segments[] = ['city' => $this->normalizeStayCity($hotelCity), 'days' => max(1, $durationDays)];
         }
 
-        $isMadina = preg_match('/madina|medina/i', $hotelCity) === 1;
+        $segmentIndex = $existingStayCount;
+        if ($segmentIndex >= count($segments)) {
+            $segmentIndex = count($segments) - 1;
+        }
+        if ($segmentIndex < 0) {
+            $segmentIndex = 0;
+        }
+
+        $segment = $segments[$segmentIndex] ?? ['city' => $this->normalizeStayCity($hotelCity), 'days' => max(1, $durationDays)];
         $baseStart = $baseCheckIn !== '' ? $baseCheckIn : $departureDate;
         $start = strtotime($baseStart);
         if ($start === false) {
-            return ['check_in_date' => '', 'check_out_date' => ''];
+            return ['check_in_date' => '', 'check_out_date' => '', 'expected_city' => (string) ($segment['city'] ?? ''), 'city_matches' => true];
         }
 
-        $segmentDays = $isMadina ? max(1, $madinaDays) : max(1, $makkahDays);
+        $segmentDays = max(1, (int) ($segment['days'] ?? 1));
         $checkIn = date('Y-m-d', $start);
         $checkOut = date('Y-m-d', strtotime('+' . $segmentDays . ' day', $start));
 
@@ -1129,7 +1214,15 @@ class PackageController extends BaseController
             }
         }
 
-        return ['check_in_date' => $checkIn, 'check_out_date' => $checkOut];
+        $expectedCity = (string) ($segment['city'] ?? '');
+        $selectedCity = $this->normalizeStayCity($hotelCity);
+
+        return [
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'expected_city' => $expectedCity,
+            'city_matches' => $expectedCity === '' || $selectedCity === '' || $expectedCity === $selectedCity,
+        ];
     }
 
     private function packageStayWindow(array $package): array
@@ -1201,6 +1294,192 @@ class PackageController extends BaseController
         }
 
         return ['makkah_days' => 0, 'madina_days' => 0];
+    }
+
+    private function buildStaySegments(string $distribution, int $durationDays): array
+    {
+        $text = strtolower(trim($distribution));
+        if ($text !== '') {
+            preg_match_all('/(makkah|madina|medina)\s*[:=\-]?\s*(\d+)/i', $text, $namedMatches, PREG_SET_ORDER);
+            if ($namedMatches !== []) {
+                $segments = [];
+                foreach ($namedMatches as $match) {
+                    $segments[] = [
+                        'city' => $this->normalizeStayCity((string) ($match[1] ?? '')),
+                        'days' => max(1, (int) ($match[2] ?? 0)),
+                    ];
+                }
+
+                return $segments;
+            }
+
+            preg_match_all('/\d+/', $text, $numberMatches);
+            $numbers = array_map('intval', $numberMatches[0] ?? []);
+            if (count($numbers) >= 3) {
+                return [
+                    ['city' => 'makkah', 'days' => max(1, (int) $numbers[0])],
+                    ['city' => 'madina', 'days' => max(1, (int) $numbers[1])],
+                    ['city' => 'makkah', 'days' => max(1, (int) $numbers[2])],
+                ];
+            }
+
+            if (count($numbers) === 2) {
+                return [
+                    ['city' => 'makkah', 'days' => max(1, (int) $numbers[0])],
+                    ['city' => 'madina', 'days' => max(1, (int) $numbers[1])],
+                ];
+            }
+
+            if (count($numbers) === 1) {
+                return [
+                    ['city' => 'makkah', 'days' => max(1, (int) $numbers[0])],
+                ];
+            }
+        }
+
+        return $durationDays > 0 ? [['city' => 'makkah', 'days' => $durationDays]] : [];
+    }
+
+    private function normalizeStayCity(string $city): string
+    {
+        $value = strtolower(trim($city));
+        if ($value === '') {
+            return '';
+        }
+        if (strpos($value, 'madina') !== false || strpos($value, 'medina') !== false || strpos($value, 'madinah') !== false) {
+            return 'madina';
+        }
+        if (strpos($value, 'makkah') !== false || strpos($value, 'mecca') !== false) {
+            return 'makkah';
+        }
+
+        return $value;
+    }
+
+    private function packageHotelStayTableExists($db = null): bool
+    {
+        static $exists = null;
+
+        if ($exists !== null) {
+            return $exists;
+        }
+
+        $db = $db ?? db_connect();
+        $exists = $db->tableExists('package_hotel_stays');
+
+        return $exists;
+    }
+
+    private function lastPackageStayCheckout(int $packageId, $db = null): string
+    {
+        $db = $db ?? db_connect();
+        if ($this->packageHotelStayTableExists($db)) {
+            $row = $db->table('package_hotel_stays')
+                ->select('check_out_date')
+                ->where('package_id', $packageId)
+                ->orderBy('check_out_date', 'DESC')
+                ->orderBy('id', 'DESC')
+                ->get()
+                ->getRowArray();
+
+            return (string) ($row['check_out_date'] ?? '');
+        }
+
+        $row = $db->table('package_hotels')
+            ->select('check_out_date')
+            ->where('package_id', $packageId)
+            ->orderBy('check_out_date', 'DESC')
+            ->orderBy('id', 'DESC')
+            ->get()
+            ->getRowArray();
+
+        return (string) ($row['check_out_date'] ?? '');
+    }
+
+    private function packageHotelStayCount(int $packageId, $db = null): int
+    {
+        $db = $db ?? db_connect();
+        if ($this->packageHotelStayTableExists($db)) {
+            return (int) $db->table('package_hotel_stays')->where('package_id', $packageId)->countAllResults();
+        }
+
+        return (int) $db->table('package_hotels')->where('package_id', $packageId)->countAllResults();
+    }
+
+    private function syncPackageHotelStayWindow(int $packageHotelId, $db = null): void
+    {
+        $db = $db ?? db_connect();
+        if (! $this->packageHotelStayTableExists($db)) {
+            return;
+        }
+
+        $range = $db->table('package_hotel_stays')
+            ->select('MIN(check_in_date) AS min_check_in, MAX(check_out_date) AS max_check_out')
+            ->where('package_hotel_id', $packageHotelId)
+            ->get()
+            ->getRowArray();
+
+        if (empty($range)) {
+            return;
+        }
+
+        (new PackageHotelModel())->update($packageHotelId, [
+            'check_in_date' => (string) ($range['min_check_in'] ?? ''),
+            'check_out_date' => (string) ($range['max_check_out'] ?? ''),
+        ]);
+    }
+
+    private function packageHotelStayRows(int $packageId, $db = null): array
+    {
+        $db = $db ?? db_connect();
+        if ($this->packageHotelStayTableExists($db)) {
+            return $db->table('package_hotel_stays phs')
+                ->select('phs.id, phs.package_id, phs.package_hotel_id, phs.check_in_date, phs.check_out_date, ph.hotel_id, ph.hotel_name, ph.sharing_cost, ph.quad_cost, ph.triple_cost, ph.double_cost, h.name AS hotel_master_name, h.city AS hotel_city')
+                ->join('package_hotels ph', 'ph.id = phs.package_hotel_id', 'left')
+                ->join('hotels h', 'h.id = ph.hotel_id', 'left')
+                ->where('phs.package_id', $packageId)
+                ->orderBy('phs.check_in_date', 'ASC')
+                ->orderBy('phs.id', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
+        return $db->table('package_hotels ph')
+            ->select('ph.id, ph.package_id, ph.id AS package_hotel_id, ph.check_in_date, ph.check_out_date, ph.hotel_id, ph.hotel_name, ph.sharing_cost, ph.quad_cost, ph.triple_cost, ph.double_cost, h.name AS hotel_master_name, h.city AS hotel_city')
+            ->join('hotels h', 'h.id = ph.hotel_id', 'left')
+            ->where('ph.package_id', $packageId)
+            ->orderBy('ph.check_in_date', 'ASC')
+            ->orderBy('ph.id', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    private function packageHotelCardRows(array $packageIds, $db = null): array
+    {
+        $db = $db ?? db_connect();
+        if ($packageIds === []) {
+            return [];
+        }
+
+        if ($this->packageHotelStayTableExists($db)) {
+            return $db->table('package_hotel_stays phs')
+                ->select('phs.id, phs.package_id, phs.check_in_date, phs.check_out_date, ph.hotel_id, ph.hotel_name, h.name AS master_hotel_name, h.city')
+                ->join('package_hotels ph', 'ph.id = phs.package_hotel_id', 'left')
+                ->join('hotels h', 'h.id = ph.hotel_id', 'left')
+                ->whereIn('phs.package_id', $packageIds)
+                ->orderBy('phs.check_in_date', 'ASC')
+                ->orderBy('phs.id', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
+        return $db->table('package_hotels ph')
+            ->select('ph.*, h.name AS master_hotel_name, h.city')
+            ->join('hotels h', 'h.id = ph.hotel_id', 'left')
+            ->whereIn('ph.package_id', $packageIds)
+            ->orderBy('ph.id', 'ASC')
+            ->get()
+            ->getResultArray();
     }
 
     private function calculateCostSheet(array $payload): array

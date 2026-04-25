@@ -19,6 +19,11 @@ class PackageHotelModel extends Model
         'check_in_date',
         'check_out_date',
         'room_type',
+        'cost_amount',
+        'sharing_cost',
+        'quad_cost',
+        'triple_cost',
+        'double_cost',
         'created_at',
     ];
 }

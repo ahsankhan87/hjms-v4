@@ -236,16 +236,23 @@ class ReportController extends BaseController
         $db = db_connect();
         $seasonId = $this->activeSeasonId();
 
+        $stayStartExpr = $db->tableExists('package_hotel_stays')
+            ? '(SELECT MIN(phs.check_in_date) FROM package_hotel_stays phs WHERE phs.package_id = b.package_id)'
+            : '(SELECT MIN(ph.check_in_date) FROM package_hotels ph WHERE ph.package_id = b.package_id)';
+        $stayEndExpr = $db->tableExists('package_hotel_stays')
+            ? '(SELECT MAX(phs.check_out_date) FROM package_hotel_stays phs WHERE phs.package_id = b.package_id)'
+            : '(SELECT MAX(ph.check_out_date) FROM package_hotels ph WHERE ph.package_id = b.package_id)';
+
         $query = $db->table('bookings b')
             ->select(
                 "b.id,
                 COALESCE(NULLIF(b.total_pilgrims, 0), 1) AS total_pilgrims,
                 DATE_FORMAT(COALESCE(
-                    (SELECT MIN(ph.check_in_date) FROM package_hotels ph WHERE ph.package_id = b.package_id),
+                    " . $stayStartExpr . ",
                     (SELECT DATE(MIN(pf.arrival_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
                 ), '%Y-%m-%d') AS ksa_arrival_date,
                 DATE_FORMAT(COALESCE(
-                    (SELECT MAX(ph.check_out_date) FROM package_hotels ph WHERE ph.package_id = b.package_id),
+                    " . $stayEndExpr . ",
                     (SELECT DATE(MAX(pf.departure_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
                 ), '%Y-%m-%d') AS ksa_return_date",
                 false

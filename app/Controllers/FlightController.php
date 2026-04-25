@@ -111,22 +111,32 @@ class FlightController extends BaseController
 
     public function createFlight()
     {
-        $payload = $this->extractFlightPayload();
+        $outboundPayload = $this->extractFlightPayloadByPrefix('outbound_');
+        $returnPayload = $this->extractFlightPayloadByPrefix('return_');
 
-        if (! $this->validateData($payload, $this->flightRules(true))) {
+        if (! $this->validateData($outboundPayload, $this->flightRules(true))) {
+            return redirect()->to('/flights/add')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        if (! $this->validateData($returnPayload, $this->flightRules(true))) {
             return redirect()->to('/flights/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
-            $fileData = $this->handleTicketUpload();
-            if (isset($fileData['error'])) {
-                return redirect()->to('/flights/add')->withInput()->with('error', $fileData['error']);
+            $outboundFileData = $this->handleTicketUploadByField('outbound_ticket_file');
+            if (isset($outboundFileData['error'])) {
+                return redirect()->to('/flights/add')->withInput()->with('error', $outboundFileData['error']);
+            }
+
+            $returnFileData = $this->handleTicketUploadByField('return_ticket_file');
+            if (isset($returnFileData['error'])) {
+                return redirect()->to('/flights/add')->withInput()->with('error', $returnFileData['error']);
             }
 
             $model = new FlightModel();
-            $model->insert($this->buildFlightData($payload, $fileData, true));
+            $model->insert($this->buildCombinedFlightData($outboundPayload, $outboundFileData, $returnPayload, $returnFileData, true));
 
-            return redirect()->to('/flights')->with('success', 'Flight created successfully.');
+            return redirect()->to('/flights')->with('success', 'Outbound and return flight details saved successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/flights/add')->withInput()->with('error', $e->getMessage());
         }
@@ -135,24 +145,34 @@ class FlightController extends BaseController
     public function updateFlight()
     {
         $flightId = (int) $this->request->getPost('flight_id');
-        $payload = $this->extractFlightPayload();
+        $outboundPayload = $this->extractFlightPayloadByPrefix('outbound_');
+        $returnPayload = $this->extractFlightPayloadByPrefix('return_');
 
         if ($flightId < 1) {
             return redirect()->to('/flights')->withInput()->with('error', 'Valid flight ID is required.');
         }
 
-        if (! $this->validateData($payload, $this->flightRules(true))) {
+        if (! $this->validateData($outboundPayload, $this->flightRules(true))) {
+            return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        if (! $this->validateData($returnPayload, $this->flightRules(true))) {
             return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
-            $fileData = $this->handleTicketUpload();
-            if (isset($fileData['error'])) {
-                return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('error', $fileData['error']);
+            $outboundFileData = $this->handleTicketUploadByField('outbound_ticket_file');
+            if (isset($outboundFileData['error'])) {
+                return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('error', $outboundFileData['error']);
+            }
+
+            $returnFileData = $this->handleTicketUploadByField('return_ticket_file');
+            if (isset($returnFileData['error'])) {
+                return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('error', $returnFileData['error']);
             }
 
             $model = new FlightModel();
-            $model->update($flightId, $this->buildFlightData($payload, $fileData, false));
+            $model->update($flightId, $this->buildCombinedFlightData($outboundPayload, $outboundFileData, $returnPayload, $returnFileData, false));
 
             return redirect()->to('/flights')->with('success', 'Flight updated successfully.');
         } catch (\Throwable $e) {
@@ -262,6 +282,19 @@ class FlightController extends BaseController
         ];
     }
 
+    private function extractFlightPayloadByPrefix(string $prefix): array
+    {
+        return [
+            'airline'           => (string) $this->request->getPost($prefix . 'airline'),
+            'flight_no'         => (string) $this->request->getPost($prefix . 'flight_no'),
+            'pnr'               => (string) $this->request->getPost($prefix . 'pnr'),
+            'departure_airport' => (string) $this->request->getPost($prefix . 'departure_airport'),
+            'arrival_airport'   => (string) $this->request->getPost($prefix . 'arrival_airport'),
+            'departure_at'      => $this->normalizeDateTimeInput((string) $this->request->getPost($prefix . 'departure_at')),
+            'arrival_at'        => $this->normalizeDateTimeInput((string) $this->request->getPost($prefix . 'arrival_at')),
+        ];
+    }
+
     private function normalizeDateTimeInput(string $value): string
     {
         $value = trim(str_replace('T', ' ', $value));
@@ -317,9 +350,34 @@ class FlightController extends BaseController
         return $data;
     }
 
+    private function buildCombinedFlightData(array $outboundPayload, array $outboundFileData, array $returnPayload, array $returnFileData, bool $isCreate): array
+    {
+        $data = $this->buildFlightData($outboundPayload, $outboundFileData, $isCreate);
+
+        $data['return_airline'] = $returnPayload['airline'];
+        $data['return_flight_no'] = $returnPayload['flight_no'];
+        $data['return_pnr'] = $returnPayload['pnr'] !== '' ? $returnPayload['pnr'] : null;
+        $data['return_departure_airport'] = $returnPayload['departure_airport'] !== '' ? $returnPayload['departure_airport'] : null;
+        $data['return_arrival_airport'] = $returnPayload['arrival_airport'] !== '' ? $returnPayload['arrival_airport'] : null;
+        $data['return_departure_at'] = $returnPayload['departure_at'] !== '' ? $returnPayload['departure_at'] : null;
+        $data['return_arrival_at'] = $returnPayload['arrival_at'] !== '' ? $returnPayload['arrival_at'] : null;
+
+        if (isset($returnFileData['ticket_file_name'])) {
+            $data['return_ticket_file_name'] = $returnFileData['ticket_file_name'];
+            $data['return_ticket_file_path'] = $returnFileData['ticket_file_path'];
+        }
+
+        return $data;
+    }
+
     private function handleTicketUpload(): array
     {
-        $file = $this->request->getFile('ticket_file');
+        return $this->handleTicketUploadByField('ticket_file');
+    }
+
+    private function handleTicketUploadByField(string $fieldName): array
+    {
+        $file = $this->request->getFile($fieldName);
 
         if ($file === null || $file->getError() === UPLOAD_ERR_NO_FILE) {
             return [];

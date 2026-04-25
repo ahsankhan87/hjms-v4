@@ -7,6 +7,21 @@
     <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
     <section class="space-y-3">
+        <?php
+        $compactDateTime = static function ($value): string {
+            $raw = trim((string) $value);
+            if ($raw === '') {
+                return '-';
+            }
+
+            $timestamp = strtotime($raw);
+            if ($timestamp === false) {
+                return $raw;
+            }
+
+            return date('d M Y H:i', $timestamp);
+        };
+        ?>
         <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -29,12 +44,9 @@
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>
                         <th class="px-3 py-2 text-left">ID</th>
-                        <th class="px-3 py-2 text-left">Airline</th>
-                        <th class="px-3 py-2 text-left">Flight No</th>
-                        <th class="px-3 py-2 text-left">PNR</th>
-                        <th class="px-3 py-2 text-left">Departure</th>
-                        <th class="px-3 py-2 text-left">Arrival</th>
-                        <th class="px-3 py-2 text-left">Ticket</th>
+                        <th class="px-3 py-2 text-left">Outbound</th>
+                        <th class="px-3 py-2 text-left">Return</th>
+                        <th class="px-3 py-2 text-left">Tickets</th>
                         <th class="px-3 py-2 text-left">Pkg Links</th>
                         <th class="px-3 py-2 text-left">Actions</th>
                     </tr>
@@ -42,18 +54,28 @@
                 <tbody>
                     <?php if (empty($rows)): ?>
                         <tr>
-                            <td colspan="9" class="px-3 py-6 text-center text-slate-500">No flights found.</td>
+                            <td colspan="6" class="px-3 py-6 text-center text-slate-500">No flights found.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($rows as $row): ?>
                             <tr class="border-t border-slate-100">
                                 <td class="px-3 py-2 font-medium">#<?= esc($row['id']) ?></td>
-                                <td class="px-3 py-2"><?= esc($row['airline']) ?></td>
-                                <td class="px-3 py-2"><?= esc($row['flight_no']) ?></td>
-                                <td class="px-3 py-2"><?= esc($row['pnr'] ?: '-') ?></td>
-                                <td class="px-3 py-2"><?= esc($row['departure_at'] ?: '-') ?></td>
-                                <td class="px-3 py-2"><?= esc($row['arrival_at'] ?: '-') ?></td>
-                                <td class="px-3 py-2"><?= esc($row['ticket_file_name'] ?: '-') ?></td>
+                                <td class="px-3 py-2">
+                                    <div class="text-xs font-semibold text-slate-700"><?= esc(trim((string) (($row['airline'] ?? '') . ' ' . ($row['flight_no'] ?? '')))) ?></div>
+                                    <div class="text-xs text-slate-500"><?= esc(trim((string) (($row['departure_airport'] ?? '') . ' -> ' . ($row['arrival_airport'] ?? '')), ' ->')) ?: '-' ?></div>
+                                    <div class="text-xs text-slate-500">PNR: <?= esc((string) ($row['pnr'] ?? '-')) ?></div>
+                                    <div class="text-xs text-slate-500"><?= esc($compactDateTime($row['departure_at'] ?? '')) ?> to <?= esc($compactDateTime($row['arrival_at'] ?? '')) ?></div>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <div class="text-xs font-semibold text-slate-700"><?= esc(trim((string) (($row['return_airline'] ?? '') . ' ' . ($row['return_flight_no'] ?? '')))) ?: '-' ?></div>
+                                    <div class="text-xs text-slate-500"><?= esc(trim((string) (($row['return_departure_airport'] ?? '') . ' -> ' . ($row['return_arrival_airport'] ?? '')), ' ->')) ?: '-' ?></div>
+                                    <div class="text-xs text-slate-500">PNR: <?= esc((string) (($row['return_pnr'] ?? '') !== '' ? $row['return_pnr'] : '-')) ?></div>
+                                    <div class="text-xs text-slate-500"><?= esc($compactDateTime($row['return_departure_at'] ?? '')) ?> to <?= esc($compactDateTime($row['return_arrival_at'] ?? '')) ?></div>
+                                </td>
+                                <td class="px-3 py-2">
+                                    <div class="text-xs text-slate-700">Outbound: <?= esc((string) (($row['ticket_file_name'] ?? '') !== '' ? $row['ticket_file_name'] : '-')) ?></div>
+                                    <div class="text-xs text-slate-700">Return: <?= esc((string) (($row['return_ticket_file_name'] ?? '') !== '' ? $row['return_ticket_file_name'] : '-')) ?></div>
+                                </td>
                                 <td class="px-3 py-2"><?= esc((int) ($row['package_links'] ?? 0)) ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">

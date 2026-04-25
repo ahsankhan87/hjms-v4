@@ -18,6 +18,7 @@ class PackageFlightModel extends Model
         'flight_no',
         'departure_at',
         'arrival_at',
+        'cost_amount',
         'created_at',
     ];
 }
