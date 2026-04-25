@@ -720,6 +720,9 @@
                                         <a href="<?= site_url('/main-company') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-pen-to-square w-4 text-slate-500"></i><span>Profile Settings</span>
                                         </a>
+                                        <a href="<?= site_url('/main-company/settings') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-sliders w-4 text-slate-500"></i><span>Voucher Settings</span>
+                                        </a>
                                     <?php endif; ?>
                                     <?php if ($canAudit): ?>
                                         <a href="<?= site_url('/audit') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">

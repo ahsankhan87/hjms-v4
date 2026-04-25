@@ -12,6 +12,10 @@
                 <h1 class="text-base font-semibold text-slate-800">Main Company Profile</h1>
                 <p class="mt-1 text-xs text-slate-500">Manage branding and voucher details used across receipts, vouchers, and print templates.</p>
             </div>
+            <a href="<?= site_url('/main-company/settings') ?>" class="btn btn-md btn-outline inline-flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Voucher & Contact Settings</span>
+            </a>
         </div>
     </section>
 
@@ -59,50 +63,6 @@
                         <div>
                             <label class="text-xs font-medium uppercase tracking-wide text-slate-600">STRN</label>
                             <input name="strn" value="<?= esc(old('strn', (string) ($row['strn'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Sales Tax Registration Number">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-xl border border-slate-200 p-3">
-                    <h3 class="text-sm font-semibold text-slate-800">Voucher Content</h3>
-                    <div class="mt-3 grid grid-cols-1 gap-3">
-                        <div>
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Voucher Instructions (Urdu)</label>
-                            <textarea name="voucher_instructions_ur" rows="6" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" dir="rtl" placeholder="واؤچر ہدایات"><?= esc(old('voucher_instructions_ur', (string) ($row['voucher_instructions_ur'] ?? ''))) ?></textarea>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Voucher Instructions (English)</label>
-                            <textarea name="voucher_instructions_en" rows="4" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Optional English instructions for vouchers"><?= esc(old('voucher_instructions_en', (string) ($row['voucher_instructions_en'] ?? ''))) ?></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-xl border border-slate-200 p-3">
-                    <h3 class="text-sm font-semibold text-slate-800">Contact Blocks</h3>
-                    <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <div>
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Makkah Office (English)</label>
-                            <input name="makkah_contact_en" value="<?= esc(old('makkah_contact_en', (string) ($row['makkah_contact_en'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Makkah office contact details">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Madina Office (English)</label>
-                            <input name="madina_contact_en" value="<?= esc(old('madina_contact_en', (string) ($row['madina_contact_en'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Madina office contact details">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Transport Contact (English)</label>
-                            <input name="transport_contact_en" value="<?= esc(old('transport_contact_en', (string) ($row['transport_contact_en'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Transport contact details in English">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Makkah Office</label>
-                            <input name="makkah_contact" value="<?= esc(old('makkah_contact', (string) ($row['makkah_contact'] ?? $row['makkah_contact_en'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="مکہ دفتر رابطہ">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Madina Office</label>
-                            <input name="madina_contact" value="<?= esc(old('madina_contact', (string) ($row['madina_contact'] ?? $row['madina_contact_en'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="مدینہ دفتر رابطہ">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Transport Contact</label>
-                            <input name="transport_contact" value="<?= esc(old('transport_contact', (string) ($row['transport_contact'] ?? $row['transport_contact_en'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="ٹرانسپورٹ رابطہ">
                         </div>
                     </div>
                 </div>

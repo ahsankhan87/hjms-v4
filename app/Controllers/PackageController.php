@@ -27,8 +27,15 @@ class PackageController extends BaseController
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
+        $autoInactivated = $this->autoDeactivateDepartedPackages();
         $model = new PackageModel();
-        $rows = $model->orderBy('id', 'DESC')->findAll();
+        $rows = $model->where('is_active', 1)->orderBy('id', 'DESC')->findAll();
+        $inactiveCount = (int) (new PackageModel())->where('is_active', 0)->countAllResults();
+
+        $successMessage = session()->getFlashdata('success');
+        if ($autoInactivated > 0 && empty($successMessage)) {
+            $successMessage = $autoInactivated . ' departed package(s) were auto-inactivated.';
+        }
 
         return view('portal/packages/index', [
             'title'       => 'HJMS ERP | Packages',
@@ -37,10 +44,78 @@ class PackageController extends BaseController
             'userEmail'   => (string) session('user_email'),
             'rows'        => $rows,
             'cards'       => $this->buildPackageCards($rows),
+            'inactiveCount' => $inactiveCount,
+            'success'     => $successMessage,
+            'error'       => session()->getFlashdata('error'),
+            'errors'      => session()->getFlashdata('errors') ?: [],
+        ]);
+    }
+
+    public function inactive()
+    {
+        if ($this->activeSeasonId() === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+
+        $this->autoDeactivateDepartedPackages();
+
+        $model = new PackageModel();
+        $rows = $model->where('is_active', 0)->orderBy('departure_date', 'DESC')->orderBy('id', 'DESC')->findAll();
+
+        return view('portal/packages/inactive', [
+            'title'       => 'HJMS ERP | Inactive Packages',
+            'headerTitle' => 'Package Management',
+            'activePage'  => 'packages',
+            'userEmail'   => (string) session('user_email'),
+            'rows'        => $rows,
             'success'     => session()->getFlashdata('success'),
             'error'       => session()->getFlashdata('error'),
             'errors'      => session()->getFlashdata('errors') ?: [],
         ]);
+    }
+
+    public function setPackageStatus()
+    {
+        $payload = [
+            'package_id' => (int) $this->request->getPost('package_id'),
+            'is_active' => (string) $this->request->getPost('is_active'),
+            'redirect_to' => trim((string) $this->request->getPost('redirect_to')),
+        ];
+
+        if (! $this->validateData($payload, [
+            'package_id' => 'required|integer',
+            'is_active' => 'required|in_list[0,1]',
+            'redirect_to' => 'permit_empty|max_length[120]',
+        ])) {
+            return redirect()->to('/packages')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $redirectTo = '/packages';
+        if ($payload['redirect_to'] === 'packages/inactive') {
+            $redirectTo = '/packages/inactive';
+        }
+
+        try {
+            $model = new PackageModel();
+            $row = $model->find($payload['package_id']);
+
+            if (empty($row)) {
+                return redirect()->to($redirectTo)->with('error', 'Package not found.');
+            }
+
+            $model->update($payload['package_id'], [
+                'is_active' => (int) $payload['is_active'],
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $message = (int) $payload['is_active'] === 1
+                ? 'Package activated successfully.'
+                : 'Package moved to inactive list.';
+
+            return redirect()->to($redirectTo)->with('success', $message);
+        } catch (\Throwable $e) {
+            return redirect()->to($redirectTo)->with('error', $e->getMessage());
+        }
     }
 
     public function publicIndex()
@@ -321,6 +396,29 @@ class PackageController extends BaseController
         }
 
         return $cards;
+    }
+
+    private function autoDeactivateDepartedPackages(): int
+    {
+        $seasonId = $this->activeSeasonId();
+        if ($seasonId === null) {
+            return 0;
+        }
+
+        $db = db_connect();
+        $todayStart = date('Y-m-d 00:00:00');
+
+        $db->table('packages')
+            ->set([
+                'is_active' => 0,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ])
+            ->where('season_id', $seasonId)
+            ->where('is_active', 1)
+            ->where('departure_date <', $todayStart)
+            ->update();
+
+        return (int) $db->affectedRows();
     }
 
     private function resolveAirlineLogo(string $logoUrl, string $airlineName): string
@@ -765,6 +863,317 @@ class PackageController extends BaseController
         }
     }
 
+    public function quickCreateHotel()
+    {
+        $isAjax = $this->request->isAJAX();
+        $payload = [
+            'package_id' => (int) $this->request->getPost('package_id'),
+            'hotel_name' => trim((string) $this->request->getPost('hotel_name')),
+            'hotel_city' => trim((string) $this->request->getPost('hotel_city')),
+            'hotel_star_rating' => trim((string) $this->request->getPost('hotel_star_rating')),
+            'hotel_distance_m' => trim((string) $this->request->getPost('hotel_distance_m')),
+            'hotel_address' => trim((string) $this->request->getPost('hotel_address')),
+        ];
+
+        if (! $this->validateData($payload, [
+            'package_id' => 'required|integer',
+            'hotel_name' => 'required|max_length[180]',
+            'hotel_city' => 'permit_empty|max_length[100]',
+            'hotel_star_rating' => 'permit_empty|integer|greater_than_equal_to[1]|less_than_equal_to[7]',
+            'hotel_distance_m' => 'permit_empty|integer|greater_than_equal_to[0]',
+            'hotel_address' => 'permit_empty',
+        ])) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'errors' => $this->validator->getErrors(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#hotel-section')
+                ->withInput()
+                ->with('open_quick_modal', 'hotel')
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        try {
+            $model = new HotelModel();
+            $model->insert([
+                'name' => $payload['hotel_name'],
+                'city' => $payload['hotel_city'] !== '' ? $payload['hotel_city'] : null,
+                'star_rating' => $payload['hotel_star_rating'] !== '' ? (int) $payload['hotel_star_rating'] : 3,
+                'distance_m' => $payload['hotel_distance_m'] !== '' ? (int) $payload['hotel_distance_m'] : null,
+                'address' => $payload['hotel_address'] !== '' ? $payload['hotel_address'] : null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $createdId = (int) $model->getInsertID();
+
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Hotel created successfully.',
+                    'item' => [
+                        'id' => $createdId,
+                        'name' => $payload['hotel_name'],
+                        'city' => $payload['hotel_city'],
+                    ],
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#hotel-section')
+                ->with('quick_hotel_created_id', $createdId)
+                ->with('success', 'Hotel created. You can now attach it to this package.');
+        } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#hotel-section')
+                ->withInput()
+                ->with('open_quick_modal', 'hotel')
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    public function quickCreateFlight()
+    {
+        $isAjax = $this->request->isAJAX();
+        $payload = [
+            'package_id' => (int) $this->request->getPost('package_id'),
+            'outbound_airline' => trim((string) $this->request->getPost('outbound_airline')),
+            'outbound_flight_no' => trim((string) $this->request->getPost('outbound_flight_no')),
+            'outbound_pnr' => trim((string) $this->request->getPost('outbound_pnr')),
+            'outbound_departure_airport' => trim((string) $this->request->getPost('outbound_departure_airport')),
+            'outbound_arrival_airport' => trim((string) $this->request->getPost('outbound_arrival_airport')),
+            'outbound_departure_at' => $this->normalizeDateTimeInput((string) $this->request->getPost('outbound_departure_at')),
+            'outbound_arrival_at' => $this->normalizeDateTimeInput((string) $this->request->getPost('outbound_arrival_at')),
+            'return_airline' => trim((string) $this->request->getPost('return_airline')),
+            'return_flight_no' => trim((string) $this->request->getPost('return_flight_no')),
+            'return_pnr' => trim((string) $this->request->getPost('return_pnr')),
+            'return_departure_airport' => trim((string) $this->request->getPost('return_departure_airport')),
+            'return_arrival_airport' => trim((string) $this->request->getPost('return_arrival_airport')),
+            'return_departure_at' => $this->normalizeDateTimeInput((string) $this->request->getPost('return_departure_at')),
+            'return_arrival_at' => $this->normalizeDateTimeInput((string) $this->request->getPost('return_arrival_at')),
+        ];
+
+        if (! $this->validateData($payload, [
+            'package_id' => 'required|integer',
+            'outbound_airline' => 'required|max_length[120]',
+            'outbound_flight_no' => 'required|max_length[30]',
+            'outbound_pnr' => 'permit_empty|max_length[30]',
+            'outbound_departure_airport' => 'permit_empty|max_length[80]',
+            'outbound_arrival_airport' => 'permit_empty|max_length[80]',
+            'outbound_departure_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',
+            'outbound_arrival_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',
+            'return_airline' => 'required|max_length[120]',
+            'return_flight_no' => 'required|max_length[30]',
+            'return_pnr' => 'permit_empty|max_length[30]',
+            'return_departure_airport' => 'permit_empty|max_length[80]',
+            'return_arrival_airport' => 'permit_empty|max_length[80]',
+            'return_departure_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',
+            'return_arrival_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',
+        ])) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'errors' => $this->validator->getErrors(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#flight-section')
+                ->withInput()
+                ->with('open_quick_modal', 'flight')
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        try {
+            $model = new FlightModel();
+            $model->insert([
+                'airline' => $payload['outbound_airline'],
+                'flight_no' => $payload['outbound_flight_no'],
+                'pnr' => $payload['outbound_pnr'] !== '' ? $payload['outbound_pnr'] : null,
+                'departure_airport' => $payload['outbound_departure_airport'] !== '' ? $payload['outbound_departure_airport'] : null,
+                'arrival_airport' => $payload['outbound_arrival_airport'] !== '' ? $payload['outbound_arrival_airport'] : null,
+                'departure_at' => $payload['outbound_departure_at'] !== '' ? $payload['outbound_departure_at'] : null,
+                'arrival_at' => $payload['outbound_arrival_at'] !== '' ? $payload['outbound_arrival_at'] : null,
+                'return_airline' => $payload['return_airline'],
+                'return_flight_no' => $payload['return_flight_no'],
+                'return_pnr' => $payload['return_pnr'] !== '' ? $payload['return_pnr'] : null,
+                'return_departure_airport' => $payload['return_departure_airport'] !== '' ? $payload['return_departure_airport'] : null,
+                'return_arrival_airport' => $payload['return_arrival_airport'] !== '' ? $payload['return_arrival_airport'] : null,
+                'return_departure_at' => $payload['return_departure_at'] !== '' ? $payload['return_departure_at'] : null,
+                'return_arrival_at' => $payload['return_arrival_at'] !== '' ? $payload['return_arrival_at'] : null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $createdId = (int) $model->getInsertID();
+
+            if ($isAjax) {
+                $outboundLabel = trim($payload['outbound_airline'] . ' ' . $payload['outbound_flight_no']);
+                $outboundRoute = trim($payload['outbound_departure_airport'] . ' -> ' . $payload['outbound_arrival_airport'], ' ->');
+                $returnLabel = trim($payload['return_airline'] . ' ' . $payload['return_flight_no']);
+                $returnRoute = trim($payload['return_departure_airport'] . ' -> ' . $payload['return_arrival_airport'], ' ->');
+                $optionText = 'OUT: ' . ($outboundLabel !== '' ? $outboundLabel : '-')
+                    . ' | ' . ($outboundRoute !== '' ? $outboundRoute : '-')
+                    . ' | ' . ($payload['outbound_departure_at'] !== '' ? $payload['outbound_departure_at'] : '-')
+                    . ' || RET: ' . ($returnLabel !== '' ? $returnLabel : '-')
+                    . ' | ' . ($returnRoute !== '' ? $returnRoute : '-')
+                    . ' | ' . ($payload['return_departure_at'] !== '' ? $payload['return_departure_at'] : '-');
+
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Flight created successfully.',
+                    'item' => [
+                        'id' => $createdId,
+                        'optionText' => $optionText,
+                    ],
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#flight-section')
+                ->with('quick_flight_created_id', $createdId)
+                ->with('success', 'Flight created. You can now attach it to this package.');
+        } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#flight-section')
+                ->withInput()
+                ->with('open_quick_modal', 'flight')
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    public function quickCreateTransport()
+    {
+        $isAjax = $this->request->isAJAX();
+        $payload = [
+            'package_id' => (int) $this->request->getPost('package_id'),
+            'transport_name' => trim((string) $this->request->getPost('transport_name')),
+            'provider_name' => trim((string) $this->request->getPost('provider_name')),
+            'vehicle_type' => strtolower(trim((string) $this->request->getPost('vehicle_type'))),
+            'seat_capacity' => trim((string) $this->request->getPost('seat_capacity')),
+            'driver_name' => trim((string) $this->request->getPost('driver_name')),
+            'driver_phone' => trim((string) $this->request->getPost('driver_phone')),
+        ];
+
+        if (! $this->validateData($payload, [
+            'package_id' => 'required|integer',
+            'transport_name' => 'required|max_length[180]',
+            'provider_name' => 'required|max_length[180]',
+            'vehicle_type' => 'required|in_list[self,coaster,car,bus,van,minibus,suv]',
+            'seat_capacity' => 'permit_empty|integer|greater_than_equal_to[0]',
+            'driver_name' => 'permit_empty|max_length[120]',
+            'driver_phone' => 'permit_empty|max_length[40]',
+        ])) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'errors' => $this->validator->getErrors(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#transport-section')
+                ->withInput()
+                ->with('open_quick_modal', 'transport')
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        try {
+            $model = new TransportModel();
+            $model->insert([
+                'transport_name' => $payload['transport_name'],
+                'provider_name' => $payload['provider_name'],
+                'vehicle_type' => $payload['vehicle_type'],
+                'seat_capacity' => $payload['seat_capacity'] !== '' ? (int) $payload['seat_capacity'] : 0,
+                'driver_name' => $payload['driver_name'] !== '' ? $payload['driver_name'] : null,
+                'driver_phone' => $payload['driver_phone'] !== '' ? $payload['driver_phone'] : null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $createdId = (int) $model->getInsertID();
+
+            if ($isAjax) {
+                $optionText = $payload['transport_name']
+                    . ' | ' . $payload['provider_name']
+                    . ' | ' . ucfirst($payload['vehicle_type'])
+                    . ' | Seats: ' . ($payload['seat_capacity'] !== '' ? $payload['seat_capacity'] : '0');
+
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Transport created successfully.',
+                    'item' => [
+                        'id' => $createdId,
+                        'optionText' => $optionText,
+                    ],
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#transport-section')
+                ->with('quick_transport_created_id', $createdId)
+                ->with('success', 'Transport created. You can now attach it to this package.');
+        } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
+            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#transport-section')
+                ->withInput()
+                ->with('open_quick_modal', 'transport')
+                ->with('error', $e->getMessage());
+        }
+    }
+
     public function deletePackageCost()
     {
         $costId = (int) $this->request->getPost('package_cost_id');
@@ -788,6 +1197,7 @@ class PackageController extends BaseController
 
     public function createPackageHotel()
     {
+        $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id'    => (int) $this->request->getPost('package_id'),
             'hotel_id' => (int) $this->request->getPost('hotel_id'),
@@ -811,6 +1221,17 @@ class PackageController extends BaseController
             'triple_cost' => 'permit_empty|decimal',
             'double_cost' => 'permit_empty|decimal',
         ])) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'errors' => $this->validator->getErrors(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -823,11 +1244,33 @@ class PackageController extends BaseController
                 ->getRowArray();
 
             if (empty($hotel)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Selected hotel not found.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected hotel not found.');
             }
 
             $package = (new PackageModel())->find($payload['package_id']);
             if (empty($package)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Package not found.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages')->with('error', 'Package not found.');
             }
 
@@ -844,6 +1287,17 @@ class PackageController extends BaseController
             $packageStayEnd = (string) ($stayWindow['end'] ?? '');
 
             if ($packageStayStart === '' || $packageStayEnd === '') {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Package departure/arrival dates are required before hotel allocation.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package departure/arrival dates are required before hotel allocation.');
             }
 
@@ -852,6 +1306,17 @@ class PackageController extends BaseController
                 $expectedCheckIn = $packageStayStart;
             }
             if (strtotime($expectedCheckIn) >= strtotime($packageStayEnd)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Package hotel duration is already fully allocated.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package hotel duration is already fully allocated.');
             }
 
@@ -869,6 +1334,17 @@ class PackageController extends BaseController
             $checkOutDate = $payload['check_out_date'];
 
             if ($checkInDate !== $expectedCheckIn) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Next hotel check-in must be ' . $expectedCheckIn . ' to maintain sequence.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Next hotel check-in must be ' . $expectedCheckIn . ' to maintain sequence.');
             }
 
@@ -878,6 +1354,17 @@ class PackageController extends BaseController
             }
 
             if (! empty($window['expected_city']) && ! ($window['city_matches'] ?? true)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'The next stay segment is for ' . ucfirst((string) $window['expected_city']) . '. Please select a ' . ucfirst((string) $window['expected_city']) . ' hotel for this leg.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'The next stay segment is for ' . ucfirst((string) $window['expected_city']) . '. Please select a ' . ucfirst((string) $window['expected_city']) . ' hotel for this leg.');
             }
 
@@ -886,14 +1373,47 @@ class PackageController extends BaseController
             }
 
             if ($checkInDate === '' || $checkOutDate === '') {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Check-in and check-out dates are required.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-in and check-out dates are required.');
             }
 
             if (strtotime($checkOutDate) <= strtotime($checkInDate)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Check-out date must be after check-in date.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out date must be after check-in date.');
             }
 
             if (strtotime($checkOutDate) > strtotime($packageStayEnd)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Check-out cannot exceed package stay end date (' . $packageStayEnd . ').',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out cannot exceed package stay end date (' . $packageStayEnd . ').');
             }
 
@@ -907,6 +1427,17 @@ class PackageController extends BaseController
             if (empty($hotelProfile)) {
                 foreach (['sharing_cost', 'quad_cost', 'triple_cost', 'double_cost'] as $costField) {
                     if ($payload[$costField] === '') {
+                        if ($isAjax) {
+                            return $this->response->setStatusCode(422)->setJSON([
+                                'status' => 'error',
+                                'message' => 'Pricing is required the first time a hotel is attached to a package.',
+                                'csrf' => [
+                                    'tokenName' => csrf_token(),
+                                    'hash' => csrf_hash(),
+                                ],
+                            ]);
+                        }
+
                         return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Pricing is required the first time a hotel is attached to a package.');
                     }
                 }
@@ -932,17 +1463,31 @@ class PackageController extends BaseController
             }
 
             if ($packageHotelId < 1) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(500)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Unable to save the package hotel profile.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Unable to save the package hotel profile.');
             }
 
+            $createdStayId = null;
             if ($this->packageHotelStayTableExists($db)) {
-                (new PackageHotelStayModel())->insert([
+                $stayModel = new PackageHotelStayModel();
+                $stayModel->insert([
                     'package_id' => $payload['package_id'],
                     'package_hotel_id' => $packageHotelId,
                     'check_in_date' => $checkInDate,
                     'check_out_date' => $checkOutDate,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
+                $createdStayId = (int) $stayModel->getInsertID();
                 $this->syncPackageHotelStayWindow($packageHotelId, $db);
             }
 
@@ -952,18 +1497,63 @@ class PackageController extends BaseController
 
             (new PackagePricingService($db))->recalculatePackage($payload['package_id']);
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => empty($hotelProfile) ? 'Hotel pricing and stay added successfully.' : 'Hotel stay added using existing package pricing.',
+                    'item' => [
+                        'id' => $createdStayId !== null ? $createdStayId : $packageHotelId,
+                        'hotel_name' => (string) ($hotel['hotel_name'] ?? ''),
+                        'hotel_city' => (string) ($hotel['hotel_city'] ?? ''),
+                        'check_in_date' => (string) $checkInDate,
+                        'check_out_date' => (string) $checkOutDate,
+                        'sharing_cost' => (float) ($hotelProfile['sharing_cost'] ?? $payload['sharing_cost'] ?? 0),
+                        'quad_cost' => (float) ($hotelProfile['quad_cost'] ?? $payload['quad_cost'] ?? 0),
+                        'triple_cost' => (float) ($hotelProfile['triple_cost'] ?? $payload['triple_cost'] ?? 0),
+                        'double_cost' => (float) ($hotelProfile['double_cost'] ?? $payload['double_cost'] ?? 0),
+                    ],
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', empty($hotelProfile) ? 'Hotel pricing and stay added successfully.' : 'Hotel stay added using existing package pricing.');
         } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
     public function deletePackageHotel()
     {
+        $isAjax = $this->request->isAJAX();
         $rowId = (int) $this->request->getPost('package_hotel_id');
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($rowId < 1 || $packageId < 1) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Valid package hotel and package IDs are required for delete.',
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages')->with('error', 'Valid package hotel and package IDs are required for delete.');
         }
 
@@ -992,19 +1582,54 @@ class PackageController extends BaseController
                 $deleted = (bool) (new PackageHotelModel())->delete($rowId);
             }
             if (! $deleted) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Package hotel attachment not found or already removed.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package hotel attachment not found or already removed.');
             }
 
             (new PackagePricingService())->recalculatePackage($packageId);
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Hotel link deleted successfully.',
+                    'deleted_id' => $rowId,
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package hotel attachment deleted successfully.');
         } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
     public function createPackageFlight()
     {
+        $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id'   => (int) $this->request->getPost('package_id'),
             'flight_id'    => (int) $this->request->getPost('flight_id'),
@@ -1016,6 +1641,17 @@ class PackageController extends BaseController
             'flight_id'   => 'required|integer',
             'cost_amount' => 'required|decimal',
         ])) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'errors' => $this->validator->getErrors(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -1024,6 +1660,17 @@ class PackageController extends BaseController
             $flight = $flightModel->find($payload['flight_id']);
 
             if (empty($flight)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Selected flight was not found.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected flight was not found.');
             }
 
@@ -1040,40 +1687,122 @@ class PackageController extends BaseController
                 'cost_amount'  => (float) $payload['cost_amount'],
                 'created_at'   => date('Y-m-d H:i:s'),
             ]);
+            $createdId = (int) $packageFlightModel->getInsertID();
 
             (new PackagePricingService())->recalculatePackage($payload['package_id']);
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Flight attached to package successfully.',
+                    'item' => [
+                        'id' => $createdId,
+                        'journey_label' => 'ROUND TRIP',
+                        'airline' => (string) ($flight['airline'] ?? ''),
+                        'flight_no' => (string) ($flight['flight_no'] ?? ''),
+                        'departure_airport' => (string) ($flight['departure_airport'] ?? ''),
+                        'arrival_airport' => (string) ($flight['arrival_airport'] ?? ''),
+                        'departure_at' => (string) ($flight['departure_at'] ?? ''),
+                        'arrival_at' => (string) ($flight['arrival_at'] ?? ''),
+                        'pnr' => (string) ($flight['pnr'] ?? ''),
+                        'cost_amount' => (float) $payload['cost_amount'],
+                    ],
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Flight attached to package successfully.');
         } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
     public function deletePackageFlight()
     {
+        $isAjax = $this->request->isAJAX();
         $rowId = (int) $this->request->getPost('package_flight_id');
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($rowId < 1 || $packageId < 1) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Valid package flight and package IDs are required for delete.',
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages')->with('error', 'Valid package flight and package IDs are required for delete.');
         }
 
         try {
             $deleted = (new PackageFlightModel())->delete($rowId);
             if (! $deleted) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Package flight attachment not found or already removed.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package flight attachment not found or already removed.');
             }
 
             (new PackagePricingService())->recalculatePackage($packageId);
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Flight link deleted successfully.',
+                    'deleted_id' => $rowId,
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package flight attachment deleted successfully.');
         } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
     public function createPackageTransport()
     {
+        $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id'   => (int) $this->request->getPost('package_id'),
             'transport_id' => (int) $this->request->getPost('transport_id'),
@@ -1087,52 +1816,153 @@ class PackageController extends BaseController
             'seat_capacity' => 'permit_empty|integer|greater_than_equal_to[0]',
             'cost_amount' => 'required|decimal',
         ])) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'errors' => $this->validator->getErrors(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $transport = (new TransportModel())->find($payload['transport_id']);
             if (empty($transport)) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Selected transport not found.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected transport not found.');
             }
 
-            (new PackageTransportModel())->insert([
+            $seatCapacity = $payload['seat_capacity'] !== '' ? (int) $payload['seat_capacity'] : (int) ($transport['seat_capacity'] ?? 0);
+            $model = new PackageTransportModel();
+            $model->insert([
                 'package_id'   => $payload['package_id'],
                 'transport_id' => $payload['transport_id'],
                 'provider_name' => (string) ($transport['provider_name'] ?? ''),
                 'vehicle_type' => (string) ($transport['vehicle_type'] ?? ''),
-                'seat_capacity' => $payload['seat_capacity'] !== '' ? (int) $payload['seat_capacity'] : (int) ($transport['seat_capacity'] ?? 0),
+                'seat_capacity' => $seatCapacity,
                 'cost_amount' => (float) $payload['cost_amount'],
                 'created_at'   => date('Y-m-d H:i:s'),
             ]);
+            $createdId = (int) $model->getInsertID();
 
             (new PackagePricingService())->recalculatePackage($payload['package_id']);
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Transport attached to package successfully.',
+                    'item' => [
+                        'id' => $createdId,
+                        'transport_name' => (string) (($transport['transport_name'] ?? '') !== '' ? $transport['transport_name'] : '-'),
+                        'provider_name' => (string) ($transport['provider_name'] ?? ''),
+                        'vehicle_type' => (string) ($transport['vehicle_type'] ?? ''),
+                        'seat_capacity' => $seatCapacity,
+                        'cost_amount' => (float) $payload['cost_amount'],
+                    ],
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Transport attached to package successfully.');
         } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
     public function deletePackageTransport()
     {
+        $isAjax = $this->request->isAJAX();
         $rowId = (int) $this->request->getPost('package_transport_id');
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($rowId < 1 || $packageId < 1) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status' => 'error',
+                    'message' => 'Valid package transport and package IDs are required for delete.',
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages')->with('error', 'Valid package transport and package IDs are required for delete.');
         }
 
         try {
             $deleted = (new PackageTransportModel())->delete($rowId);
             if (! $deleted) {
+                if ($isAjax) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 'error',
+                        'message' => 'Package transport attachment not found or already removed.',
+                        'csrf' => [
+                            'tokenName' => csrf_token(),
+                            'hash' => csrf_hash(),
+                        ],
+                    ]);
+                }
+
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package transport attachment not found or already removed.');
             }
 
             (new PackagePricingService())->recalculatePackage($packageId);
 
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'ok',
+                    'message' => 'Transport link deleted successfully.',
+                    'deleted_id' => $rowId,
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package transport attachment deleted successfully.');
         } catch (\Throwable $e) {
+            if ($isAjax) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+            }
+
             return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }

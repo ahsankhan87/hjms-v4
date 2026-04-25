@@ -31,10 +31,16 @@
                     <h1 class="text-base font-semibold text-slate-800">Packages</h1>
                     <p class="mt-1 text-xs text-slate-500">Browse package performance, facilities, prices, and availability with a richer card view.</p>
                 </div>
-                <a href="<?= site_url('/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Create New Package</span>
-                </a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="<?= site_url('/packages/inactive') ?>" class="btn btn-md btn-outline inline-flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-box-archive"></i>
+                        <span>Inactive Packages<?= isset($inactiveCount) ? ' (' . (int) $inactiveCount . ')' : '' ?></span>
+                    </a>
+                    <a href="<?= site_url('/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Create New Package</span>
+                    </a>
+                </div>
             </div>
         </section>
 
@@ -275,13 +281,25 @@
 
                         <!-- Card Footer / Actions -->
                         <div class="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50/80 px-3 py-2">
-                            <form method="post" action="<?= site_url('/packages/delete') ?>" class="shrink-0" onsubmit="return confirm('Are you sure you want to delete this package?');">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
-                                <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50" title="Delete Package">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </form>
+                            <div class="flex items-center gap-2">
+                                <form method="post" action="<?= site_url('/packages/status') ?>" class="shrink-0" onsubmit="return confirm('Move this package to inactive list?');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
+                                    <input type="hidden" name="is_active" value="0">
+                                    <input type="hidden" name="redirect_to" value="packages">
+                                    <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-white text-amber-600 transition hover:bg-amber-50" title="Move To Inactive">
+                                        <i class="fa-solid fa-box-archive"></i>
+                                    </button>
+                                </form>
+
+                                <form method="post" action="<?= site_url('/packages/delete') ?>" class="shrink-0" onsubmit="return confirm('Are you sure you want to delete this package?');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
+                                    <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50" title="Delete Package">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </div>
 
                             <button type="button"
                                 onclick="sharePackage(<?= (int) $card['id'] ?>)"
@@ -309,6 +327,7 @@
 <?php
 $company = main_company();
 $companyName = esc((string) ($company['name'] ?? 'HJMS'));
+$companyAddress = esc((string) ($company['address'] ?? ''));
 $companyPhone = esc((string) ($company['phone'] ?? ''));
 $companyEmail = esc((string) ($company['email'] ?? ''));
 ?>
@@ -331,6 +350,12 @@ $companyEmail = esc((string) ($company['email'] ?? ''));
             <div style="background:linear-gradient(135deg,#1e6b3e 0%,#25a55a 100%);padding:18px 20px 14px;">
                 <div style="font-size:20px;font-weight:700;color:#fff;letter-spacing:.5px;"><?= $companyName ?></div>
                 <div style="font-size:11px;color:#a8f0c6;margin-top:2px;">Hajj &amp; Umrah Package</div>
+                <?php if ($companyAddress): ?>
+                    <div style="font-size:11px;line-height:1.45;color:#dcfce7;margin-top:8px;"><?= $companyAddress ?></div>
+                <?php endif; ?>
+                <?php if ($companyPhone): ?>
+                    <div style="font-size:12px;font-weight:700;color:#ffffff;margin-top:4px;">Phone: <?= $companyPhone ?></div>
+                <?php endif; ?>
             </div>
 
             <!-- Package Title -->
@@ -460,8 +485,7 @@ $companyEmail = esc((string) ($company['email'] ?? ''));
             <!-- Footer -->
             <div style="background:#f9fafb;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;">
                 <div style="font-size:11px;color:#6b7280;">
-                    <?php if ($companyPhone): ?><span>📞 <?= $companyPhone ?></span>&nbsp;&nbsp;<?php endif; ?>
-                        <?php if ($companyEmail): ?><span>✉ <?= $companyEmail ?></span><?php endif; ?>
+                    <?= esc($companyName) ?>
                 </div>
                 <div style="font-size:10px;color:#9ca3af;">Seats: <?= (int) $card['available_seats'] ?></div>
             </div>
