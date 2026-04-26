@@ -487,7 +487,7 @@ $companyEmail = esc((string) ($company['email'] ?? ''));
                 <div style="font-size:11px;color:#6b7280;">
                     <?= esc($companyName) ?>
                 </div>
-                <div style="font-size:10px;color:#9ca3af;">Seats: <?= (int) $card['available_seats'] ?></div>
+                <div style="font-size:10px;color:#9ca3af;">Seats Left: <?= (int) $card['available_seats'] ?></div>
             </div>
             <!-- Powered by -->
             <div style="background:#1e6b3e;padding:5px 20px;text-align:center;">

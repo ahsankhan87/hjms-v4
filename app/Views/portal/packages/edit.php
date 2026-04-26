@@ -176,6 +176,9 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     <label class="block text-xs font-medium text-slate-600">Double Cost (PKR)
                         <input name="double_cost" placeholder="e.g. 60000" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
+                    <label class="block text-xs font-medium text-slate-600">Total Seats
+                        <input type="number" min="0" name="total_seats" placeholder="e.g. 45" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </label>
                     <div class="flex items-end">
                         <button type="submit" class="quick-attach-btn btn btn-primary h-9 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 text-xs font-semibold"><i class="fa-solid fa-link"></i><span>Attach Hotel</span></button>
                     </div>
@@ -194,6 +197,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                                 <th class="px-2 py-1.5">Quad</th>
                                 <th class="px-2 py-1.5">Triple</th>
                                 <th class="px-2 py-1.5">Double</th>
+                                <th class="px-2 py-1.5">Seats</th>
                                 <th class="px-2 py-1.5">Action</th>
                             </tr>
                         </thead>
@@ -208,6 +212,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                                         <td class="px-2 py-1.5 font-semibold">PKR <?= esc(number_format((float) ($hotelRow['quad_cost'] ?? 0), 2)) ?></td>
                                         <td class="px-2 py-1.5 font-semibold">PKR <?= esc(number_format((float) ($hotelRow['triple_cost'] ?? 0), 2)) ?></td>
                                         <td class="px-2 py-1.5 font-semibold">PKR <?= esc(number_format((float) ($hotelRow['double_cost'] ?? 0), 2)) ?></td>
+                                        <td class="px-2 py-1.5 font-semibold"><?= esc((string) ((int) ($hotelRow['total_seats'] ?? 0))) ?></td>
                                         <td class="px-2 py-1.5">
                                             <form method="post" action="<?= site_url('packages/hotels/delete') ?>" class="package-link-delete" data-link-type="hotel">
                                                 <?= csrf_field() ?>
@@ -220,7 +225,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                                 <?php endforeach;
                             else: ?>
                                 <tr class="empty-state-row">
-                                    <td colspan="9" class="px-2 py-3 text-slate-500">No hotel stay segments attached.</td>
+                                    <td colspan="10" class="px-2 py-3 text-slate-500">No hotel stay segments attached.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -237,6 +242,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                                     <th class="px-2 py-1.5">Quad</th>
                                     <th class="px-2 py-1.5">Triple</th>
                                     <th class="px-2 py-1.5">Double</th>
+                                    <th class="px-2 py-1.5">Seats</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
@@ -248,6 +254,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                                         <td class="px-2 py-1.5">PKR <?= esc(number_format((float) ($hotelPricingRow['quad_cost'] ?? 0), 2)) ?></td>
                                         <td class="px-2 py-1.5">PKR <?= esc(number_format((float) ($hotelPricingRow['triple_cost'] ?? 0), 2)) ?></td>
                                         <td class="px-2 py-1.5">PKR <?= esc(number_format((float) ($hotelPricingRow['double_cost'] ?? 0), 2)) ?></td>
+                                        <td class="px-2 py-1.5 font-semibold"><?= esc((string) ((int) ($hotelPricingRow['total_seats'] ?? 0))) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -600,6 +607,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
         const hotelCheckOutInput = hotelForm ? hotelForm.querySelector('input[name="check_out_date"]') : null;
         const hotelPricingHint = document.getElementById('hotel-pricing-hint');
         const nextStayHint = document.getElementById('next-stay-hint');
+        const hotelSeatsInput = hotelForm ? hotelForm.querySelector('input[name="total_seats"]') : null;
         const hotelCostInputs = hotelForm ? [
             hotelForm.querySelector('input[name="sharing_cost"]'),
             hotelForm.querySelector('input[name="quad_cost"]'),
@@ -726,6 +734,14 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     }
                 }
             });
+
+            if (hotelSeatsInput) {
+                if (profile && Object.prototype.hasOwnProperty.call(profile, 'total_seats')) {
+                    hotelSeatsInput.value = String(profile.total_seats || 0);
+                } else if (!hotelSeatsInput.dataset.userTouched) {
+                    hotelSeatsInput.value = '';
+                }
+            }
 
             if (hotelPricingHint) {
                 hotelPricingHint.textContent = profile ?
@@ -910,6 +926,11 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                 });
             }
         });
+        if (hotelSeatsInput) {
+            hotelSeatsInput.addEventListener('input', function() {
+                hotelSeatsInput.dataset.userTouched = '1';
+            });
+        }
 
         updateArrivalDate();
         syncHotelPricing();
@@ -1241,6 +1262,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }), 'font-semibold'));
+            tr.appendChild(td(String(Number(item.total_seats || 0)), 'font-semibold'));
 
             var action = document.createElement('td');
             action.className = 'px-2 py-1.5';

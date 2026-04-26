@@ -24,6 +24,7 @@ class PackageHotelModel extends Model
         'quad_cost',
         'triple_cost',
         'double_cost',
+        'total_seats',
         'created_at',
     ];
 }

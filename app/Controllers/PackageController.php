@@ -186,6 +186,15 @@ class PackageController extends BaseController
             ->get()
             ->getResultArray();
 
+        $bookedRows = $db->table('booking_pilgrims bp')
+            ->select('b.package_id, COUNT(bp.id) AS booked_count')
+            ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+            ->whereIn('b.package_id', $packageIds)
+            ->where('b.status !=', 'cancelled')
+            ->groupBy('b.package_id')
+            ->get()
+            ->getResultArray();
+
         $flightsByPackage = [];
         foreach ($flightRows as $item) {
             $flightsByPackage[(int) $item['package_id']][] = $item;
@@ -204,6 +213,11 @@ class PackageController extends BaseController
         $costsByPackage = [];
         foreach ($costRows as $item) {
             $costsByPackage[(int) $item['package_id']][] = $item;
+        }
+
+        $bookedByPackage = [];
+        foreach ($bookedRows as $item) {
+            $bookedByPackage[(int) ($item['package_id'] ?? 0)] = (int) ($item['booked_count'] ?? 0);
         }
 
         $cards = [];
@@ -321,6 +335,19 @@ class PackageController extends BaseController
             }
             $hotelStays = array_values($uniqueHotelStays);
 
+            $hotelSeatCaps = [];
+            foreach ($linkedHotels as $hotel) {
+                $hotelSeats = (int) ($hotel['total_seats'] ?? 0);
+                if ($hotelSeats > 0) {
+                    $hotelSeatCaps[] = $hotelSeats;
+                }
+            }
+            $seatCapacity = $hotelSeatCaps !== []
+                ? min($hotelSeatCaps)
+                : (int) ($row['total_seats'] ?? 0);
+            $bookedSeats = (int) ($bookedByPackage[$packageId] ?? 0);
+            $availableSeats = max(0, $seatCapacity - $bookedSeats);
+
             $priceMap = [];
             foreach ($linkedCosts as $cost) {
                 $type = strtolower(trim((string) ($cost['cost_type'] ?? '')));
@@ -378,7 +405,9 @@ class PackageController extends BaseController
                 'outbound_flight' => $outboundFlight,
                 'return_flight' => $returnFlight,
                 'duration_days' => (int) ($row['duration_days'] ?? 0),
-                'available_seats' => (int) ($row['total_seats'] ?? 0),
+                'available_seats' => $availableSeats,
+                'seat_capacity' => $seatCapacity,
+                'booked_seats' => $bookedSeats,
                 'price_map' => $priceMap,
                 'package_mode' => $packageMode,
                 'flat_price' => $flatPrice,
@@ -545,6 +574,7 @@ class PackageController extends BaseController
                 'quad_cost' => (float) ($hotelPricingRow['quad_cost'] ?? 0),
                 'triple_cost' => (float) ($hotelPricingRow['triple_cost'] ?? 0),
                 'double_cost' => (float) ($hotelPricingRow['double_cost'] ?? 0),
+                'total_seats' => (int) ($hotelPricingRow['total_seats'] ?? 0),
                 'hotel_name' => (string) ($hotelPricingRow['hotel_name'] ?: ($hotelPricingRow['hotel_master_name'] ?? '')),
                 'hotel_city' => (string) ($hotelPricingRow['hotel_city'] ?? ''),
             ];
@@ -1208,6 +1238,7 @@ class PackageController extends BaseController
             'quad_cost' => trim((string) $this->request->getPost('quad_cost')),
             'triple_cost' => trim((string) $this->request->getPost('triple_cost')),
             'double_cost' => trim((string) $this->request->getPost('double_cost')),
+            'total_seats' => trim((string) $this->request->getPost('total_seats')),
         ];
 
         if (! $this->validateData($payload, [
@@ -1220,6 +1251,7 @@ class PackageController extends BaseController
             'quad_cost' => 'permit_empty|decimal',
             'triple_cost' => 'permit_empty|decimal',
             'double_cost' => 'permit_empty|decimal',
+            'total_seats' => 'permit_empty|integer|greater_than_equal_to[0]',
         ])) {
             if ($isAjax) {
                 return $this->response->setStatusCode(422)->setJSON([
@@ -1442,6 +1474,21 @@ class PackageController extends BaseController
                     }
                 }
 
+                if ($payload['total_seats'] === '' || (int) $payload['total_seats'] < 1) {
+                    if ($isAjax) {
+                        return $this->response->setStatusCode(422)->setJSON([
+                            'status' => 'error',
+                            'message' => 'Total seats are required the first time a hotel is attached to a package.',
+                            'csrf' => [
+                                'tokenName' => csrf_token(),
+                                'hash' => csrf_hash(),
+                            ],
+                        ]);
+                    }
+
+                    return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Total seats are required the first time a hotel is attached to a package.');
+                }
+
                 $hotelModel->insert([
                     'package_id'    => $payload['package_id'],
                     'hotel_id'      => (int) ($hotel['id'] ?? 0),
@@ -1455,11 +1502,18 @@ class PackageController extends BaseController
                     'quad_cost'     => (float) $payload['quad_cost'],
                     'triple_cost'   => (float) $payload['triple_cost'],
                     'double_cost'   => (float) $payload['double_cost'],
+                    'total_seats'   => (int) $payload['total_seats'],
                     'created_at'    => date('Y-m-d H:i:s'),
                 ]);
                 $packageHotelId = (int) $hotelModel->getInsertID();
             } else {
                 $packageHotelId = (int) ($hotelProfile['id'] ?? 0);
+                if ($payload['total_seats'] !== '') {
+                    $hotelModel->update($packageHotelId, [
+                        'total_seats' => (int) $payload['total_seats'],
+                    ]);
+                    $hotelProfile['total_seats'] = (int) $payload['total_seats'];
+                }
             }
 
             if ($packageHotelId < 1) {
@@ -1511,6 +1565,7 @@ class PackageController extends BaseController
                         'quad_cost' => (float) ($hotelProfile['quad_cost'] ?? $payload['quad_cost'] ?? 0),
                         'triple_cost' => (float) ($hotelProfile['triple_cost'] ?? $payload['triple_cost'] ?? 0),
                         'double_cost' => (float) ($hotelProfile['double_cost'] ?? $payload['double_cost'] ?? 0),
+                        'total_seats' => (int) ($hotelProfile['total_seats'] ?? $payload['total_seats'] ?? 0),
                     ],
                     'csrf' => [
                         'tokenName' => csrf_token(),
@@ -2264,7 +2319,7 @@ class PackageController extends BaseController
         $db = $db ?? db_connect();
         if ($this->packageHotelStayTableExists($db)) {
             return $db->table('package_hotel_stays phs')
-                ->select('phs.id, phs.package_id, phs.package_hotel_id, phs.check_in_date, phs.check_out_date, ph.hotel_id, ph.hotel_name, ph.sharing_cost, ph.quad_cost, ph.triple_cost, ph.double_cost, h.name AS hotel_master_name, h.city AS hotel_city')
+                ->select('phs.id, phs.package_id, phs.package_hotel_id, phs.check_in_date, phs.check_out_date, ph.hotel_id, ph.hotel_name, ph.sharing_cost, ph.quad_cost, ph.triple_cost, ph.double_cost, ph.total_seats, h.name AS hotel_master_name, h.city AS hotel_city')
                 ->join('package_hotels ph', 'ph.id = phs.package_hotel_id', 'left')
                 ->join('hotels h', 'h.id = ph.hotel_id', 'left')
                 ->where('phs.package_id', $packageId)
@@ -2275,7 +2330,7 @@ class PackageController extends BaseController
         }
 
         return $db->table('package_hotels ph')
-            ->select('ph.id, ph.package_id, ph.id AS package_hotel_id, ph.check_in_date, ph.check_out_date, ph.hotel_id, ph.hotel_name, ph.sharing_cost, ph.quad_cost, ph.triple_cost, ph.double_cost, h.name AS hotel_master_name, h.city AS hotel_city')
+            ->select('ph.id, ph.package_id, ph.id AS package_hotel_id, ph.check_in_date, ph.check_out_date, ph.hotel_id, ph.hotel_name, ph.sharing_cost, ph.quad_cost, ph.triple_cost, ph.double_cost, ph.total_seats, h.name AS hotel_master_name, h.city AS hotel_city')
             ->join('hotels h', 'h.id = ph.hotel_id', 'left')
             ->where('ph.package_id', $packageId)
             ->orderBy('ph.check_in_date', 'ASC')
@@ -2293,7 +2348,7 @@ class PackageController extends BaseController
 
         if ($this->packageHotelStayTableExists($db)) {
             return $db->table('package_hotel_stays phs')
-                ->select('phs.id, phs.package_id, phs.check_in_date, phs.check_out_date, ph.hotel_id, ph.hotel_name, h.name AS master_hotel_name, h.city')
+                ->select('phs.id, phs.package_id, phs.check_in_date, phs.check_out_date, ph.hotel_id, ph.hotel_name, ph.total_seats, h.name AS master_hotel_name, h.city')
                 ->join('package_hotels ph', 'ph.id = phs.package_hotel_id', 'left')
                 ->join('hotels h', 'h.id = ph.hotel_id', 'left')
                 ->whereIn('phs.package_id', $packageIds)
