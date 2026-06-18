@@ -35,6 +35,7 @@ $routes->get('bookings/(:num)', 'BookingController::show/$1', ['filter' => 'weba
 $routes->get('bookings/(:num)/edit', 'BookingController::edit/$1', ['filter' => 'webauth:bookings.manage']);
 $routes->get('bookings/(:num)/voucher', 'BookingController::voucher/$1', ['filter' => 'webauth:bookings.view']);
 $routes->post('bookings', 'BookingController::createBooking', ['filter' => 'webauth:bookings.manage']);
+$routes->post('bookings/pilgrims/quick-create', 'BookingController::quickCreatePilgrim', ['filter' => 'webauth:bookings.manage']);
 $routes->post('bookings/update', 'BookingController::updateBooking', ['filter' => 'webauth:bookings.manage']);
 $routes->post('bookings/delete', 'BookingController::deleteBooking', ['filter' => 'webauth:bookings.manage']);
 $routes->get('payments', 'PaymentController::index', ['filter' => 'webauth:payments.view']);

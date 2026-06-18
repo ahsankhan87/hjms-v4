@@ -175,6 +175,21 @@
 </head>
 
 <body>
+    <?php
+    $mainCompanyData = function_exists('main_company') ? (main_company() ?? []) : [];
+    $companyName = trim((string) ($mainCompanyData['name'] ?? 'HJMS ERP'));
+    $companyTagline = trim((string) ($mainCompanyData['tagline'] ?? 'Agent ledger statement'));
+    $companyAddress = trim((string) ($mainCompanyData['address'] ?? ''));
+    $companyPhone = trim((string) ($mainCompanyData['phone'] ?? ''));
+    $companyEmail = trim((string) ($mainCompanyData['email'] ?? ''));
+    $companyWebsite = trim((string) ($mainCompanyData['website'] ?? ''));
+
+    $companyMetaParts = array_values(array_filter([$companyPhone, $companyEmail, $companyWebsite], static function ($item) {
+        return trim((string) $item) !== '';
+    }));
+    $companyMetaLine = implode(' | ', $companyMetaParts);
+    ?>
+
     <div class="actions">
         <button class="btn" onclick="window.print()">Print / Save PDF</button>
         <a class="btn alt" href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>">Back to Ledger</a>
@@ -182,8 +197,14 @@
 
     <main class="sheet">
         <section class="top">
-            <h1>HJMS ERP</h1>
-            <p>Agent ledger statement</p>
+            <h1><?= esc($companyName !== '' ? $companyName : 'HJMS ERP') ?></h1>
+            <p><?= esc($companyTagline !== '' ? $companyTagline : 'Agent ledger statement') ?></p>
+            <?php if ($companyAddress !== ''): ?>
+                <p><?= esc($companyAddress) ?></p>
+            <?php endif; ?>
+            <?php if ($companyMetaLine !== ''): ?>
+                <p><?= esc($companyMetaLine) ?></p>
+            <?php endif; ?>
         </section>
 
         <section class="heading">Account Ledger</section>

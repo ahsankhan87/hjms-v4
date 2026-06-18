@@ -55,6 +55,7 @@ $pricingModeMap = [
                     <tr class="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th class="px-4 py-3">Booking No</th>
                         <th class="px-4 py-3">Package</th>
+                        <th class="px-4 py-3">Agent</th>
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3">Tier</th>
                         <th class="px-4 py-3 text-center">Pilgrims</th>
@@ -87,6 +88,9 @@ $pricingModeMap = [
                                 <?php endif; ?>
                             </td>
                             <td class="px-4 py-3">
+                                <span class="text-slate-700"><?= esc((string) ($row['agent_name'] ?? '—')) ?></span>
+                            </td>
+                            <td class="px-4 py-3">
                                 <span class="inline-flex items-center rounded-full <?= $stc['bg'] ?> <?= $stc['text'] ?> px-2.5 py-0.5 text-xs font-semibold capitalize">
                                     <?= esc($status) ?>
                                 </span>
@@ -104,15 +108,15 @@ $pricingModeMap = [
                                     <span class="text-slate-400">—</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 text-center" data-col="pilgrims" data-value="<?= esc((string) ((int) ($row['total_pilgrims'] ?? 0))) ?>">
                                 <span class="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-bold text-slate-700">
                                     <?= esc((int) ($row['total_pilgrims'] ?? 0)) ?>
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-right font-medium text-slate-800">
+                            <td class="px-4 py-3 text-right font-medium text-slate-800" data-col="amount" data-value="<?= esc((string) ((float) ($row['total_amount'] ?? 0))) ?>">
                                 <?= esc(number_format((float) ($row['total_amount'] ?? 0), 0)) ?>
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-4 py-3 text-right" data-col="outstanding" data-value="<?= esc((string) ((float) ($row['outstanding_amount'] ?? 0))) ?>">
                                 <?php if ($isOverpaid): ?>
                                     <span class="font-semibold text-emerald-600">+<?= esc(number_format(abs($outstanding), 0)) ?></span>
                                 <?php elseif ($outstanding > 0): ?>
@@ -149,6 +153,16 @@ $pricingModeMap = [
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
+                        <td colspan="5" class="px-4 py-3 text-right">Totals</td>
+                        <td id="bookings-total-pilgrims" class="px-4 py-3 text-center">0</td>
+                        <td id="bookings-total-amount" class="px-4 py-3 text-right">0</td>
+                        <td id="bookings-total-outstanding" class="px-4 py-3 text-right text-emerald-600">Paid</td>
+                        </td>
+                        <td class="px-4 py-3"></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
@@ -257,6 +271,73 @@ $pricingModeMap = [
         });
         modal.addEventListener('click', function(e) {
             if (e.target === modal) modal.style.display = 'none';
+        });
+
+        function numberFormat(value) {
+            return Number(value || 0).toLocaleString('en-PK', {
+                maximumFractionDigits: 0
+            });
+        }
+
+        function refreshBookingTotalsFromDataTable() {
+            if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.DataTable) {
+                return;
+            }
+
+            var $table = window.jQuery('#bookings-table');
+            if (!$table.length || !window.jQuery.fn.DataTable.isDataTable($table[0])) {
+                return;
+            }
+
+            var api = $table.DataTable();
+            var nodes = api.rows({
+                search: 'applied'
+            }).nodes().to$();
+
+            var totals = {
+                pilgrims: 0,
+                amount: 0,
+                outstanding: 0
+            };
+
+            nodes.each(function() {
+                var row = this;
+                totals.pilgrims += Number((row.querySelector('td[data-col="pilgrims"]') || {}).dataset?.value || 0);
+                totals.amount += Number((row.querySelector('td[data-col="amount"]') || {}).dataset?.value || 0);
+                totals.outstanding += Number((row.querySelector('td[data-col="outstanding"]') || {}).dataset?.value || 0);
+            });
+
+            var pilgrimsEl = document.getElementById('bookings-total-pilgrims');
+            var amountEl = document.getElementById('bookings-total-amount');
+            var outstandingEl = document.getElementById('bookings-total-outstanding');
+            if (!pilgrimsEl || !amountEl || !outstandingEl) {
+                return;
+            }
+
+            pilgrimsEl.textContent = numberFormat(totals.pilgrims);
+            amountEl.textContent = numberFormat(totals.amount);
+
+            outstandingEl.classList.remove('text-emerald-600', 'text-rose-600');
+            if (totals.outstanding < 0) {
+                outstandingEl.classList.add('text-emerald-600');
+                outstandingEl.textContent = '+' + numberFormat(Math.abs(totals.outstanding));
+            } else if (totals.outstanding > 0) {
+                outstandingEl.classList.add('text-rose-600');
+                outstandingEl.textContent = numberFormat(totals.outstanding);
+            } else {
+                outstandingEl.classList.add('text-emerald-600');
+                outstandingEl.textContent = 'Paid';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!window.jQuery) {
+                return;
+            }
+
+            var $table = window.jQuery('#bookings-table');
+            $table.on('draw.dt search.dt page.dt order.dt', refreshBookingTotalsFromDataTable);
+            setTimeout(refreshBookingTotalsFromDataTable, 0);
         });
     }());
 </script>

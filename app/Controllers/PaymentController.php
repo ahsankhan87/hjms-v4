@@ -645,32 +645,19 @@ class PaymentController extends BaseController
             return;
         }
 
-        if (! in_array('total_amount', $db->getFieldNames('bookings'), true)) {
-            return;
-        }
-
-        $paidAmount = (float) ($db->table('payments')
-            ->select('COALESCE(SUM(CASE WHEN payment_type = "refund" THEN -amount ELSE amount END), 0) AS paid_total')
-            ->where('booking_id', $bookingId)
-            ->where('season_id', $seasonId)
-            ->where('status', 'posted')
-            ->get()
-            ->getRowArray()['paid_total'] ?? 0);
-
-        if ($this->bookingConfirmMode() !== 'auto_on_full_payment') {
-            return;
-        }
-
         if ((string) ($booking['status'] ?? '') === 'cancelled') {
             return;
         }
 
-        $totalAmount = (float) ($booking['total_amount'] ?? 0);
-        if ($totalAmount <= 0) {
-            return;
-        }
+        $postedIncomingCount = (int) $db->table('payments')
+            ->where('booking_id', $bookingId)
+            ->where('season_id', $seasonId)
+            ->where('status', 'posted')
+            ->where('payment_type', 'payment')
+            ->where('amount >', 0)
+            ->countAllResults();
 
-        if ($paidAmount >= $totalAmount) {
+        if ($postedIncomingCount > 0) {
             $db->table('bookings')->where('id', $bookingId)->update([
                 'status' => 'confirmed',
                 'updated_at' => date('Y-m-d H:i:s'),
@@ -678,7 +665,7 @@ class PaymentController extends BaseController
             return;
         }
 
-        if ((string) ($booking['status'] ?? '') === 'confirmed' && $paidAmount < $totalAmount) {
+        if ((string) ($booking['status'] ?? '') === 'confirmed') {
             $db->table('bookings')->where('id', $bookingId)->update([
                 'status' => 'draft',
                 'updated_at' => date('Y-m-d H:i:s'),

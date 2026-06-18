@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\BookingModel;
 use App\Models\BookingPilgrimModel;
+use App\Models\PilgrimModel;
 use App\Services\PackagePricingService;
 use App\Services\AgentLedgerService;
 
@@ -65,6 +66,7 @@ class BookingController extends BaseController
             'userEmail' => (string) session('user_email'),
             'rows'      => $db->table('bookings b')
                 ->select("b.*, c.name AS company_name, p.name AS package_name, p.include_hotel,
+                    ag.name AS agent_name,
                     DATE_FORMAT(COALESCE(
                         " . $stayStartExpr . ",
                         (SELECT DATE(MIN(pf.arrival_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
@@ -76,6 +78,7 @@ class BookingController extends BaseController
                     DATE_FORMAT(b.created_at, '%Y-%m-%d') AS voucher_date" . $pricingSelect)
                 ->join('packages p', 'p.id = b.package_id', 'left')
                 ->join('companies c', 'c.id = b.company_id', 'left')
+                ->join('agents ag', 'ag.id = b.agent_id', 'left')
                 ->where('b.season_id', $seasonId)
                 ->orderBy('b.id', 'DESC')
                 ->get()
@@ -241,7 +244,7 @@ class BookingController extends BaseController
         $payload = [
             'package_id'  => (int) $this->request->getPost('package_id'),
             'pricing_tier' => trim((string) $this->request->getPost('pricing_tier')),
-            'agent_id'    => $this->request->getPost('agent_id') !== '' ? (int) $this->request->getPost('agent_id') : null,
+            'agent_id'    => (int) $this->request->getPost('agent_id'),
             'branch_id'   => $this->request->getPost('branch_id') !== '' ? (int) $this->request->getPost('branch_id') : null,
             'status'      => (string) ($this->request->getPost('status') ?: 'draft'),
             'remarks'     => (string) $this->request->getPost('remarks'),
@@ -251,7 +254,7 @@ class BookingController extends BaseController
         if (! $this->validateData($payload, [
             'package_id'  => 'required|integer',
             'pricing_tier' => 'required|in_list[sharing,quad,triple,double]',
-            'agent_id'    => 'permit_empty|integer',
+            'agent_id'    => 'required|integer|greater_than[0]',
             'branch_id'   => 'permit_empty|integer',
             'status'      => 'required|in_list[draft,confirmed,cancelled]',
             'remarks'     => 'permit_empty|max_length[5000]',
@@ -425,7 +428,7 @@ class BookingController extends BaseController
         $payload = [
             'package_id'  => (string) $this->request->getPost('package_id'),
             'pricing_tier' => trim((string) $this->request->getPost('pricing_tier')),
-            'agent_id'    => (string) $this->request->getPost('agent_id'),
+            'agent_id'    => (int) $this->request->getPost('agent_id'),
             'branch_id'   => (string) $this->request->getPost('branch_id'),
             'status'      => (string) $this->request->getPost('status'),
             'remarks'     => (string) $this->request->getPost('remarks'),
@@ -438,7 +441,7 @@ class BookingController extends BaseController
         if (! $this->validateData($payload, [
             'package_id' => 'permit_empty|integer',
             'pricing_tier' => 'permit_empty|in_list[sharing,quad,triple,double]',
-            'agent_id'   => 'permit_empty|integer',
+            'agent_id'   => 'required|integer|greater_than[0]',
             'branch_id'  => 'permit_empty|integer',
             'status'     => 'permit_empty|in_list[draft,confirmed,cancelled]',
             'remarks'    => 'permit_empty|max_length[5000]',
@@ -453,9 +456,7 @@ class BookingController extends BaseController
         if ($payload['pricing_tier'] !== '') {
             $data['pricing_tier'] = $payload['pricing_tier'];
         }
-        if ($payload['agent_id'] !== '') {
-            $data['agent_id'] = (int) $payload['agent_id'];
-        }
+        $data['agent_id'] = (int) $payload['agent_id'];
         if ($payload['branch_id'] !== '') {
             $data['branch_id'] = (int) $payload['branch_id'];
         }
@@ -653,6 +654,108 @@ class BookingController extends BaseController
             return redirect()->to('/bookings')->with('success', 'Booking updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->to($returnUrl)->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    public function quickCreatePilgrim()
+    {
+        $isAjax = $this->request->isAJAX();
+        if (! $isAjax) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request type.',
+            ]);
+        }
+
+        $seasonId = $this->activeSeasonId();
+        if ($seasonId === null) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'Please create and activate a season first.',
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ],
+            ]);
+        }
+
+        $payload = [
+            'first_name' => trim((string) $this->request->getPost('first_name')),
+            'last_name' => trim((string) $this->request->getPost('last_name')),
+            'passport_no' => trim((string) $this->request->getPost('passport_no')),
+            'mobile_no' => trim((string) $this->request->getPost('mobile_no')),
+            'gender' => trim((string) $this->request->getPost('gender')),
+            'city' => trim((string) $this->request->getPost('city')),
+            'country' => trim((string) $this->request->getPost('country')),
+        ];
+
+        if (! $this->validateData($payload, [
+            'first_name' => 'required|min_length[2]|max_length[120]',
+            'last_name' => 'permit_empty|max_length[120]',
+            'passport_no' => 'required|max_length[50]',
+            'mobile_no' => 'permit_empty|max_length[30]',
+            'gender' => 'permit_empty|in_list[male,female]',
+            'city' => 'permit_empty|max_length[100]',
+            'country' => 'permit_empty|in_list[Pakistan,Others]',
+        ])) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'errors' => $this->validator->getErrors(),
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ],
+            ]);
+        }
+
+        try {
+            $model = new PilgrimModel();
+            $model->insert([
+                'season_id' => $seasonId,
+                'first_name' => $payload['first_name'],
+                'last_name' => $payload['last_name'] !== '' ? $payload['last_name'] : '-',
+                'passport_no' => $payload['passport_no'],
+                'mobile_no' => $payload['mobile_no'] !== '' ? $payload['mobile_no'] : null,
+                'gender' => $payload['gender'] !== '' ? $payload['gender'] : null,
+                'city' => $payload['city'] !== '' ? $payload['city'] : null,
+                'country' => $payload['country'] !== '' ? $payload['country'] : 'Pakistan',
+                'is_active' => 1,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $createdId = (int) $model->getInsertID();
+            $displayName = trim($payload['first_name'] . ' ' . $payload['last_name']);
+            if ($displayName === '') {
+                $displayName = $payload['first_name'];
+            }
+
+            $optionText = '#' . $createdId . ' - ' . $displayName;
+            if ($payload['passport_no'] !== '') {
+                $optionText .= ' (' . $payload['passport_no'] . ')';
+            }
+
+            return $this->response->setJSON([
+                'status' => 'ok',
+                'message' => 'Pilgrim created successfully.',
+                'item' => [
+                    'id' => $createdId,
+                    'optionText' => $optionText,
+                ],
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ],
+            ]);
         }
     }
 
@@ -914,7 +1017,7 @@ class BookingController extends BaseController
         return $returnUrl;
     }
 
-    private function resolveDefaultShirkaCompany($db): ?array
+    private function resolveDefaultShirkaCompany($db)
     {
         if (! company_table_ready()) {
             return null;

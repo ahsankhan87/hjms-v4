@@ -60,7 +60,7 @@
                                     <td><?= esc((string) ($row['phone'] ?? '-')) ?></td>
                                     <td><?= esc($branchMap[(int) ($row['branch_id'] ?? 0)] ?? '-') ?></td>
                                     <td><?= esc((string) ($row['commission_type'] ?? 'percentage')) ?> <?= esc((string) ($row['commission_value'] ?? '0')) ?></td>
-                                    <td><?= esc((string) ($row['current_balance'] ?? '0')) ?></td>
+                                    <td data-col="balance" data-value="<?= esc((string) ((float) ($row['current_balance'] ?? 0))) ?>"><?= esc((string) ($row['current_balance'] ?? '0')) ?></td>
                                     <td>
                                         <?php if ($statusActive): ?>
                                             <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Active</span>
@@ -89,6 +89,13 @@
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot>
+                        <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
+                            <td colspan="6" class="px-3 py-2 text-right">Total Balance</td>
+                            <td id="agents-total-balance" class="px-3 py-2 text-right">0</td>
+                            <td colspan="2" class="px-3 py-2"></td>
+                        </tr>
+                    </tfoot>
                 </table>
                 <div class="list-footer">
                     <p>Showing 1-<?= esc(count($rows)) ?> of <?= esc(count($rows)) ?> agents</p>
@@ -102,4 +109,54 @@
         </article>
     </section>
 </main>
+<script>
+    (function() {
+        function numberFormat(value) {
+            return Number(value || 0).toLocaleString('en-PK', {
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 2
+            });
+        }
+
+        function refreshAgentBalanceTotal() {
+            if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.DataTable) {
+                return;
+            }
+
+            var $table = window.jQuery('table.list-table').first();
+            if (!$table.length || !window.jQuery.fn.DataTable.isDataTable($table[0])) {
+                return;
+            }
+
+            var api = $table.DataTable();
+            var nodes = api.rows({
+                search: 'applied'
+            }).nodes().to$();
+
+            var totalBalance = 0;
+            nodes.each(function() {
+                var td = this.querySelector('td[data-col="balance"]');
+                if (!td || !td.dataset) {
+                    return;
+                }
+                totalBalance += Number(td.dataset.value || 0);
+            });
+
+            var target = document.getElementById('agents-total-balance');
+            if (target) {
+                target.textContent = numberFormat(totalBalance);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!window.jQuery) {
+                return;
+            }
+
+            var $table = window.jQuery('table.list-table').first();
+            $table.on('draw.dt search.dt page.dt order.dt', refreshAgentBalanceTotal);
+            setTimeout(refreshAgentBalanceTotal, 0);
+        });
+    }());
+</script>
 <?php $this->endSection() ?>
