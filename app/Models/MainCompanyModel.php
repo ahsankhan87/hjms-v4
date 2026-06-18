@@ -21,6 +21,7 @@ class MainCompanyModel extends Model
         'logo_url',
         'ntn',
         'strn',
+        'default_shirka_company_id',
         'voucher_instructions',
         'voucher_instructions_ur',
         'voucher_instructions_en',

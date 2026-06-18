@@ -121,6 +121,7 @@ $routes->post('suppliers', 'SupplierController::createSupplier', ['filter' => 'w
 $routes->post('suppliers/update', 'SupplierController::updateSupplier', ['filter' => 'webauth:payments.manage']);
 $routes->post('suppliers/delete', 'SupplierController::deleteSupplier', ['filter' => 'webauth:payments.manage']);
 $routes->post('suppliers/ledger', 'SupplierController::createLedgerEntry', ['filter' => 'webauth:payments.manage']);
+$routes->post('suppliers/ledger/delete', 'SupplierController::deleteLedgerEntry', ['filter' => 'webauth:payments.manage']);
 $routes->get('companies', 'CompanyController::index', ['filter' => 'webauth:companies.view']);
 $routes->post('companies', 'CompanyController::createCompany', ['filter' => 'webauth:companies.manage']);
 $routes->post('companies/update', 'CompanyController::updateCompany', ['filter' => 'webauth:companies.manage']);

@@ -40,6 +40,7 @@ class MainCompanyController extends BaseController
             'website' => trim((string) $this->request->getPost('website')),
             'ntn' => trim((string) $this->request->getPost('ntn')),
             'strn' => trim((string) $this->request->getPost('strn')),
+            'default_shirka_company_id' => trim((string) $this->request->getPost('default_shirka_company_id')),
             'voucher_instructions_ur' => trim((string) $this->request->getPost('voucher_instructions_ur')),
             'voucher_instructions_en' => trim((string) $this->request->getPost('voucher_instructions_en')),
             'makkah_contact' => trim((string) $this->request->getPost('makkah_contact')),
@@ -59,6 +60,7 @@ class MainCompanyController extends BaseController
             'website' => 'permit_empty|max_length[160]',
             'ntn' => 'permit_empty|max_length[80]',
             'strn' => 'permit_empty|max_length[80]',
+            'default_shirka_company_id' => 'permit_empty|integer',
             'voucher_instructions_ur' => 'permit_empty|max_length[12000]',
             'voucher_instructions_en' => 'permit_empty|max_length[12000]',
             'makkah_contact' => 'permit_empty|max_length[255]',
@@ -76,6 +78,19 @@ class MainCompanyController extends BaseController
             $db = db_connect();
             $logoPath = $this->storeLogoUpload('logo_file', 'main-company');
 
+            $defaultShirkaCompanyId = null;
+            if ($payload['default_shirka_company_id'] !== '') {
+                if (! company_table_ready()) {
+                    return redirect()->to($redirectPath)->withInput()->with('error', 'Shirka company table is not available.');
+                }
+
+                $defaultShirkaCompanyId = (int) $payload['default_shirka_company_id'];
+                $company = $db->table('companies')->select('id')->where('id', $defaultShirkaCompanyId)->get()->getRowArray();
+                if (empty($company)) {
+                    return redirect()->to($redirectPath)->withInput()->with('error', 'Selected default shirka company was not found.');
+                }
+            }
+
             $existing = $model->orderBy('id', 'ASC')->first();
             $now = date('Y-m-d H:i:s');
             $existingName = trim((string) ($existing['name'] ?? ''));
@@ -89,6 +104,7 @@ class MainCompanyController extends BaseController
                 'website' => $payload['website'] !== '' ? $payload['website'] : null,
                 'ntn' => $payload['ntn'] !== '' ? $payload['ntn'] : null,
                 'strn' => $payload['strn'] !== '' ? $payload['strn'] : null,
+                'default_shirka_company_id' => $defaultShirkaCompanyId,
                 'voucher_instructions_ur' => $payload['voucher_instructions_ur'] !== '' ? $payload['voucher_instructions_ur'] : null,
                 'voucher_instructions_en' => $payload['voucher_instructions_en'] !== '' ? $payload['voucher_instructions_en'] : null,
                 'makkah_contact' => $payload['makkah_contact'] !== '' ? $payload['makkah_contact'] : null,
@@ -130,6 +146,9 @@ class MainCompanyController extends BaseController
         return $overrides + [
             'userEmail' => (string) session('user_email'),
             'row' => is_array($row) ? $row : main_company(),
+            'companies' => company_table_ready()
+                ? db_connect()->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
+                : [],
             'success' => session()->getFlashdata('success'),
             'error' => session()->getFlashdata('error'),
             'errors' => session()->getFlashdata('errors') ?: [],

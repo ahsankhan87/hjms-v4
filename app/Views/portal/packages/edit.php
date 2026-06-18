@@ -71,6 +71,11 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     </label>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
+                    <label class="block text-xs font-medium text-slate-600">Visa Cost (PKR)
+                        <input type="number" step="0.01" min="0" name="purchase_price_visa" value="<?= esc(old('purchase_price_visa', (string) ($row['purchase_price_visa'] ?? ''))) ?>" placeholder="e.g. 120000" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </label>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
                     <?php
                     $depVal = old('departure_date', $row['departure_date'] ?? '');
                     $depVal = $depVal !== '' ? date('Y-m-d\TH:i', strtotime((string)$depVal)) : '';
@@ -138,12 +143,11 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             <article id="hotel-section" class="rounded-xl border border-slate-200 bg-white p-4 overflow-auto">
                 <h3 class="mb-4 inline-flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-hotel text-emerald-600"></i><span>Package Hotels</span></h3>
                 <p class="text-xs text-slate-500 mb-3">Attach hotel pricing once, then reuse that pricing for as many stay segments as the itinerary needs.</p>
-                <p class="text-xs text-slate-500 mb-3">Sequence rule: next hotel check-in starts from previous hotel check-out, and `8+8+5` is treated as Makkah, Madina, then Makkah again.</p>
-                <form method="post" action="<?= site_url('packages/hotels/create') ?>" class="package-link-attach grid gap-3 md:grid-cols-6" data-package-end="<?= esc((string) ($packageStayEnd ?? '')) ?>" data-link-type="hotel">
+                <form method="post" action="<?= site_url('packages/hotels/create') ?>" class="package-link-attach grid gap-3 md:grid-cols-6" data-link-type="hotel">
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Hotel
-                        <select name="hotel_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                        <select name="hotel_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm select2" required>
                             <option value="">Select Hotel</option>
                             <?php foreach (($hotelOptions ?? []) as $hotelOption): ?>
                                 <?php $label = (string) ($hotelOption['name'] ?? '-') . (!empty($hotelOption['city']) ? ' - ' . (string) $hotelOption['city'] : ''); ?>
@@ -155,8 +159,8 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     <div class="flex items-end">
                         <button type="button" class="quick-create-open btn btn-outline h-9 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3 text-xs font-semibold" data-modal="quick-create-hotel-modal"><i class="fa-solid fa-plus"></i><span>Create Hotel</span></button>
                     </div>
-                    <label class="block text-xs font-medium text-slate-600 md:col-span-2">Stay Distribution / Duration
-                        <input name="stay_distribution" value="<?= esc((string) ($stayDistributionValue ?? '')) ?>" placeholder="e.g. 8+8+5 or Makkah:8 Madina:8 Makkah:5" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs font-medium text-slate-600 md:col-span-2">Stay Days
+                        <input name="stay_distribution" value="<?= esc((string) ($stayDistributionValue ?? '')) ?>" placeholder="e.g. 8" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
                     <label class="block text-xs font-medium text-slate-600">Check-In Date
                         <input type="date" name="check_in_date" value="<?= esc((string) ($stayCheckIn ?? '')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
@@ -184,7 +188,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     </div>
                 </form>
                 <div id="hotel-pricing-hint" class="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700">Select a hotel. If it is already linked in this package, its saved pricing will be reused automatically.</div>
-                <div id="next-stay-hint" class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Next hotel leg will appear here.</div>
+                <div id="next-stay-hint" class="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Manual mode: select hotel, enter stay days (optional), then choose check-in and check-out dates.</div>
                 <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
                     <table class="min-w-full divide-y divide-slate-200 text-xs">
                         <thead class="sticky top-0 z-10">
@@ -206,8 +210,8 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                                     <tr data-link-row="hotel-<?= esc((string) ($hotelRow['id'] ?? '')) ?>" class="hover:bg-slate-50/70">
                                         <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['hotel_name'] ?: ($hotelRow['hotel_master_name'] ?? ''))) ?></td>
                                         <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['hotel_city'] ?? '')) ?></td>
-                                        <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['check_in_date'] ?? '')) ?></td>
-                                        <td class="px-2 py-1.5"><?= esc((string) ($hotelRow['check_out_date'] ?? '')) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) date('d-m-Y', strtotime($hotelRow['check_in_date'] ?? ''))) ?></td>
+                                        <td class="px-2 py-1.5"><?= esc((string) date('d-m-Y', strtotime($hotelRow['check_out_date'] ?? ''))) ?></td>
                                         <td class="px-2 py-1.5 font-semibold">PKR <?= esc(number_format((float) ($hotelRow['sharing_cost'] ?? 0), 2)) ?></td>
                                         <td class="px-2 py-1.5 font-semibold">PKR <?= esc(number_format((float) ($hotelRow['quad_cost'] ?? 0), 2)) ?></td>
                                         <td class="px-2 py-1.5 font-semibold">PKR <?= esc(number_format((float) ($hotelRow['triple_cost'] ?? 0), 2)) ?></td>
@@ -417,15 +421,15 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <h3 class="inline-flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-calculator text-emerald-600"></i><span>Package Grand Total</span></h3>
-                        <p class="mt-1 text-xs text-slate-500">Derived automatically from linked hotel, flight, and transport costs.</p>
+                        <p class="mt-1 text-xs text-slate-500">Derived automatically from linked hotel, flight, transport, and visa costs.</p>
                     </div>
-                    <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700"><?= esc($summaryMode === 'flat' ? 'Flat package' : 'Tiered package') ?></span>
+                    <span id="summary-mode-badge" class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700"><?= esc($summaryMode === 'flat' ? 'Flat package' : 'Tiered package') ?></span>
                 </div>
                 <div class="mt-4 grid gap-3 <?= $summaryMode === 'flat' ? 'md:grid-cols-1' : 'md:grid-cols-4' ?>">
                     <?php if ($summaryMode === 'flat'): ?>
                         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                             <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Package Price</div>
-                            <div class="mt-1 text-2xl font-bold text-slate-800"><?= $summaryFlatPrice !== null ? 'PKR ' . esc(number_format((float) $summaryFlatPrice, 2)) : '—' ?></div>
+                            <div id="summary-flat-price" class="mt-1 text-2xl font-bold text-slate-800"><?= $summaryFlatPrice !== null ? 'PKR ' . esc(number_format((float) $summaryFlatPrice, 2)) : '—' ?></div>
                             <div class="mt-1 text-xs text-slate-500">Used for flight-only, transport-only, or flat component packages.</div>
                         </div>
                     <?php else: ?>
@@ -433,16 +437,17 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                             <?php $tierPrice = $summaryPriceMap[$tier] ?? null; ?>
                             <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                                 <div class="text-xs font-semibold uppercase tracking-wide text-slate-500"><?= esc($tier) ?></div>
-                                <div class="mt-1 text-xl font-bold text-slate-800"><?= $tierPrice !== null ? 'PKR ' . esc(number_format((float) $tierPrice, 2)) : 'Not configured' ?></div>
-                                <div class="mt-1 text-xs text-slate-500"><?= $tierPrice !== null ? 'Hotel tier cost plus linked ticket and transport costs.' : 'Attach hotel rows for this room type to complete pricing.' ?></div>
+                                <div id="summary-tier-<?= esc($tier) ?>" class="mt-1 text-xl font-bold text-slate-800"><?= $tierPrice !== null ? 'PKR ' . esc(number_format((float) $tierPrice, 2)) : 'Not configured' ?></div>
+                                <div class="mt-1 text-xs text-slate-500"><?= $tierPrice !== null ? 'Hotel tier cost plus linked ticket, transport, and visa costs.' : 'Attach hotel rows for this room type to complete pricing.' ?></div>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
-                <div class="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-3">
-                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-2">Hotel subtotal source: <?= $summaryMode === 'flat' ? 'Not used for flat packages' : esc((string) count($summaryPriceMap)) . ' configured tier(s)' ?></div>
-                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-2">Flight subtotal: PKR <?= esc(number_format((float) ($pricingSummary['flight_total'] ?? 0), 2)) ?></div>
-                    <div class="rounded-lg border border-slate-200 bg-white px-3 py-2">Transport subtotal: PKR <?= esc(number_format((float) ($pricingSummary['transport_total'] ?? 0), 2)) ?></div>
+                <div class="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-4">
+                    <div id="summary-hotel-source" class="rounded-lg border border-slate-200 bg-white px-3 py-2">Hotel subtotal source: <?= $summaryMode === 'flat' ? 'Not used for flat packages' : esc((string) count($summaryPriceMap)) . ' configured tier(s)' ?></div>
+                    <div id="summary-flight-total" class="rounded-lg border border-slate-200 bg-white px-3 py-2">Flight subtotal: PKR <?= esc(number_format((float) ($pricingSummary['flight_total'] ?? 0), 2)) ?></div>
+                    <div id="summary-transport-total" class="rounded-lg border border-slate-200 bg-white px-3 py-2">Transport subtotal: PKR <?= esc(number_format((float) ($pricingSummary['transport_total'] ?? 0), 2)) ?></div>
+                    <div id="summary-visa-total" class="rounded-lg border border-slate-200 bg-white px-3 py-2">Visa subtotal: PKR <?= esc(number_format((float) ($pricingSummary['visa_total'] ?? 0), 2)) ?></div>
                 </div>
             </article>
 
@@ -602,11 +607,10 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
         const arrivalInput = packageForm.querySelector('input[name="arrival_date"]');
         const hotelForm = document.querySelector('form[action*="packages/hotels/create"]');
         const roomSelect = hotelForm ? hotelForm.querySelector('select[name="hotel_id"]') : null;
-        const stayDistributionInput = hotelForm ? hotelForm.querySelector('input[name="stay_distribution"]') : null;
+        const stayDaysInput = hotelForm ? hotelForm.querySelector('input[name="stay_distribution"]') : null;
         const hotelCheckInInput = hotelForm ? hotelForm.querySelector('input[name="check_in_date"]') : null;
         const hotelCheckOutInput = hotelForm ? hotelForm.querySelector('input[name="check_out_date"]') : null;
         const hotelPricingHint = document.getElementById('hotel-pricing-hint');
-        const nextStayHint = document.getElementById('next-stay-hint');
         const hotelSeatsInput = hotelForm ? hotelForm.querySelector('input[name="total_seats"]') : null;
         const hotelCostInputs = hotelForm ? [
             hotelForm.querySelector('input[name="sharing_cost"]'),
@@ -614,9 +618,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             hotelForm.querySelector('input[name="triple_cost"]'),
             hotelForm.querySelector('input[name="double_cost"]')
         ] : [];
-        const packageStayEnd = hotelForm ? (hotelForm.dataset.packageEnd || '') : '';
         const existingHotelPricing = <?= json_encode($existingHotelPricing ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
-        const currentHotelStayCount = <?= (int) ($currentHotelStayCount ?? 0) ?>;
 
         const formatDate = function(dateObj) {
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -628,84 +630,6 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             const next = new Date(baseDate.getTime());
             next.setDate(next.getDate() + days);
             return next;
-        };
-
-        const normalizeCity = function(city) {
-            const raw = (city || '').toLowerCase();
-            if (raw.indexOf('madina') !== -1 || raw.indexOf('medina') !== -1 || raw.indexOf('madinah') !== -1) {
-                return 'madina';
-            }
-            if (raw.indexOf('makkah') !== -1 || raw.indexOf('mecca') !== -1) {
-                return 'makkah';
-            }
-
-            return raw;
-        };
-
-        const cityLabel = function(city) {
-            return normalizeCity(city) === 'madina' ? 'Madina' : 'Makkah';
-        };
-
-        const buildSegments = function(value, fallbackDuration, selectedCity) {
-            const text = (value || '').toLowerCase().trim();
-            if (!text) {
-                return fallbackDuration > 0 ? [{
-                    city: normalizeCity(selectedCity),
-                    days: fallbackDuration
-                }] : [];
-            }
-
-            const namedMatches = Array.from(text.matchAll(/(makkah|madina|medina)\s*[:=\-]?\s*(\d+)/gi));
-            if (namedMatches.length > 0) {
-                return namedMatches.map(function(match) {
-                    return {
-                        city: normalizeCity(match[1] || ''),
-                        days: Math.max(1, parseInt(match[2] || '0', 10))
-                    };
-                });
-            }
-
-            const numbers = (text.match(/\d+/g) || []).map(function(item) {
-                return parseInt(item, 10);
-            });
-
-            if (numbers.length >= 3) {
-                return [{
-                        city: 'makkah',
-                        days: Math.max(1, numbers[0])
-                    },
-                    {
-                        city: 'madina',
-                        days: Math.max(1, numbers[1])
-                    },
-                    {
-                        city: 'makkah',
-                        days: Math.max(1, numbers[2])
-                    }
-                ];
-            }
-            if (numbers.length === 2) {
-                return [{
-                        city: 'makkah',
-                        days: Math.max(1, numbers[0])
-                    },
-                    {
-                        city: 'madina',
-                        days: Math.max(1, numbers[1])
-                    }
-                ];
-            }
-            if (numbers.length === 1) {
-                return [{
-                    city: 'makkah',
-                    days: Math.max(1, numbers[0])
-                }];
-            }
-
-            return fallbackDuration > 0 ? [{
-                city: normalizeCity(selectedCity),
-                days: fallbackDuration
-            }] : [];
         };
 
         const syncHotelPricing = function() {
@@ -750,74 +674,6 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             }
         };
 
-        const nextSegmentMeta = function(selectedCity) {
-            const duration = parseInt((durationInput && durationInput.value) || '0', 10);
-            const segments = buildSegments(stayDistributionInput ? stayDistributionInput.value : '', duration, selectedCity || '');
-            let segmentIndex = currentHotelStayCount;
-
-            if (segments.length === 0) {
-                return {
-                    segment: null,
-                    segmentIndex: segmentIndex,
-                    totalSegments: 0,
-                    isComplete: false,
-                };
-            }
-
-            if (segmentIndex >= segments.length) {
-                return {
-                    segment: null,
-                    segmentIndex: segmentIndex,
-                    totalSegments: segments.length,
-                    isComplete: true,
-                };
-            }
-
-            if (segmentIndex < 0) {
-                segmentIndex = 0;
-            }
-
-            return {
-                segment: segments[segmentIndex],
-                segmentIndex: segmentIndex,
-                totalSegments: segments.length,
-                isComplete: false,
-            };
-        };
-
-        const syncNextStayHint = function() {
-            if (!nextStayHint || !roomSelect || !hotelCheckInInput || !hotelCheckOutInput) {
-                return;
-            }
-
-            const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-            const selectedCity = selectedOption ? (selectedOption.dataset.city || '') : '';
-            const meta = nextSegmentMeta(selectedCity);
-
-            if (meta.totalSegments === 0) {
-                nextStayHint.className = 'mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700';
-                nextStayHint.textContent = 'Enter the stay distribution so the system can show the next hotel leg.';
-                return;
-            }
-
-            if (meta.isComplete || !meta.segment) {
-                nextStayHint.className = 'mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700';
-                nextStayHint.textContent = 'All hotel legs in the stay distribution have already been added.';
-                return;
-            }
-
-            const expectedCity = cityLabel(meta.segment.city || '');
-            const startDate = hotelCheckInInput.value || '-';
-            const endDate = hotelCheckOutInput.value || '-';
-            const isMismatch = selectedCity !== '' && normalizeCity(selectedCity) !== normalizeCity(meta.segment.city || '');
-
-            nextStayHint.className = isMismatch ?
-                'mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700' :
-                'mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800';
-
-            nextStayHint.textContent = 'Next leg: ' + expectedCity + ' for ' + String(meta.segment.days || 1) + ' day(s), from ' + startDate + ' to ' + endDate + '.' + (isMismatch ? ' Please select a ' + expectedCity + ' hotel.' : '');
-        };
-
         const updateArrivalDate = function() {
             if (!durationInput || !departureInput || !arrivalInput || !departureInput.value) {
                 return;
@@ -839,84 +695,47 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             arrivalInput.value = formatDate(arrivalDate) + 'T00:00';
         };
 
-        const updateHotelDates = function() {
-            if (!roomSelect || !hotelCheckInInput || !hotelCheckOutInput) {
+        const updateHotelCheckOutDate = function() {
+            if (!stayDaysInput || !hotelCheckInInput || !hotelCheckOutInput || !hotelCheckInInput.value) {
                 return;
             }
 
-            const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-            if (!selectedOption) {
+            const stayDays = parseInt(stayDaysInput.value || '0', 10);
+            if (!stayDays || stayDays < 1) {
                 return;
             }
 
-            const city = (selectedOption.dataset.city || '').toLowerCase();
-            // hotel check-in input is type="date" (yyyy-MM-dd); departure is datetime-local — strip to date part
-            const rawCheckIn = hotelCheckInInput.value || (departureInput ? departureInput.value : '');
-            if (!rawCheckIn) {
-                return;
-            }
-            const baseCheckInValue = rawCheckIn.substring(0, 10); // ensure yyyy-MM-dd
-
-            const baseCheckInDate = new Date(baseCheckInValue + 'T00:00:00');
-            if (Number.isNaN(baseCheckInDate.getTime())) {
+            const checkInDate = new Date(hotelCheckInInput.value + 'T00:00:00');
+            if (Number.isNaN(checkInDate.getTime())) {
                 return;
             }
 
-            const duration = parseInt((durationInput && durationInput.value) || '0', 10);
-            const segments = buildSegments(stayDistributionInput ? stayDistributionInput.value : '', duration, city);
-            let segmentIndex = currentHotelStayCount;
-            if (segmentIndex >= segments.length) {
-                segmentIndex = segments.length - 1;
-            }
-            if (segmentIndex < 0) {
-                segmentIndex = 0;
-            }
-            const segment = segments[segmentIndex] || {
-                city: normalizeCity(city),
-                days: duration > 0 ? duration : 1
-            };
-
-            hotelCheckInInput.value = formatDate(baseCheckInDate);
-
-            let checkOut = addDays(baseCheckInDate, Math.max(1, segment.days || 1));
-
-            if (packageStayEnd) {
-                // packageStayEnd may be a full datetime string — use date part only
-                const endDate = new Date(packageStayEnd.substring(0, 10) + 'T00:00:00');
-                if (!Number.isNaN(endDate.getTime()) && checkOut > endDate) {
-                    checkOut = endDate;
-                }
-            }
-
-            hotelCheckOutInput.value = formatDate(checkOut);
-            syncNextStayHint();
+            hotelCheckOutInput.value = formatDate(addDays(checkInDate, stayDays));
         };
 
         if (durationInput) {
             durationInput.addEventListener('input', function() {
                 updateArrivalDate();
-                updateHotelDates();
-                syncNextStayHint();
             });
         }
         if (departureInput) {
             departureInput.addEventListener('change', function() {
                 updateArrivalDate();
-                updateHotelDates();
-                syncNextStayHint();
-            });
-        }
-        if (stayDistributionInput) {
-            stayDistributionInput.addEventListener('input', function() {
-                updateHotelDates();
-                syncNextStayHint();
             });
         }
         if (roomSelect) {
             roomSelect.addEventListener('change', function() {
                 syncHotelPricing();
-                updateHotelDates();
-                syncNextStayHint();
+            });
+        }
+        if (stayDaysInput) {
+            stayDaysInput.addEventListener('input', function() {
+                updateHotelCheckOutDate();
+            });
+        }
+        if (hotelCheckInInput) {
+            hotelCheckInInput.addEventListener('change', function() {
+                updateHotelCheckOutDate();
             });
         }
         hotelCostInputs.forEach(function(input) {
@@ -933,9 +752,8 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
         }
 
         updateArrivalDate();
+        updateHotelCheckOutDate();
         syncHotelPricing();
-        updateHotelDates();
-        syncNextStayHint();
     })();
 
     // Component include toggles — show/hide the linking sections immediately on change
@@ -982,10 +800,40 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             transport: 'quick-create-transport-modal'
         };
         var hotelSelect = document.querySelector('form[action*="packages/hotels/create"] select[name="hotel_id"]');
+        var hotelStayDaysInput = document.querySelector('form[action*="packages/hotels/create"] input[name="stay_distribution"]');
+        var hotelCheckInInput = document.querySelector('form[action*="packages/hotels/create"] input[name="check_in_date"]');
+        var hotelCheckOutInput = document.querySelector('form[action*="packages/hotels/create"] input[name="check_out_date"]');
         var flightSelect = document.querySelector('form[action*="packages/flights/create"] select[name="flight_id"]');
         var transportSelect = document.querySelector('form[action*="packages/transports/create"] select[name="transport_id"]');
         var flashSuccessBox = document.querySelector('main > .rounded-lg.border-emerald-200');
         var flashErrorBox = document.querySelector('main > .rounded-lg.border-rose-200');
+        var summaryModeBadge = document.getElementById('summary-mode-badge');
+        var summaryHotelSource = document.getElementById('summary-hotel-source');
+        var summaryFlightTotal = document.getElementById('summary-flight-total');
+        var summaryTransportTotal = document.getElementById('summary-transport-total');
+        var summaryVisaTotal = document.getElementById('summary-visa-total');
+        var summaryFlatPrice = document.getElementById('summary-flat-price');
+
+        function autoFillHotelCheckOutFromStayDays() {
+            if (!hotelStayDaysInput || !hotelCheckInInput || !hotelCheckOutInput || !hotelCheckInInput.value) {
+                return;
+            }
+
+            var days = parseInt(hotelStayDaysInput.value || '0', 10);
+            if (!days || days < 1) {
+                return;
+            }
+
+            var checkIn = new Date(hotelCheckInInput.value + 'T00:00:00');
+            if (Number.isNaN(checkIn.getTime())) {
+                return;
+            }
+
+            checkIn.setDate(checkIn.getDate() + days);
+            var month = String(checkIn.getMonth() + 1).padStart(2, '0');
+            var day = String(checkIn.getDate()).padStart(2, '0');
+            hotelCheckOutInput.value = checkIn.getFullYear() + '-' + month + '-' + day;
+        }
 
         function showModal(modal) {
             if (!modal) {
@@ -1093,6 +941,55 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             } else {
                 flashErrorBox = node;
             }
+        }
+
+        function formatMoney(value) {
+            return 'PKR ' + Number(value || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function applyPricingSummary(summary) {
+            if (!summary || typeof summary !== 'object') {
+                return;
+            }
+
+            if (summaryModeBadge) {
+                summaryModeBadge.textContent = summary.mode === 'flat' ? 'Flat package' : 'Tiered package';
+            }
+
+            if (summaryHotelSource) {
+                if (summary.mode === 'flat') {
+                    summaryHotelSource.textContent = 'Hotel subtotal source: Not used for flat packages';
+                } else {
+                    var configuredTiers = summary.price_map && typeof summary.price_map === 'object' ? Object.keys(summary.price_map).length : 0;
+                    summaryHotelSource.textContent = 'Hotel subtotal source: ' + String(configuredTiers) + ' configured tier(s)';
+                }
+            }
+
+            if (summaryFlightTotal) {
+                summaryFlightTotal.textContent = 'Flight subtotal: ' + formatMoney(summary.flight_total || 0);
+            }
+            if (summaryTransportTotal) {
+                summaryTransportTotal.textContent = 'Transport subtotal: ' + formatMoney(summary.transport_total || 0);
+            }
+            if (summaryVisaTotal) {
+                summaryVisaTotal.textContent = 'Visa subtotal: ' + formatMoney(summary.visa_total || 0);
+            }
+
+            if (summaryFlatPrice) {
+                summaryFlatPrice.textContent = summary.flat_price !== null ? formatMoney(summary.flat_price) : '—';
+            }
+
+            ['sharing', 'quad', 'triple', 'double'].forEach(function(tier) {
+                var tierEl = document.getElementById('summary-tier-' + tier);
+                if (!tierEl) {
+                    return;
+                }
+                var tierAmount = summary.price_map && Object.prototype.hasOwnProperty.call(summary.price_map, tier) ? summary.price_map[tier] : null;
+                tierEl.textContent = tierAmount !== null ? formatMoney(tierAmount) : 'Not configured';
+            });
         }
 
         function updateCsrfTokens(payload) {
@@ -1358,15 +1255,12 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
 
             if (linkType === 'hotel') {
                 appendHotelRow(payload.item);
-                return;
-            }
-            if (linkType === 'flight') {
+            } else if (linkType === 'flight') {
                 appendFlightRow(payload.item);
-                return;
-            }
-            if (linkType === 'transport') {
+            } else if (linkType === 'transport') {
                 appendTransportRow(payload.item);
             }
+            applyPricingSummary(payload.summary || null);
         }
 
         function bindDeleteForm(form) {
@@ -1432,6 +1326,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     }
 
                     showPageNotice('success', payload.message || 'Deleted successfully.');
+                    applyPricingSummary(payload.summary || null);
                 } catch (error) {
                     showPageNotice('error', 'Network error. Please try again.');
                 } finally {
@@ -1572,11 +1467,18 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
 
                     handleAttachSuccess(form.dataset.linkType || '', payload);
                     form.reset();
+
+                    if ((form.dataset.linkType || '') === 'hotel' && payload && payload.item && payload.item.check_out_date) {
+                        if (hotelCheckInInput) {
+                            hotelCheckInInput.value = String(payload.item.check_out_date);
+                        }
+                        autoFillHotelCheckOutFromStayDays();
+                    }
+
                     showPageNotice('success', payload.message || 'Attached successfully.');
 
                     if ((form.dataset.linkType || '') === 'hotel') {
                         syncHotelPricing();
-                        syncNextStayHint();
                     }
                 } catch (error) {
                     showPageNotice('error', 'Network error. Please try again.');

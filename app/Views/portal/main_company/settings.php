@@ -37,6 +37,16 @@
                     <h3 class="text-sm font-semibold text-slate-800">Voucher Content</h3>
                     <div class="mt-3 grid grid-cols-1 gap-3">
                         <div>
+                            <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Default Shirka Company</label>
+                            <select name="default_shirka_company_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">Select shirka company…</option>
+                                <?php foreach (($companies ?? []) as $item): ?>
+                                    <option value="<?= esc($item['id']) ?>" <?= (string) old('default_shirka_company_id', (string) ($row['default_shirka_company_id'] ?? '')) === (string) $item['id'] ? 'selected' : '' ?>><?= esc((string) ($item['name'] ?? '')) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="mt-1 text-[11px] text-slate-500">This shirka will be used for vouchers and booking records by default.</p>
+                        </div>
+                        <div>
                             <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Voucher Instructions (Urdu)</label>
                             <textarea name="voucher_instructions_ur" rows="6" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" dir="rtl" placeholder="واؤچر ہدایات"><?= esc(old('voucher_instructions_ur', (string) ($row['voucher_instructions_ur'] ?? ''))) ?></textarea>
                         </div>

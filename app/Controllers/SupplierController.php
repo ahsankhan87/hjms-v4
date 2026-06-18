@@ -71,8 +71,9 @@ class SupplierController extends BaseController
 
         $runningBalance = (float) ($supplier['opening_balance'] ?? 0);
         foreach ($rows as &$item) {
-            $runningBalance += (float) ($item['debit_amount'] ?? 0);
-            $runningBalance -= (float) ($item['credit_amount'] ?? 0);
+            // Supplier payable balance: credit increases liability, debit decreases it.
+            $runningBalance += (float) ($item['credit_amount'] ?? 0);
+            $runningBalance -= (float) ($item['debit_amount'] ?? 0);
             $item['running_balance'] = $runningBalance;
         }
         unset($item);
@@ -163,20 +164,29 @@ class SupplierController extends BaseController
             return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        $supplier = (new SupplierModel())->find($payload['supplier_id']);
+        if (empty($supplier)) {
+            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+        }
+
         try {
             $amount = (float) $payload['amount'];
+            if (abs($amount) < 0.0000001) {
+                return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
+            }
+
             $debit = 0.0;
             $credit = 0.0;
 
             if ($payload['entry_type'] === 'bill') {
-                $debit = $amount;
+                $credit = abs($amount);
             } elseif ($payload['entry_type'] === 'payment') {
-                $credit = $amount;
+                $debit = abs($amount);
             } else {
                 if ($amount >= 0) {
-                    $debit = $amount;
+                    $credit = $amount;
                 } else {
-                    $credit = abs($amount);
+                    $debit = abs($amount);
                 }
             }
 
@@ -193,6 +203,34 @@ class SupplierController extends BaseController
             return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    public function deleteLedgerEntry()
+    {
+        $supplierId = (int) $this->request->getPost('supplier_id');
+        $entryId = (int) $this->request->getPost('entry_id');
+
+        if ($supplierId < 1 || $entryId < 1) {
+            return redirect()->to('/suppliers')->with('error', 'Valid supplier and entry IDs are required.');
+        }
+
+        try {
+            $supplier = (new SupplierModel())->find($supplierId);
+            if (empty($supplier)) {
+                return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+            }
+
+            $entryModel = new SupplierLedgerEntryModel();
+            $entry = $entryModel->find($entryId);
+            if (empty($entry) || (int) ($entry['supplier_id'] ?? 0) !== $supplierId) {
+                return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('error', 'Ledger entry not found for this supplier.');
+            }
+
+            $entryModel->delete($entryId);
+            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('success', 'Ledger entry deleted successfully.');
+        } catch (\Throwable $e) {
+            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('error', $e->getMessage());
         }
     }
 
@@ -238,10 +276,84 @@ class SupplierController extends BaseController
             'updated_at' => date('Y-m-d H:i:s'),
         ];
 
+        if ($this->suppliersHasColumn('tenant_id')) {
+            $data['tenant_id'] = $this->resolveSupplierTenantId();
+        }
+
+        if ($isCreate && $this->suppliersHasColumn('supplier_code')) {
+            $tenantId = (int) ($data['tenant_id'] ?? $this->resolveSupplierTenantId());
+            $data['supplier_code'] = $this->generateUniqueSupplierCode($tenantId);
+        }
+
         if ($isCreate) {
             $data['created_at'] = date('Y-m-d H:i:s');
         }
 
         return $data;
+    }
+
+    private function resolveSupplierTenantId(): int
+    {
+        $sessionTenantId = (int) (session('tenant_id') ?? 0);
+        return $sessionTenantId > 0 ? $sessionTenantId : 1;
+    }
+
+    private function suppliersHasColumn(string $column): bool
+    {
+        static $columnExists = [];
+
+        if (array_key_exists($column, $columnExists)) {
+            return $columnExists[$column];
+        }
+
+        try {
+            $columnExists[$column] = db_connect()->fieldExists($column, 'suppliers');
+        } catch (\Throwable $e) {
+            $columnExists[$column] = false;
+        }
+
+        return $columnExists[$column];
+    }
+
+    private function generateUniqueSupplierCode(int $tenantId): string
+    {
+        $db = db_connect();
+        $builder = $db->table('suppliers');
+
+        if ($this->suppliersHasColumn('tenant_id')) {
+            $builder->where('tenant_id', $tenantId);
+        }
+
+        if ($this->suppliersHasColumn('supplier_code')) {
+            $builder->select('supplier_code');
+        }
+
+        $rows = $builder->get()->getResultArray();
+        $maxNumber = 0;
+
+        foreach ($rows as $row) {
+            $rawCode = isset($row['supplier_code']) ? (string) $row['supplier_code'] : '';
+            if (preg_match('/(\d+)$/', $rawCode, $matches) === 1) {
+                $number = (int) $matches[1];
+                if ($number > $maxNumber) {
+                    $maxNumber = $number;
+                }
+            }
+        }
+
+        for ($attempt = 1; $attempt <= 2000; $attempt++) {
+            $candidate = 'SUP-' . str_pad((string) ($maxNumber + $attempt), 4, '0', STR_PAD_LEFT);
+            $existsQuery = $db->table('suppliers')->where('supplier_code', $candidate);
+
+            if ($this->suppliersHasColumn('tenant_id')) {
+                $existsQuery->where('tenant_id', $tenantId);
+            }
+
+            if ($existsQuery->countAllResults() === 0) {
+                return $candidate;
+            }
+        }
+
+        return 'SUP-' . strtoupper(substr(md5((string) microtime(true)), 0, 8));
     }
 }

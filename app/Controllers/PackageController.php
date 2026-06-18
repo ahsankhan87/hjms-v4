@@ -532,10 +532,7 @@ class PackageController extends BaseController
         $stayWindow = $this->packageStayWindow($row);
         $packageStayStart = (string) ($stayWindow['start'] ?? date('Y-m-d'));
         $packageStayEnd = (string) ($stayWindow['end'] ?? date('Y-m-d', strtotime('+1 day')));
-        $stayDistributionValue = trim((string) old('stay_distribution', (string) session('package_stay_distribution_' . $id)));
-        if ($stayDistributionValue === '') {
-            $stayDistributionValue = trim((string) ($row['notes'] ?? ''));
-        }
+        $stayDistributionValue = trim((string) old('stay_distribution', ''));
 
         $stayCheckIn = $this->lastPackageStayCheckout($id, $db);
         if ($stayCheckIn === '') {
@@ -649,6 +646,7 @@ class PackageController extends BaseController
             'code'           => (string) $this->request->getPost('code'),
             'name'           => (string) $this->request->getPost('name'),
             'package_type'   => (string) $this->request->getPost('package_type'),
+            'purchase_price_visa' => (string) $this->request->getPost('purchase_price_visa'),
             'duration_days'  => (string) $this->request->getPost('duration_days'),
             'departure_date' => $normDatetime((string) $this->request->getPost('departure_date')),
             'arrival_date'   => $normDatetime((string) $this->request->getPost('arrival_date')),
@@ -659,6 +657,7 @@ class PackageController extends BaseController
             'code'          => 'required|alpha_numeric_punct|min_length[2]|max_length[40]',
             'name'          => 'required|min_length[3]|max_length[180]',
             'package_type'  => 'required|in_list[hajj,umrah]',
+            'purchase_price_visa' => 'permit_empty|decimal',
             'duration_days' => 'required|integer|greater_than[0]',
             'departure_date' => 'required',
             'arrival_date'  => 'permit_empty',
@@ -678,6 +677,7 @@ class PackageController extends BaseController
                 'code'           => $payload['code'],
                 'name'           => $payload['name'],
                 'package_type'   => $payload['package_type'],
+                'purchase_price_visa' => $payload['purchase_price_visa'] !== '' ? (float) $payload['purchase_price_visa'] : null,
                 'duration_days'  => (int) $payload['duration_days'],
                 'departure_date' => $payload['departure_date'],
                 'arrival_date'   => $arrivalDate,
@@ -711,6 +711,7 @@ class PackageController extends BaseController
             'code'              => (string) $this->request->getPost('code'),
             'name'              => (string) $this->request->getPost('name'),
             'package_type'      => (string) $this->request->getPost('package_type'),
+            'purchase_price_visa' => (string) $this->request->getPost('purchase_price_visa'),
             'duration_days'     => (string) $this->request->getPost('duration_days'),
             'departure_date'    => $normDatetime((string) $this->request->getPost('departure_date')),
             'arrival_date'      => $normDatetime((string) $this->request->getPost('arrival_date')),
@@ -729,6 +730,7 @@ class PackageController extends BaseController
             'code'          => 'permit_empty|alpha_numeric_punct|min_length[2]|max_length[40]',
             'name'          => 'permit_empty|min_length[3]|max_length[180]',
             'package_type'  => 'permit_empty|in_list[hajj,umrah]',
+            'purchase_price_visa' => 'permit_empty|decimal',
             'duration_days' => 'permit_empty|integer|greater_than[0]',
             'departure_date'    => 'permit_empty',
             'arrival_date'      => 'permit_empty',
@@ -751,6 +753,9 @@ class PackageController extends BaseController
 
         if (isset($data['duration_days'])) {
             $data['duration_days'] = (int) $data['duration_days'];
+        }
+        if (isset($data['purchase_price_visa'])) {
+            $data['purchase_price_visa'] = (float) $data['purchase_price_visa'];
         }
 
         try {
@@ -1306,14 +1311,6 @@ class PackageController extends BaseController
                 return redirect()->to('/packages')->with('error', 'Package not found.');
             }
 
-            if ($payload['stay_distribution'] === '') {
-                $payload['stay_distribution'] = trim((string) session('package_stay_distribution_' . $payload['package_id']));
-            }
-
-            if ($payload['stay_distribution'] === '') {
-                $payload['stay_distribution'] = trim((string) ($package['notes'] ?? ''));
-            }
-
             $stayWindow = $this->packageStayWindow($package);
             $packageStayStart = (string) ($stayWindow['start'] ?? '');
             $packageStayEnd = (string) ($stayWindow['end'] ?? '');
@@ -1352,16 +1349,6 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package hotel duration is already fully allocated.');
             }
 
-            $existingStayCount = $this->packageHotelStayCount($payload['package_id'], $db);
-            $window = $this->inferHotelStayWindow(
-                $package,
-                (string) ($hotel['hotel_city'] ?? ''),
-                $payload['stay_distribution'],
-                $existingStayCount,
-                $expectedCheckIn,
-                $packageStayEnd
-            );
-
             $checkInDate = $payload['check_in_date'] !== '' ? $payload['check_in_date'] : $expectedCheckIn;
             $checkOutDate = $payload['check_out_date'];
 
@@ -1380,28 +1367,12 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Next hotel check-in must be ' . $expectedCheckIn . ' to maintain sequence.');
             }
 
-            if ($checkInDate === '' || $checkOutDate === '') {
-                $checkInDate = $checkInDate !== '' ? $checkInDate : ($window['check_in_date'] ?? '');
-                $checkOutDate = $checkOutDate !== '' ? $checkOutDate : ($window['check_out_date'] ?? '');
-            }
-
-            if (! empty($window['expected_city']) && ! ($window['city_matches'] ?? true)) {
-                if ($isAjax) {
-                    return $this->response->setStatusCode(422)->setJSON([
-                        'status' => 'error',
-                        'message' => 'The next stay segment is for ' . ucfirst((string) $window['expected_city']) . '. Please select a ' . ucfirst((string) $window['expected_city']) . ' hotel for this leg.',
-                        'csrf' => [
-                            'tokenName' => csrf_token(),
-                            'hash' => csrf_hash(),
-                        ],
-                    ]);
+            if ($checkOutDate === '' && $payload['stay_distribution'] !== '') {
+                preg_match('/\d+/', $payload['stay_distribution'], $stayDaysMatch);
+                $stayDays = isset($stayDaysMatch[0]) ? (int) $stayDaysMatch[0] : 0;
+                if ($stayDays > 0 && $checkInDate !== '') {
+                    $checkOutDate = date('Y-m-d', strtotime('+' . $stayDays . ' day', strtotime($checkInDate)));
                 }
-
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'The next stay segment is for ' . ucfirst((string) $window['expected_city']) . '. Please select a ' . ucfirst((string) $window['expected_city']) . ' hotel for this leg.');
-            }
-
-            if ($payload['stay_distribution'] !== '' && ! empty($window['check_out_date'])) {
-                $checkOutDate = (string) $window['check_out_date'];
             }
 
             if ($checkInDate === '' || $checkOutDate === '') {
@@ -1545,11 +1516,7 @@ class PackageController extends BaseController
                 $this->syncPackageHotelStayWindow($packageHotelId, $db);
             }
 
-            if ($payload['stay_distribution'] !== '') {
-                session()->set('package_stay_distribution_' . $payload['package_id'], $payload['stay_distribution']);
-            }
-
-            (new PackagePricingService($db))->recalculatePackage($payload['package_id']);
+            $summary = (new PackagePricingService($db))->recalculatePackage($payload['package_id']);
 
             if ($isAjax) {
                 return $this->response->setJSON([
@@ -1567,6 +1534,7 @@ class PackageController extends BaseController
                         'double_cost' => (float) ($hotelProfile['double_cost'] ?? $payload['double_cost'] ?? 0),
                         'total_seats' => (int) ($hotelProfile['total_seats'] ?? $payload['total_seats'] ?? 0),
                     ],
+                    'summary' => $summary,
                     'csrf' => [
                         'tokenName' => csrf_token(),
                         'hash' => csrf_hash(),
@@ -1651,13 +1619,14 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package hotel attachment not found or already removed.');
             }
 
-            (new PackagePricingService())->recalculatePackage($packageId);
+            $summary = (new PackagePricingService())->recalculatePackage($packageId);
 
             if ($isAjax) {
                 return $this->response->setJSON([
                     'status' => 'ok',
                     'message' => 'Hotel link deleted successfully.',
                     'deleted_id' => $rowId,
+                    'summary' => $summary,
                     'csrf' => [
                         'tokenName' => csrf_token(),
                         'hash' => csrf_hash(),
@@ -1744,7 +1713,7 @@ class PackageController extends BaseController
             ]);
             $createdId = (int) $packageFlightModel->getInsertID();
 
-            (new PackagePricingService())->recalculatePackage($payload['package_id']);
+            $summary = (new PackagePricingService())->recalculatePackage($payload['package_id']);
 
             if ($isAjax) {
                 return $this->response->setJSON([
@@ -1762,6 +1731,7 @@ class PackageController extends BaseController
                         'pnr' => (string) ($flight['pnr'] ?? ''),
                         'cost_amount' => (float) $payload['cost_amount'],
                     ],
+                    'summary' => $summary,
                     'csrf' => [
                         'tokenName' => csrf_token(),
                         'hash' => csrf_hash(),
@@ -1824,13 +1794,14 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package flight attachment not found or already removed.');
             }
 
-            (new PackagePricingService())->recalculatePackage($packageId);
+            $summary = (new PackagePricingService())->recalculatePackage($packageId);
 
             if ($isAjax) {
                 return $this->response->setJSON([
                     'status' => 'ok',
                     'message' => 'Flight link deleted successfully.',
                     'deleted_id' => $rowId,
+                    'summary' => $summary,
                     'csrf' => [
                         'tokenName' => csrf_token(),
                         'hash' => csrf_hash(),
@@ -1915,7 +1886,7 @@ class PackageController extends BaseController
             ]);
             $createdId = (int) $model->getInsertID();
 
-            (new PackagePricingService())->recalculatePackage($payload['package_id']);
+            $summary = (new PackagePricingService())->recalculatePackage($payload['package_id']);
 
             if ($isAjax) {
                 return $this->response->setJSON([
@@ -1929,6 +1900,7 @@ class PackageController extends BaseController
                         'seat_capacity' => $seatCapacity,
                         'cost_amount' => (float) $payload['cost_amount'],
                     ],
+                    'summary' => $summary,
                     'csrf' => [
                         'tokenName' => csrf_token(),
                         'hash' => csrf_hash(),
@@ -1991,13 +1963,14 @@ class PackageController extends BaseController
                 return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package transport attachment not found or already removed.');
             }
 
-            (new PackagePricingService())->recalculatePackage($packageId);
+            $summary = (new PackagePricingService())->recalculatePackage($packageId);
 
             if ($isAjax) {
                 return $this->response->setJSON([
                     'status' => 'ok',
                     'message' => 'Transport link deleted successfully.',
                     'deleted_id' => $rowId,
+                    'summary' => $summary,
                     'csrf' => [
                         'tokenName' => csrf_token(),
                         'hash' => csrf_hash(),

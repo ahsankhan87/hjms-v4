@@ -40,5 +40,6 @@ class PackageModel extends SeasonScopedModel
         'notes',
         'created_at',
         'updated_at',
+        'purchase_price_visa',
     ];
 }

@@ -28,6 +28,12 @@
                         </select>
                     </div>
                 </div>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div>
+                        <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Visa Cost (PKR)</label>
+                        <input type="number" step="0.01" min="0" name="purchase_price_visa" value="<?= esc(old('purchase_price_visa')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. 120000">
+                    </div>
+                </div>
                 <div>
                     <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Name <span class="text-rose-600">*</span></label>
                     <input name="name" value="<?= esc(old('name')) ?>" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Enter package name">

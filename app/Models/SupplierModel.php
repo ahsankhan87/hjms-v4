@@ -12,6 +12,8 @@ class SupplierModel extends Model
     protected $useAutoIncrement = true;
     protected $protectFields = true;
     protected $allowedFields = [
+        'tenant_id',
+        'supplier_code',
         'supplier_name',
         'supplier_type',
         'contact_person',

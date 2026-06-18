@@ -23,7 +23,7 @@ class PackagePricingService
         }
 
         $package = $this->db->table('packages')
-            ->select('id, total_seats, include_hotel, include_ticket, include_transport')
+            ->select('id, total_seats, include_hotel, include_ticket, include_transport, purchase_price_visa')
             ->where('id', $packageId)
             ->get()
             ->getRowArray();
@@ -208,6 +208,7 @@ class PackagePricingService
         foreach ($transportRows as $row) {
             $transportTotal += (float) ($row['cost_amount'] ?? 0);
         }
+        $visaTotal = (float) ($package['purchase_price_visa'] ?? 0);
 
         if (! $includeTicket) {
             $flightTotal = 0.0;
@@ -220,7 +221,7 @@ class PackagePricingService
         }
 
         $mode = $includeHotel ? 'tiered' : 'flat';
-        $flatExtras = $flightTotal + $transportTotal;
+        $flatExtras = $flightTotal + $transportTotal + $visaTotal;
         $priceMap = [];
 
         if ($mode === 'tiered') {
@@ -256,6 +257,7 @@ class PackagePricingService
             'hotel_totals' => $hotelTotals,
             'flight_total' => round($flightTotal, 2),
             'transport_total' => round($transportTotal, 2),
+            'visa_total' => round($visaTotal, 2),
             'price_map' => $priceMap,
             'flat_price' => $flatPrice,
             'has_pricing' => $mode === 'flat' ? ($flatPrice !== null && $flatPrice > 0) : $priceMap !== [],
@@ -281,6 +283,7 @@ class PackagePricingService
             'hotel_totals' => [],
             'flight_total' => 0.0,
             'transport_total' => 0.0,
+            'visa_total' => 0.0,
             'price_map' => [],
             'flat_price' => null,
             'has_pricing' => false,

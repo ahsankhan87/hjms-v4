@@ -243,7 +243,6 @@ class BookingController extends BaseController
             'pricing_tier' => trim((string) $this->request->getPost('pricing_tier')),
             'agent_id'    => $this->request->getPost('agent_id') !== '' ? (int) $this->request->getPost('agent_id') : null,
             'branch_id'   => $this->request->getPost('branch_id') !== '' ? (int) $this->request->getPost('branch_id') : null,
-            'company_id'  => $this->request->getPost('company_id') !== '' ? (int) $this->request->getPost('company_id') : null,
             'status'      => (string) ($this->request->getPost('status') ?: 'draft'),
             'remarks'     => (string) $this->request->getPost('remarks'),
             'pilgrim_ids' => $pilgrimIds,
@@ -254,7 +253,6 @@ class BookingController extends BaseController
             'pricing_tier' => 'required|in_list[sharing,quad,triple,double]',
             'agent_id'    => 'permit_empty|integer',
             'branch_id'   => 'permit_empty|integer',
-            'company_id'  => 'required|integer',
             'status'      => 'required|in_list[draft,confirmed,cancelled]',
             'remarks'     => 'permit_empty|max_length[5000]',
             'pilgrim_ids' => 'required',
@@ -276,14 +274,11 @@ class BookingController extends BaseController
             $pricingSummary = $pricingService->summarizePackage((int) $payload['package_id']);
             $payload['pricing_tier'] = $pricingService->normalizeRequestedTier((int) $payload['package_id'], (string) $payload['pricing_tier']);
 
-            if ($payload['company_id'] === null || ! company_table_ready()) {
-                return redirect()->to($returnUrl)->withInput()->with('error', 'Please select a valid shirka company.');
+            $defaultShirka = $this->resolveDefaultShirkaCompany($db);
+            if ($defaultShirka === null) {
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Please set a default shirka company in Voucher Settings first.');
             }
-
-            $company = $db->table('companies')->select('id')->where('id', $payload['company_id'])->get()->getRowArray();
-            if (empty($company)) {
-                return redirect()->to($returnUrl)->withInput()->with('error', 'Selected shirka company was not found.');
-            }
+            $payload['company_id'] = (int) ($defaultShirka['id'] ?? 0);
 
             if ($pilgrimIds === []) {
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Please select at least one pilgrim.');
@@ -432,7 +427,6 @@ class BookingController extends BaseController
             'pricing_tier' => trim((string) $this->request->getPost('pricing_tier')),
             'agent_id'    => (string) $this->request->getPost('agent_id'),
             'branch_id'   => (string) $this->request->getPost('branch_id'),
-            'company_id'  => (string) $this->request->getPost('company_id'),
             'status'      => (string) $this->request->getPost('status'),
             'remarks'     => (string) $this->request->getPost('remarks'),
         ];
@@ -446,7 +440,6 @@ class BookingController extends BaseController
             'pricing_tier' => 'permit_empty|in_list[sharing,quad,triple,double]',
             'agent_id'   => 'permit_empty|integer',
             'branch_id'  => 'permit_empty|integer',
-            'company_id' => 'permit_empty|integer',
             'status'     => 'permit_empty|in_list[draft,confirmed,cancelled]',
             'remarks'    => 'permit_empty|max_length[5000]',
         ])) {
@@ -465,9 +458,6 @@ class BookingController extends BaseController
         }
         if ($payload['branch_id'] !== '') {
             $data['branch_id'] = (int) $payload['branch_id'];
-        }
-        if ($payload['company_id'] !== '') {
-            $data['company_id'] = (int) $payload['company_id'];
         }
         if ($payload['status'] !== '') {
             $data['status'] = $payload['status'];
@@ -507,16 +497,11 @@ class BookingController extends BaseController
                 }
             }
 
-            if (isset($data['company_id'])) {
-                if (! company_table_ready()) {
-                    return redirect()->to($returnUrl)->withInput()->with('error', 'Shirka company table is not available.');
-                }
-
-                $company = $db->table('companies')->select('id')->where('id', (int) $data['company_id'])->get()->getRowArray();
-                if (empty($company)) {
-                    return redirect()->to($returnUrl)->withInput()->with('error', 'Selected shirka company was not found.');
-                }
+            $defaultShirka = $this->resolveDefaultShirkaCompany($db);
+            if ($defaultShirka === null) {
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Please set a default shirka company in Voucher Settings first.');
             }
+            $data['company_id'] = (int) ($defaultShirka['id'] ?? 0);
 
             $effectivePackageId = isset($data['package_id']) ? (int) $data['package_id'] : (int) ($existing['package_id'] ?? 0);
             $effectivePricingTier = isset($data['pricing_tier'])
@@ -929,6 +914,27 @@ class BookingController extends BaseController
         return $returnUrl;
     }
 
+    private function resolveDefaultShirkaCompany($db): ?array
+    {
+        if (! company_table_ready()) {
+            return null;
+        }
+
+        $mainCompanyData = main_company();
+        $defaultCompanyId = (int) ($mainCompanyData['default_shirka_company_id'] ?? 0);
+        if ($defaultCompanyId < 1) {
+            return null;
+        }
+
+        $row = $db->table('companies')
+            ->select('id, name, logo_url, address')
+            ->where('id', $defaultCompanyId)
+            ->get()
+            ->getRowArray();
+
+        return ! empty($row) ? $row : null;
+    }
+
     public function deleteBooking()
     {
         $bookingId = (int) $this->request->getPost('booking_id');
@@ -992,6 +998,8 @@ class BookingController extends BaseController
         if (empty($booking)) {
             return redirect()->to('/bookings')->with('error', 'Booking not found.');
         }
+
+        $configuredShirka = $this->resolveDefaultShirkaCompany($db);
 
         $paymentRows = $db->table('payments')
             ->where('booking_id', $bookingId)
@@ -1197,10 +1205,10 @@ class BookingController extends BaseController
             'title' => 'HJMS ERP | Final Voucher',
             'mainCompany' => main_company(),
             'shirkaCompany' => [
-                'id' => $booking['shirka_id'] ?? null,
-                'name' => $booking['shirka_name'] ?? '',
-                'logo_url' => $booking['shirka_logo_url'] ?? '',
-                'address' => $booking['shirka_address'] ?? '',
+                'id' => $configuredShirka['id'] ?? ($booking['shirka_id'] ?? null),
+                'name' => $configuredShirka['name'] ?? ($booking['shirka_name'] ?? ''),
+                'logo_url' => $configuredShirka['logo_url'] ?? ($booking['shirka_logo_url'] ?? ''),
+                'address' => $configuredShirka['address'] ?? ($booking['shirka_address'] ?? ''),
             ],
             'booking' => $booking,
             'payments' => $paymentRows,

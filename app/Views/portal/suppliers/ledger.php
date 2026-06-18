@@ -26,10 +26,10 @@
                     <?= csrf_field() ?>
                     <input type="hidden" name="supplier_id" value="<?= esc((string) $supplier['id']) ?>">
                     <input type="date" name="entry_date" value="<?= esc(old('entry_date', date('Y-m-d'))) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    <?php $entryType = old('entry_type', 'payment'); ?>
+                    <?php $entryType = old('entry_type', 'bill'); ?>
                     <select name="entry_type" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <option value="bill" <?= $entryType === 'bill' ? 'selected' : '' ?>>Bill (Dr)</option>
-                        <option value="payment" <?= $entryType === 'payment' ? 'selected' : '' ?>>Payment (Cr)</option>
+                        <option value="bill" <?= $entryType === 'bill' ? 'selected' : '' ?>>Bill (Cr)</option>
+                        <option value="payment" <?= $entryType === 'payment' ? 'selected' : '' ?>>Payment (Dr)</option>
                         <option value="adjustment" <?= $entryType === 'adjustment' ? 'selected' : '' ?>>Adjustment</option>
                     </select>
                     <input name="amount" value="<?= esc(old('amount')) ?>" placeholder="Amount" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -49,6 +49,7 @@
                             <th class="px-3 py-2 text-left">Debit</th>
                             <th class="px-3 py-2 text-left">Credit</th>
                             <th class="px-3 py-2 text-left">Balance</th>
+                            <th class="px-3 py-2 text-left">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -60,11 +61,19 @@
                                     <td class="px-3 py-2"><?= esc(number_format((float) ($row['debit_amount'] ?? 0), 2)) ?></td>
                                     <td class="px-3 py-2"><?= esc(number_format((float) ($row['credit_amount'] ?? 0), 2)) ?></td>
                                     <td class="px-3 py-2"><?= esc(number_format((float) ($row['running_balance'] ?? 0), 2)) ?></td>
+                                    <td class="px-3 py-2">
+                                        <form method="post" action="<?= site_url('/suppliers/ledger/delete') ?>" class="inline">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="supplier_id" value="<?= esc((string) $supplier['id']) ?>">
+                                            <input type="hidden" name="entry_id" value="<?= esc((string) ($row['id'] ?? '0')) ?>">
+                                            <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this ledger entry?')" title="Delete Entry"><i class="fa-solid fa-trash"></i></button>
+                                        </form>
+                                    </td>
                                 </tr>
                             <?php endforeach;
                         else: ?>
                             <tr>
-                                <td colspan="6" class="px-3 py-5 text-center text-slate-500">No ledger entries found.</td>
+                                <td colspan="7" class="px-3 py-5 text-center text-slate-500">No ledger entries found.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>

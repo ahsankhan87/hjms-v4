@@ -77,17 +77,6 @@
                     </select>
                 </div>
 
-                <?php $companyValue = (string) old('company_id', (string) ($row['company_id'] ?? '')); ?>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Shirka Company <span class="text-rose-500">*</span></label>
-                    <select name="company_id" required class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <option value="">Select shirka company…</option>
-                        <?php foreach (($companies ?? []) as $item): ?>
-                            <option value="<?= esc($item['id']) ?>" <?= $companyValue === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
                 <?php $agentValue = (string) old('agent_id', (string) ($row['agent_id'] ?? '')); ?>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Agent <span class="text-slate-400 font-normal">(optional)</span></label>
