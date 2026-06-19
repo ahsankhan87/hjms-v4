@@ -20,13 +20,13 @@ $pricingModeMap = [
 <main class="space-y-4">
     <?php if (!empty($success)): ?>
         <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <i class="ri-checkbox-circle-line text-emerald-600"></i>
+            <i class="fa-solid fa-circle-check text-emerald-600"></i>
             <p class="text-sm text-emerald-700"><?= esc($success) ?></p>
         </div>
     <?php endif; ?>
     <?php if (!empty($error)): ?>
         <div class="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-            <i class="ri-error-warning-line text-rose-500"></i>
+            <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
             <p class="text-sm text-rose-700"><?= esc($error) ?></p>
         </div>
     <?php endif; ?>
@@ -44,7 +44,7 @@ $pricingModeMap = [
                 <p class="mt-0.5 text-xs text-slate-500"><?= count($rows) ?> booking<?= count($rows) !== 1 ? 's' : '' ?> in active season</p>
             </div>
             <a href="<?= site_url('/bookings/add') ?>" class="btn btn-sm btn-primary">
-                <i class="ri-add-line mr-1"></i>Add Booking
+                <i class="fa-solid fa-plus mr-1"></i>Add Booking
             </a>
         </div>
 

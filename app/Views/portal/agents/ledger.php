@@ -70,6 +70,7 @@
                             <th class="whitespace-nowrap px-3 py-3 text-right">Debit</th>
                             <th class="whitespace-nowrap px-3 py-3 text-right">Credit</th>
                             <th class="whitespace-nowrap px-3 py-3 text-right">Balance</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-right" data-orderable="false">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 text-slate-700">
@@ -101,6 +102,11 @@
                                     <td class="whitespace-nowrap px-3 py-2.5 text-right font-semibold <?= $debitAmount > 0 ? 'text-rose-700' : 'text-slate-500' ?>"><?= esc(number_format($debitAmount, 2)) ?></td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-right font-semibold <?= $creditAmount > 0 ? 'text-emerald-700' : 'text-slate-500' ?>"><?= esc(number_format($creditAmount, 2)) ?></td>
                                     <td class="whitespace-nowrap px-3 py-2.5 text-right font-semibold <?= $runningBalance < 0 ? 'text-rose-700' : 'text-slate-900' ?>"><?= esc(number_format($runningBalance, 2)) ?></td>
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-right">
+                                        <button type="button" class="btn btn-sm btn-ghost text-rose-600 hover:text-rose-700 js-delete-ledger-btn" data-ledger-id="<?= esc((string) ($row['id'] ?? '')) ?>" data-entry-date="<?= esc((string) ($row['entry_date'] ?? '')) ?>" data-amount="<?= esc(number_format($debitAmount > 0 ? $debitAmount : $creditAmount, 2)) ?>">
+                                            <i class="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </td>
                                 </tr>
                             <?php endforeach;
                         else: ?>
@@ -115,6 +121,7 @@
                             <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold"><?= esc(number_format((float) ($totalDebit ?? 0), 2)) ?></td>
                             <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold"><?= esc(number_format((float) ($totalCredit ?? 0), 2)) ?></td>
                             <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-bold"><?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>
+                            <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-bold"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -122,4 +129,53 @@
         </article>
     </section>
 </main>
+
+<!-- Delete ledger entry modal -->
+<div id="delete-ledger-modal" style="display:none" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="mx-4 w-full max-w-md rounded-xl bg-white shadow-2xl">
+        <div class="border-b border-slate-100 px-6 py-5">
+            <h3 class="text-lg font-semibold text-slate-900">Delete Ledger Entry</h3>
+            <p class="mt-1 text-sm text-slate-500">This will permanently remove the entry and recalculate balances.</p>
+        </div>
+        <form method="post" action="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/delete-entry') ?>" class="p-6 space-y-4">
+            <?= csrf_field() ?>
+            <input type="hidden" id="delete-ledger-id" name="ledger_id" value="">
+            <div class="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5 shrink-0 text-lg text-rose-500"></i>
+                <div class="text-sm text-rose-700">
+                    <p class="font-semibold">Delete entry from <span id="delete-ledger-date" class="font-mono"></span></p>
+                    <p class="mt-1 text-xs">Amount: <span id="delete-ledger-amount" class="font-mono font-semibold"></span></p>
+                </div>
+            </div>
+            <div class="flex gap-3 border-t border-slate-100 pt-4">
+                <button type="submit" class="btn btn-md btn-danger flex-1">Confirm Delete</button>
+                <button type="button" id="delete-ledger-close" class="btn btn-md btn-secondary flex-1">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function() {
+        var modal = document.getElementById('delete-ledger-modal');
+        var ledgerIdInput = document.getElementById('delete-ledger-id');
+        var closeBtn = document.getElementById('delete-ledger-close');
+
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.js-delete-ledger-btn');
+            if (!btn) return;
+            ledgerIdInput.value = btn.dataset.ledgerId;
+            document.getElementById('delete-ledger-date').textContent = btn.dataset.entryDate;
+            document.getElementById('delete-ledger-amount').textContent = btn.dataset.amount;
+            modal.style.display = 'flex';
+        });
+
+        if (closeBtn) closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    }());
+</script>
 <?php $this->endSection() ?>

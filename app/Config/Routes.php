@@ -61,6 +61,7 @@ $routes->post('agents/add', 'AgentController::createAgent', ['filter' => 'webaut
 $routes->post('agents/update', 'AgentController::updateAgent', ['filter' => 'webauth:agents.manage']);
 $routes->post('agents/delete', 'AgentController::deleteAgent', ['filter' => 'webauth:agents.manage']);
 $routes->post('agents/ledger', 'AgentController::createLedgerEntry', ['filter' => 'webauth:agents.manage']);
+$routes->post('agents/(:num)/ledger/delete-entry', 'AgentController::deleteLedgerEntry/$1', ['filter' => 'webauth:agents.manage']);
 $routes->get('users', 'UserController::index', ['filter' => 'webauth:users.view']);
 $routes->get('users/add', 'UserController::add', ['filter' => 'webauth:users.manage']);
 $routes->get('users/(:num)/edit', 'UserController::edit/$1', ['filter' => 'webauth:users.manage']);

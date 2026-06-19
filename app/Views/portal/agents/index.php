@@ -60,7 +60,20 @@
                                     <td><?= esc((string) ($row['phone'] ?? '-')) ?></td>
                                     <td><?= esc($branchMap[(int) ($row['branch_id'] ?? 0)] ?? '-') ?></td>
                                     <td><?= esc((string) ($row['commission_type'] ?? 'percentage')) ?> <?= esc((string) ($row['commission_value'] ?? '0')) ?></td>
-                                    <td data-col="balance" data-value="<?= esc((string) ((float) ($row['current_balance'] ?? 0))) ?>"><?= esc((string) ($row['current_balance'] ?? '0')) ?></td>
+                                    <td>
+                                        <?php
+                                        $balance = (float) ($row['current_balance'] ?? 0);
+                                        $balanceClass = 'text-slate-600';
+                                        if ($balance > 0) {
+                                            $balanceClass = 'text-emerald-700';
+                                        } elseif ($balance < 0) {
+                                            $balanceClass = 'text-rose-700';
+                                        }
+                                        ?>
+                                        <span class="inline-flex items-center rounded-full <?= $balance > 0 ? 'bg-emerald-100' : ($balance < 0 ? 'bg-rose-100' : 'bg-slate-100') ?> px-3 py-1 text-xs font-semibold <?= $balanceClass ?>" data-col="balance" data-value="<?= esc((string) $balance) ?>">
+                                            <?= $balance > 0 ? '+' : '' ?><?= esc(number_format($balance, 2)) ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <?php if ($statusActive): ?>
                                             <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Active</span>
@@ -98,7 +111,7 @@
                     </tfoot>
                 </table>
                 <div class="list-footer">
-                    <p>Showing 1-<?= esc(count($rows)) ?> of <?= esc(count($rows)) ?> agents</p>
+                    <p>Showing 1-<?= esc((string) count($rows)) ?> of <?= esc((string) count($rows)) ?> agents</p>
                     <div class="flex space-x-2">
                         <button type="button" class="btn btn-sm btn-secondary">Previous</button>
                         <button type="button" class="btn btn-sm btn-primary">1</button>

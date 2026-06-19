@@ -70,6 +70,28 @@ class AgentLedgerService
         ]);
     }
 
+    public function deleteLedgerEntry(int $ledgerId): void
+    {
+        $ledgerTable = $this->ledgerTable();
+        if ($ledgerId < 1 || $ledgerTable === '') {
+            throw new \RuntimeException('Invalid ledger entry ID or ledger table not available.');
+        }
+
+        $db = db_connect();
+        $entry = $db->table($ledgerTable)->select('agent_id')->where('id', $ledgerId)->get()->getRowArray();
+
+        if (empty($entry)) {
+            throw new \RuntimeException('Ledger entry not found.');
+        }
+
+        $agentId = (int) ($entry['agent_id'] ?? 0);
+
+        $db->table($ledgerTable)->where('id', $ledgerId)->delete();
+
+        // Recalculate balance for the agent
+        $this->recalculateAgentBalance($agentId);
+    }
+
     public function removeBookingLedger(int $bookingId)
     {
         $ledgerTable = $this->ledgerTable();

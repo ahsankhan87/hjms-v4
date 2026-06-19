@@ -194,6 +194,34 @@ class AgentController extends BaseController
         }
     }
 
+    public function deleteLedgerEntry($agentId = null)
+    {
+        $ledgerId = (int) $this->request->getPost('ledger_id');
+        $agentId = (int) ($agentId ?? $this->request->getGet('agent_id') ?? 0);
+
+        if ($ledgerId < 1) {
+            return redirect()->to('/agents')->with('error', 'Invalid ledger entry ID.');
+        }
+
+        if ($agentId < 1) {
+            return redirect()->to('/agents')->with('error', 'Invalid agent ID.');
+        }
+
+        try {
+            $agent = (new AgentModel())->find($agentId);
+            if (empty($agent)) {
+                return redirect()->to('/agents')->with('error', 'Agent not found.');
+            }
+
+            $ledgerService = new AgentLedgerService();
+            $ledgerService->deleteLedgerEntry($ledgerId);
+
+            return redirect()->to('/agents/' . $agentId . '/ledger')->with('success', 'Ledger entry deleted successfully.');
+        } catch (\Throwable $e) {
+            return redirect()->to('/agents/' . $agentId . '/ledger')->with('error', $e->getMessage());
+        }
+    }
+
     private function buildLedgerViewData(int $agentId, string $fromDate = '', string $toDate = ''): array
     {
         $rows = (new AgentLedgerService())->getAgentLedgerRows($agentId);
