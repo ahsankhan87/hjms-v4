@@ -17,6 +17,7 @@
                 <h3 class="text-sm font-semibold text-slate-800">Supplier Ledger</h3>
                 <p class="mt-2 text-sm"><strong>Supplier:</strong> <?= esc((string) ($supplier['supplier_name'] ?? '')) ?></p>
                 <p class="text-sm"><strong>Type:</strong> <?= esc(ucfirst((string) ($supplier['supplier_type'] ?? ''))) ?></p>
+                <p class="text-sm"><strong>Opening Balance:</strong> <?= esc(number_format((float) ($supplier['opening_balance'] ?? 0), 2)) ?></p>
                 <p class="text-sm"><strong>Closing Balance:</strong> <?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></p>
 
                 <hr class="my-5 border-slate-200">
@@ -40,6 +41,14 @@
 
             <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2 overflow-auto">
                 <h3 class="mb-3 text-sm font-semibold text-slate-800">Ledger Entries</h3>
+                <?php
+                $totalDebit = 0.0;
+                $totalCredit = 0.0;
+                foreach (($rows ?? []) as $item) {
+                    $totalDebit += (float) ($item['debit_amount'] ?? 0);
+                    $totalCredit += (float) ($item['credit_amount'] ?? 0);
+                }
+                ?>
                 <table class="list-table">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
@@ -77,6 +86,15 @@
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot>
+                        <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
+                            <td colspan="3" class="px-3 py-2 text-right">Totals</td>
+                            <td class="px-3 py-2"><?= esc(number_format($totalDebit, 2)) ?></td>
+                            <td class="px-3 py-2"><?= esc(number_format($totalCredit, 2)) ?></td>
+                            <td class="px-3 py-2"><?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </article>
         </div>

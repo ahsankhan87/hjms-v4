@@ -27,6 +27,7 @@
                         <th class="px-3 py-2 text-left">Type</th>
                         <th class="px-3 py-2 text-left">Contact</th>
                         <th class="px-3 py-2 text-left">Phone</th>
+                        <th class="px-3 py-2 text-left">Balance</th>
                         <th class="px-3 py-2 text-left">Status</th>
                         <th class="px-3 py-2 text-left">Actions</th>
                     </tr>
@@ -34,7 +35,7 @@
                 <tbody>
                     <?php if (empty($rows)): ?>
                         <tr>
-                            <td colspan="7" class="px-3 py-6 text-center text-slate-500">No suppliers found.</td>
+                            <td colspan="8" class="px-3 py-6 text-center text-slate-500">No suppliers found.</td>
                         </tr>
                         <?php else: foreach ($rows as $row): ?>
                             <tr class="border-t border-slate-100">
@@ -43,6 +44,20 @@
                                 <td class="px-3 py-2"><?= esc(ucfirst((string) $row['supplier_type'])) ?></td>
                                 <td class="px-3 py-2"><?= esc((string) ($row['contact_person'] ?? '-')) ?></td>
                                 <td class="px-3 py-2"><?= esc((string) ($row['phone'] ?? '-')) ?></td>
+                                <td class="px-3 py-2">
+                                    <?php
+                                    $balance = (float) ($row['closing_balance'] ?? ($row['opening_balance'] ?? 0));
+                                    $balanceClass = 'text-slate-600';
+                                    if ($balance > 0) {
+                                        $balanceClass = 'text-emerald-700';
+                                    } elseif ($balance < 0) {
+                                        $balanceClass = 'text-rose-700';
+                                    }
+                                    ?>
+                                    <span class="inline-flex items-center rounded-full <?= $balance > 0 ? 'bg-emerald-100' : ($balance < 0 ? 'bg-rose-100' : 'bg-slate-100') ?> px-3 py-1 text-xs font-semibold <?= $balanceClass ?>" data-col="balance" data-value="<?= esc((string) $balance) ?>">
+                                        <?= $balance > 0 ? '+' : '' ?><?= esc(number_format($balance, 2)) ?>
+                                    </span>
+                                </td>
                                 <td class="px-3 py-2"><?= ((int) ($row['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive' ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
@@ -59,8 +74,74 @@
                     <?php endforeach;
                     endif; ?>
                 </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
+                        <td colspan="5" class="px-3 py-2 text-right">Total Balance</td>
+                        <td id="suppliers-total-balance" class="px-3 py-2 text-left">0.00</td>
+                        <td colspan="2" class="px-3 py-2"></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </section>
 </main>
+<script>
+    (function() {
+        function numberFormat(value) {
+            return Number(value || 0).toLocaleString('en-PK', {
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 2
+            });
+        }
+
+        function refreshSupplierBalanceTotal() {
+            var target = document.getElementById('suppliers-total-balance');
+            if (!target) {
+                return;
+            }
+
+            var totalBalance = 0;
+
+            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) {
+                var $table = window.jQuery('table.list-table').first();
+                if ($table.length && window.jQuery.fn.DataTable.isDataTable($table[0])) {
+                    var api = $table.DataTable();
+                    var nodes = api.rows({
+                        search: 'applied'
+                    }).nodes().to$();
+                    nodes.each(function() {
+                        var el = this.querySelector('[data-col="balance"]');
+                        if (!el || !el.dataset) {
+                            return;
+                        }
+                        totalBalance += Number(el.dataset.value || 0);
+                    });
+
+                    target.textContent = numberFormat(totalBalance);
+                    return;
+                }
+            }
+
+            var items = document.querySelectorAll('[data-col="balance"]');
+            items.forEach(function(el) {
+                totalBalance += Number((el.dataset && el.dataset.value) ? el.dataset.value : 0);
+            });
+            target.textContent = numberFormat(totalBalance);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshSupplierBalanceTotal();
+
+            if (!window.jQuery) {
+                return;
+            }
+
+            var $table = window.jQuery('table.list-table').first();
+            if ($table.length) {
+                $table.on('draw.dt search.dt page.dt order.dt', refreshSupplierBalanceTotal);
+            }
+            setTimeout(refreshSupplierBalanceTotal, 0);
+        });
+    }());
+</script>
 <?php $this->endSection() ?>

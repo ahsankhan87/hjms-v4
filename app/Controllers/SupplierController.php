@@ -11,6 +11,7 @@ class SupplierController extends BaseController
     public function index(): string
     {
         $rows = (new SupplierModel())->orderBy('id', 'DESC')->findAll();
+        $rows = $this->attachSupplierClosingBalances($rows);
 
         return view('portal/suppliers/index', [
             'title' => 'HJMS ERP | Suppliers',
@@ -22,6 +23,59 @@ class SupplierController extends BaseController
             'error' => session()->getFlashdata('error'),
             'errors' => session()->getFlashdata('errors') ?: [],
         ]);
+    }
+
+    private function attachSupplierClosingBalances(array $rows): array
+    {
+        if ($rows === []) {
+            return $rows;
+        }
+
+        foreach ($rows as &$row) {
+            $row['closing_balance'] = (float) ($row['opening_balance'] ?? 0);
+        }
+        unset($row);
+
+        try {
+            $db = db_connect();
+            if (! $db->tableExists('supplier_ledger_entries')) {
+                return $rows;
+            }
+
+            $supplierIds = array_values(array_unique(array_map(static function (array $row): int {
+                return (int) ($row['id'] ?? 0);
+            }, $rows)));
+            $supplierIds = array_values(array_filter($supplierIds, static function (int $id): bool {
+                return $id > 0;
+            }));
+
+            if ($supplierIds === []) {
+                return $rows;
+            }
+
+            $ledgerRows = $db->table('supplier_ledger_entries')
+                ->select('supplier_id, COALESCE(SUM(credit_amount - debit_amount), 0) AS ledger_delta', false)
+                ->whereIn('supplier_id', $supplierIds)
+                ->groupBy('supplier_id')
+                ->get()
+                ->getResultArray();
+
+            $deltaBySupplier = [];
+            foreach ($ledgerRows as $item) {
+                $deltaBySupplier[(int) ($item['supplier_id'] ?? 0)] = (float) ($item['ledger_delta'] ?? 0);
+            }
+
+            foreach ($rows as &$row) {
+                $id = (int) ($row['id'] ?? 0);
+                $opening = (float) ($row['opening_balance'] ?? 0);
+                $row['closing_balance'] = $opening + ($deltaBySupplier[$id] ?? 0.0);
+            }
+            unset($row);
+        } catch (\Throwable $e) {
+            // Keep opening balance fallback when ledger aggregation is unavailable.
+        }
+
+        return $rows;
     }
 
     public function add(): string
