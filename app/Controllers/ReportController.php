@@ -51,7 +51,11 @@ class ReportController extends BaseController
             }
         }
 
+        $activeSeasonId = $this->activeSeasonId();
         $expenseQuery = $db->table('expenses')->select('amount');
+        if ($activeSeasonId !== null && $db->fieldExists('season_id', 'expenses')) {
+            $expenseQuery->where('season_id', $activeSeasonId);
+        }
         if ($filters['from_date'] !== '') {
             $expenseQuery->where('expense_date >=', $filters['from_date']);
         }
