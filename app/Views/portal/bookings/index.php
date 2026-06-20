@@ -110,7 +110,7 @@ $pricingModeMap = [
                             </td>
                             <td class="px-4 py-3 text-center" data-col="pilgrims" data-value="<?= esc((string) ((int) ($row['total_pilgrims'] ?? 0))) ?>">
                                 <span class="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-bold text-slate-700">
-                                    <?= esc((int) ($row['total_pilgrims'] ?? 0)) ?>
+                                    <?= esc((string) ((int) ($row['total_pilgrims'] ?? 0))) ?>
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right font-medium text-slate-800" data-col="amount" data-value="<?= esc((string) ((float) ($row['total_amount'] ?? 0))) ?>">
@@ -134,12 +134,23 @@ $pricingModeMap = [
                                         <a href="<?= site_url('/bookings/' . (int) $row['id']) ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-eye text-slate-400"></i> View
                                         </a>
+                                        <?php if ((string) $status === 'draft' && function_exists('auth_is_super_admin') && auth_is_super_admin()): ?>
+                                            <form method="post" action="<?= site_url('/bookings/approve') ?>" class="block">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="booking_id" value="<?= esc((string) ((int) $row['id'])) ?>">
+                                                <button type="submit" onclick="return confirm('Approve this booking?');" class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">
+                                                    <i class="fa-solid fa-circle-check text-emerald-500"></i> Approve
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
                                         <a href="<?= site_url('/bookings/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-pen-to-square text-slate-400"></i> Edit
                                         </a>
-                                        <a href="<?= site_url('/bookings/' . (int) $row['id'] . '/voucher') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                                            <i class="fa-solid fa-file-lines text-slate-400"></i> Voucher
-                                        </a>
+                                        <?php if ((string) ($row['status'] ?? 'draft') !== 'draft' && (float) ($row['paid_amount'] ?? 0) > 0): ?>
+                                            <a href="<?= site_url('/bookings/' . (int) $row['id'] . '/voucher') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                                <i class="fa-solid fa-file-lines text-slate-400"></i> Voucher
+                                            </a>
+                                        <?php endif; ?>
                                         <div class="my-1 border-t border-slate-100"></div>
                                         <button type="button"
                                             class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 js-delete-btn"

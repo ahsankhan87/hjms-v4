@@ -12,6 +12,11 @@ class AgentController extends BaseController
     {
         $db = db_connect();
         $model = new AgentModel();
+        $linkedAgentId = $this->linkedAgentId();
+
+        if ($linkedAgentId !== null) {
+            $model->where('id', $linkedAgentId);
+        }
 
         return view('portal/agents/index', [
             'title'       => 'HJMS ERP | Agents',
@@ -44,6 +49,11 @@ class AgentController extends BaseController
 
     public function edit(int $id)
     {
+        $linkedAgentId = $this->linkedAgentId();
+        if ($linkedAgentId !== null && $id !== $linkedAgentId) {
+            return redirect()->to('/unauthorized')->with('error', 'You can only access your own agent record.');
+        }
+
         $model = new AgentModel();
         $row = $model->find($id);
         if (empty($row)) {
@@ -67,6 +77,11 @@ class AgentController extends BaseController
 
     public function ledger(int $id)
     {
+        $linkedAgentId = $this->linkedAgentId();
+        if ($linkedAgentId !== null) {
+            $id = $linkedAgentId;
+        }
+
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
             return redirect()->to('/agents')->with('error', 'Agent not found.');
@@ -100,6 +115,11 @@ class AgentController extends BaseController
 
     public function ledgerPrint(int $id)
     {
+        $linkedAgentId = $this->linkedAgentId();
+        if ($linkedAgentId !== null) {
+            $id = $linkedAgentId;
+        }
+
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
             return redirect()->to('/agents')->with('error', 'Agent not found.');
@@ -127,6 +147,11 @@ class AgentController extends BaseController
 
     public function manualEntry(int $id)
     {
+        $linkedAgentId = $this->linkedAgentId();
+        if ($linkedAgentId !== null) {
+            $id = $linkedAgentId;
+        }
+
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
             return redirect()->to('/agents')->with('error', 'Agent not found.');
@@ -165,6 +190,7 @@ class AgentController extends BaseController
 
     public function createLedgerEntry()
     {
+        $linkedAgentId = $this->linkedAgentId();
         $payload = [
             'agent_id' => (int) $this->request->getPost('agent_id'),
             'entry_date' => (string) $this->request->getPost('entry_date'),
@@ -172,6 +198,10 @@ class AgentController extends BaseController
             'amount' => (string) $this->request->getPost('amount'),
             'description' => trim((string) $this->request->getPost('description')),
         ];
+
+        if ($linkedAgentId !== null) {
+            $payload['agent_id'] = $linkedAgentId;
+        }
 
         if (! $this->validateData($payload, [
             'agent_id' => 'required|integer',
@@ -196,8 +226,13 @@ class AgentController extends BaseController
 
     public function deleteLedgerEntry($agentId = null)
     {
+        $linkedAgentId = $this->linkedAgentId();
         $ledgerId = (int) $this->request->getPost('ledger_id');
         $agentId = (int) ($agentId ?? $this->request->getGet('agent_id') ?? 0);
+
+        if ($linkedAgentId !== null) {
+            $agentId = $linkedAgentId;
+        }
 
         if ($ledgerId < 1) {
             return redirect()->to('/agents')->with('error', 'Invalid ledger entry ID.');

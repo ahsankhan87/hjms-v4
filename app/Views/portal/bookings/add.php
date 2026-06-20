@@ -67,11 +67,9 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
                     <select name="status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <?php $statusValue = old('status', 'draft'); ?>
-                        <option value="draft" <?= $statusValue === 'draft' ? 'selected' : '' ?>>Draft</option>
-                        <option value="confirmed" <?= $statusValue === 'confirmed' ? 'selected' : '' ?>>Confirmed</option>
-                        <option value="cancelled" <?= $statusValue === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                        <option value="draft" selected>Draft</option>
                     </select>
+                    <p class="mt-1 text-[11px] text-slate-500">New bookings are always created as Draft and require approval.</p>
                 </div>
 
                 <div>

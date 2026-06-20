@@ -58,6 +58,81 @@ if (! function_exists('auth_can')) {
     }
 }
 
+if (! function_exists('active_agent_id')) {
+    function active_agent_id()
+    {
+        static $resolved = false;
+        static $linkedAgentId = null;
+
+        if ($resolved) {
+            return $linkedAgentId;
+        }
+
+        $resolved = true;
+
+        if (! session('is_logged_in')) {
+            return null;
+        }
+
+        if (function_exists('auth_is_super_admin') && auth_is_super_admin()) {
+            return null;
+        }
+
+        $sessionAgentId = session('user_agent_id');
+        if (is_numeric($sessionAgentId) && (int) $sessionAgentId > 0) {
+            $linkedAgentId = (int) $sessionAgentId;
+
+            return $linkedAgentId;
+        }
+
+        $userId = (int) (session('user_id') ?? 0);
+        if ($userId < 1) {
+            return null;
+        }
+
+        try {
+            $db = db_connect();
+
+            if ($db->fieldExists('user_agent_id', 'users')) {
+                $userRow = $db->table('users')
+                    ->select('user_agent_id')
+                    ->where('id', $userId)
+                    ->get()
+                    ->getRowArray();
+
+                $resolvedAgentId = (int) ($userRow['user_agent_id'] ?? 0);
+                if ($resolvedAgentId > 0) {
+                    $linkedAgentId = $resolvedAgentId;
+                    session()->set('user_agent_id', $linkedAgentId);
+
+                    return $linkedAgentId;
+                }
+            }
+
+            if ($db->tableExists('agents') && $db->fieldExists('user_id', 'agents')) {
+                $agentRow = $db->table('agents')
+                    ->select('id')
+                    ->where('user_id', $userId)
+                    ->orderBy('id', 'ASC')
+                    ->get()
+                    ->getRowArray();
+
+                $resolvedAgentId = (int) ($agentRow['id'] ?? 0);
+                if ($resolvedAgentId > 0) {
+                    $linkedAgentId = $resolvedAgentId;
+                    session()->set('user_agent_id', $linkedAgentId);
+
+                    return $linkedAgentId;
+                }
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
+    }
+}
+
 if (! function_exists('season_table_ready')) {
     function season_table_ready(): bool
     {

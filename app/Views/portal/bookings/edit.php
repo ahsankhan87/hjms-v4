@@ -70,11 +70,31 @@
                 <?php $statusValue = (string) old('status', (string) ($row['status'] ?? 'draft')); ?>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                    <?php
+                    $isLinkedAgentUser = function_exists('active_agent_id') && active_agent_id() !== null;
+                    $currentStatus = (string) ($row['status'] ?? 'draft');
+                    if ($isLinkedAgentUser && $currentStatus === 'confirmed' && $statusValue === 'draft') {
+                        $statusValue = 'confirmed';
+                    }
+                    ?>
                     <select name="status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <option value="draft" <?= $statusValue === 'draft' ? 'selected' : '' ?>>Draft</option>
-                        <option value="confirmed" <?= $statusValue === 'confirmed' ? 'selected' : '' ?>>Confirmed</option>
-                        <option value="cancelled" <?= $statusValue === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                        <?php if ($isLinkedAgentUser): ?>
+                            <?php if ($currentStatus === 'confirmed'): ?>
+                                <option value="confirmed" <?= $statusValue === 'confirmed' ? 'selected' : '' ?>>Confirmed</option>
+                            <?php else: ?>
+                                <option value="draft" <?= $statusValue === 'draft' ? 'selected' : '' ?>>Draft</option>
+                            <?php endif; ?>
+                        <?php elseif ($currentStatus === 'confirmed'): ?>
+                            <option value="confirmed" <?= $statusValue === 'confirmed' ? 'selected' : '' ?>>Confirmed</option>
+                            <option value="cancelled" <?= $statusValue === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                        <?php else: ?>
+                            <option value="draft" <?= $statusValue === 'draft' ? 'selected' : '' ?>>Draft</option>
+                            <option value="cancelled" <?= $statusValue === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                        <?php endif; ?>
                     </select>
+                    <?php if (! $isLinkedAgentUser && $currentStatus !== 'confirmed'): ?>
+                        <p class="mt-1 text-[11px] text-slate-500">Use the approve button in the bookings list to approve draft bookings.</p>
+                    <?php endif; ?>
                 </div>
 
                 <?php $agentValue = (string) old('agent_id', (string) ($row['agent_id'] ?? '')); ?>

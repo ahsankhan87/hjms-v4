@@ -26,12 +26,14 @@ class AuthService
             'updated_at'    => date('Y-m-d H:i:s'),
         ]);
 
+        $linkedAgentId = $this->resolveUserAgentId((int) $user['id']);
         $authz = $this->buildAuthorization((int) $user['id']);
 
         session()->set([
             'is_logged_in'       => true,
             'user_id'            => (int) $user['id'],
             'user_email'         => (string) $user['email'],
+            'user_agent_id'      => $linkedAgentId,
             'auth_roles'         => $authz['roles'],
             'auth_permissions'   => $authz['permissions'],
         ]);
@@ -39,7 +41,7 @@ class AuthService
 
     public function logout(): void
     {
-        session()->remove(['is_logged_in', 'user_id', 'user_email', 'auth_roles', 'auth_permissions']);
+        session()->remove(['is_logged_in', 'user_id', 'user_email', 'user_agent_id', 'auth_roles', 'auth_permissions']);
         session()->regenerate(true);
     }
 
@@ -167,5 +169,47 @@ class AuthService
             'roles'       => array_values(array_unique($roles)),
             'permissions' => array_values(array_unique($permissions)),
         ];
+    }
+
+    private function resolveUserAgentId(int $userId)
+    {
+        if ($userId < 1) {
+            return null;
+        }
+
+        try {
+            $db = db_connect();
+
+            if ($db->fieldExists('user_agent_id', 'users')) {
+                $userRow = $db->table('users')
+                    ->select('user_agent_id')
+                    ->where('id', $userId)
+                    ->get()
+                    ->getRowArray();
+
+                $linkedAgentId = (int) ($userRow['user_agent_id'] ?? 0);
+                if ($linkedAgentId > 0) {
+                    return $linkedAgentId;
+                }
+            }
+
+            if ($db->tableExists('agents') && $db->fieldExists('user_id', 'agents')) {
+                $agentRow = $db->table('agents')
+                    ->select('id')
+                    ->where('user_id', $userId)
+                    ->orderBy('id', 'ASC')
+                    ->get()
+                    ->getRowArray();
+
+                $linkedAgentId = (int) ($agentRow['id'] ?? 0);
+                if ($linkedAgentId > 0) {
+                    return $linkedAgentId;
+                }
+            }
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        return null;
     }
 }

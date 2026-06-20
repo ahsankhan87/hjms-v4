@@ -72,9 +72,11 @@ $isOverpaid  = $outstanding < 0;
                     <a href="<?= site_url('/bookings/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-100/20">
                         <i class="fa-solid fa-pen-to-square"></i>Edit
                     </a>
-                    <a href="<?= site_url('/bookings/' . (int) ($row['id'] ?? 0) . '/voucher') ?>" target="_blank" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-100/20">
-                        <i class="fa-solid fa-file-lines"></i>Voucher
-                    </a>
+                    <?php if ((string) ($row['status'] ?? 'draft') !== 'draft' && (float) ($row['paid_amount'] ?? 0) > 0): ?>
+                        <a href="<?= site_url('/bookings/' . (int) ($row['id'] ?? 0) . '/voucher') ?>" target="_blank" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-100/20">
+                            <i class="fa-solid fa-file-lines"></i>Voucher
+                        </a>
+                    <?php endif; ?>
                     <form method="post" action="<?= site_url('/bookings/delete') ?>" onsubmit="return confirm('Delete this booking? This cannot be undone.');" class="inline">
                         <?= csrf_field() ?>
                         <input type="hidden" name="booking_id" value="<?= esc((string) ($row['id'] ?? 0)) ?>">
@@ -109,7 +111,7 @@ $isOverpaid  = $outstanding < 0;
             </div>
             <div class="rounded-lg border border-slate-200 bg-white px-3 py-2">
                 <p class="text-[11px] uppercase tracking-wide text-slate-500">Pilgrims</p>
-                <p class="text-sm font-bold text-slate-900"><?= esc($pilgrimCount) ?></p>
+                <p class="text-sm font-bold text-slate-900"><?= esc((string) $pilgrimCount) ?></p>
             </div>
         </div>
     </section>
@@ -293,7 +295,7 @@ $isOverpaid  = $outstanding < 0;
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-slate-500">Pilgrims</span>
-                        <span class="font-semibold text-slate-800"><?= esc($pilgrimCount) ?></span>
+                        <span class="font-semibold text-slate-800"><?= esc((string) $pilgrimCount) ?></span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-slate-500">Paid</span>

@@ -47,6 +47,17 @@
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Link Agent (Optional)</label>
+                        <?php $linkedAgentValue = old('user_agent_id', (string) ($row['user_agent_id'] ?? '')); ?>
+                        <select name="user_agent_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <option value="">No linked agent</option>
+                            <?php foreach ($agents as $agent): ?>
+                                <option value="<?= esc($agent['id']) ?>" <?= $linkedAgentValue == (string) $agent['id'] ? 'selected' : '' ?>><?= esc($agent['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="mt-1 text-[11px] text-slate-500">Linked users are restricted to their own agent data.</p>
+                    </div>
                     <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
                         <a href="<?= site_url('/users') ?>" class="btn btn-md btn-secondary">Back</a>
                         <button class="btn btn-md btn-primary" type="submit"><i class="fa-solid fa-check"></i><span>Update User</span></button>
@@ -73,6 +84,22 @@
                     <div>
                         <dt class="font-medium">Current Roles</dt>
                         <dd><?= esc(!empty($userRoles) ? implode(', ', $userRoles) : '-') ?></dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">Linked Agent</dt>
+                        <?php
+                        $linkedAgentName = '-';
+                        $currentAgentId = (int) ($row['user_agent_id'] ?? 0);
+                        if ($currentAgentId > 0) {
+                            foreach ($agents as $agent) {
+                                if ((int) ($agent['id'] ?? 0) === $currentAgentId) {
+                                    $linkedAgentName = (string) ($agent['name'] ?? '-');
+                                    break;
+                                }
+                            }
+                        }
+                        ?>
+                        <dd><?= esc($linkedAgentName) ?></dd>
                     </div>
                     <div>
                         <dt class="font-medium">Created At</dt>

@@ -29,6 +29,7 @@ class BookingController extends BaseController
     {
         $db = db_connect();
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -59,13 +60,8 @@ class BookingController extends BaseController
         $stayStartExpr = $this->packageStayDateExpr('b.package_id', 'MIN');
         $stayEndExpr = $this->packageStayDateExpr('b.package_id', 'MAX');
 
-        return view('portal/bookings/index', [
-            'title'      => 'HJMS ERP | Bookings',
-            'headerTitle' => 'Booking Operations',
-            'activePage' => 'bookings',
-            'userEmail' => (string) session('user_email'),
-            'rows'      => $db->table('bookings b')
-                ->select("b.*, c.name AS company_name, p.name AS package_name, p.include_hotel,
+        $rowsQuery = $db->table('bookings b')
+            ->select("b.*, c.name AS company_name, p.name AS package_name, p.include_hotel,
                     ag.name AS agent_name,
                     DATE_FORMAT(COALESCE(
                         " . $stayStartExpr . ",
@@ -76,17 +72,73 @@ class BookingController extends BaseController
                         (SELECT DATE(MAX(pf.departure_at)) FROM package_flights pf WHERE pf.package_id = b.package_id)
                     ), '%Y-%m-%d') AS ksa_return_date,
                     DATE_FORMAT(b.created_at, '%Y-%m-%d') AS voucher_date" . $pricingSelect)
-                ->join('packages p', 'p.id = b.package_id', 'left')
-                ->join('companies c', 'c.id = b.company_id', 'left')
-                ->join('agents ag', 'ag.id = b.agent_id', 'left')
-                ->where('b.season_id', $seasonId)
-                ->orderBy('b.id', 'DESC')
-                ->get()
-                ->getResultArray(),
+            ->join('packages p', 'p.id = b.package_id', 'left')
+            ->join('companies c', 'c.id = b.company_id', 'left')
+            ->join('agents ag', 'ag.id = b.agent_id', 'left')
+            ->where('b.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $rowsQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        return view('portal/bookings/index', [
+            'title'      => 'HJMS ERP | Bookings',
+            'headerTitle' => 'Booking Operations',
+            'activePage' => 'bookings',
+            'userEmail' => (string) session('user_email'),
+            'rows'      => $rowsQuery->orderBy('b.id', 'DESC')->get()->getResultArray(),
             'success'   => session()->getFlashdata('success'),
             'error'     => session()->getFlashdata('error'),
             'errors'    => session()->getFlashdata('errors') ?: [],
         ]);
+    }
+
+    public function approveBooking()
+    {
+        $bookingId = (int) $this->request->getPost('booking_id');
+        $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
+
+        if ($seasonId === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+
+        if ($linkedAgentId !== null) {
+            return redirect()->to('/bookings')->with('error', 'Only admin can approve bookings.');
+        }
+
+        if ($bookingId < 1) {
+            return redirect()->to('/bookings')->with('error', 'Valid booking ID is required.');
+        }
+
+        $db = db_connect();
+        $booking = $db->table('bookings')
+            ->select('id, status')
+            ->where('id', $bookingId)
+            ->where('season_id', $seasonId)
+            ->get()
+            ->getRowArray();
+
+        if (empty($booking)) {
+            return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
+        }
+
+        if ((string) ($booking['status'] ?? '') === 'cancelled') {
+            return redirect()->to('/bookings')->with('error', 'Cancelled booking cannot be approved.');
+        }
+
+        if ((string) ($booking['status'] ?? '') === 'confirmed') {
+            return redirect()->to('/bookings')->with('success', 'Booking is already approved.');
+        }
+
+        $db->table('bookings')->where('id', $bookingId)->update([
+            'status' => 'confirmed',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
+
+        return redirect()->to('/bookings')->with('success', 'Booking approved successfully.');
     }
 
     public function add()
@@ -112,6 +164,7 @@ class BookingController extends BaseController
     public function show(int $id)
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -124,7 +177,7 @@ class BookingController extends BaseController
         $stayStartExpr = $this->packageStayDateExpr('b.package_id', 'MIN');
         $stayEndExpr = $this->packageStayDateExpr('b.package_id', 'MAX');
 
-        $row = $db->table('bookings b')
+        $rowQuery = $db->table('bookings b')
             ->select("b.*,
                 p.name AS package_name, p.code AS package_code,
                 p.include_hotel,
@@ -156,9 +209,13 @@ class BookingController extends BaseController
             ->join('agents ag',   'ag.id = b.agent_id',    'left')
             ->join('branches br', 'br.id = b.branch_id',   'left')
             ->where('b.id', $id)
-            ->where('b.season_id', $seasonId)
-            ->get()
-            ->getRowArray();
+            ->where('b.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $rowQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        $row = $rowQuery->get()->getRowArray();
 
         if (empty($row)) {
             return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
@@ -196,16 +253,21 @@ class BookingController extends BaseController
     public function edit(int $id)
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();
-        $row = $db->table('bookings')
+        $rowQuery = $db->table('bookings')
             ->where('id', $id)
-            ->where('season_id', $seasonId)
-            ->get()
-            ->getRowArray();
+            ->where('season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $rowQuery->where('agent_id', $linkedAgentId);
+        }
+
+        $row = $rowQuery->get()->getRowArray();
 
         if (empty($row)) {
             return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
@@ -234,6 +296,7 @@ class BookingController extends BaseController
     {
         $returnUrl = $this->resolveReturnUrl('/bookings/add');
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -246,17 +309,22 @@ class BookingController extends BaseController
             'pricing_tier' => trim((string) $this->request->getPost('pricing_tier')),
             'agent_id'    => (int) $this->request->getPost('agent_id'),
             'branch_id'   => $this->request->getPost('branch_id') !== '' ? (int) $this->request->getPost('branch_id') : null,
-            'status'      => (string) ($this->request->getPost('status') ?: 'draft'),
+            'status'      => 'draft',
             'remarks'     => (string) $this->request->getPost('remarks'),
             'pilgrim_ids' => $pilgrimIds,
         ];
+
+        if ($linkedAgentId !== null) {
+            $payload['agent_id'] = $linkedAgentId;
+            $payload['status'] = 'draft';
+        }
 
         if (! $this->validateData($payload, [
             'package_id'  => 'required|integer',
             'pricing_tier' => 'required|in_list[sharing,quad,triple,double]',
             'agent_id'    => 'required|integer|greater_than[0]',
             'branch_id'   => 'permit_empty|integer',
-            'status'      => 'required|in_list[draft,confirmed,cancelled]',
+            'status'      => 'required|in_list[draft]',
             'remarks'     => 'permit_empty|max_length[5000]',
             'pilgrim_ids' => 'required',
         ])) {
@@ -292,7 +360,13 @@ class BookingController extends BaseController
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Selected package does not have pricing configured for chosen tier.');
             }
 
-            $seasonPilgrimCount = $db->table('pilgrims')->where('season_id', $seasonId)->whereIn('id', $pilgrimIds)->countAllResults();
+            $seasonPilgrimsQuery = $db->table('pilgrims')
+                ->where('season_id', $seasonId)
+                ->whereIn('id', $pilgrimIds);
+            if ($linkedAgentId !== null) {
+                $seasonPilgrimsQuery->where('agent_id', $linkedAgentId);
+            }
+            $seasonPilgrimCount = $seasonPilgrimsQuery->countAllResults();
             if ($seasonPilgrimCount !== count($pilgrimIds)) {
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Some selected pilgrims do not belong to active season.');
             }
@@ -420,6 +494,7 @@ class BookingController extends BaseController
         $bookingId = (int) $this->request->getPost('booking_id');
         $returnUrl = $this->resolveReturnUrl($bookingId > 0 ? '/bookings/' . $bookingId . '/edit' : '/bookings');
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -433,6 +508,10 @@ class BookingController extends BaseController
             'status'      => (string) $this->request->getPost('status'),
             'remarks'     => (string) $this->request->getPost('remarks'),
         ];
+
+        if ($linkedAgentId !== null) {
+            $payload['agent_id'] = $linkedAgentId;
+        }
 
         if ($bookingId < 1) {
             return redirect()->to($returnUrl)->withInput()->with('error', 'Valid booking ID is required.');
@@ -487,8 +566,23 @@ class BookingController extends BaseController
             $pricingService = new PackagePricingService($db);
 
             $existing = $bookingModel->where('id', $bookingId)->where('season_id', $seasonId)->first();
+            if ($linkedAgentId !== null && (int) ($existing['agent_id'] ?? 0) !== $linkedAgentId) {
+                $existing = null;
+            }
             if (empty($existing)) {
                 return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
+            }
+
+            if (isset($data['status']) && (string) $data['status'] === 'confirmed' && (string) ($existing['status'] ?? '') !== 'confirmed') {
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Use the approve button in the bookings list to approve draft bookings.');
+            }
+
+            if (
+                isset($data['status'])
+                && (string) $data['status'] === 'draft'
+                && (string) ($existing['status'] ?? '') === 'confirmed'
+            ) {
+                $data['status'] = 'confirmed';
             }
 
             if (isset($data['package_id'])) {
@@ -545,7 +639,13 @@ class BookingController extends BaseController
             $bookingModel->update($bookingId, $this->filterBookingColumns($data + ['updated_at' => date('Y-m-d H:i:s')]));
 
             if ($postedPilgrims !== null) {
-                $seasonPilgrimCount = $db->table('pilgrims')->where('season_id', $seasonId)->whereIn('id', $pilgrimIds)->countAllResults();
+                $seasonPilgrimsQuery = $db->table('pilgrims')
+                    ->where('season_id', $seasonId)
+                    ->whereIn('id', $pilgrimIds);
+                if ($linkedAgentId !== null) {
+                    $seasonPilgrimsQuery->where('agent_id', $linkedAgentId);
+                }
+                $seasonPilgrimCount = $seasonPilgrimsQuery->countAllResults();
                 if ($seasonPilgrimCount !== count($pilgrimIds)) {
                     return redirect()->to($returnUrl)->withInput()->with('error', 'Some selected pilgrims do not belong to active season.');
                 }
@@ -668,6 +768,7 @@ class BookingController extends BaseController
         }
 
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return $this->response->setStatusCode(422)->setJSON([
                 'status' => 'error',
@@ -710,7 +811,7 @@ class BookingController extends BaseController
 
         try {
             $model = new PilgrimModel();
-            $model->insert([
+            $insertData = [
                 'season_id' => $seasonId,
                 'first_name' => $payload['first_name'],
                 'last_name' => $payload['last_name'] !== '' ? $payload['last_name'] : '-',
@@ -722,7 +823,13 @@ class BookingController extends BaseController
                 'is_active' => 1,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
-            ]);
+            ];
+
+            if ($linkedAgentId !== null) {
+                $insertData['agent_id'] = $linkedAgentId;
+            }
+
+            $model->insert($insertData);
 
             $createdId = (int) $model->getInsertID();
             $displayName = trim($payload['first_name'] . ' ' . $payload['last_name']);
@@ -763,6 +870,7 @@ class BookingController extends BaseController
     {
         $db = db_connect();
         $pricingService = new PackagePricingService($db);
+        $linkedAgentId = $this->linkedAgentId();
 
         $packages = $db->table('packages')->where('season_id', $seasonId)->orderBy('departure_date', 'DESC')->get()->getResultArray();
         $packageIds = array_values(array_unique(array_map(static function (array $row): int {
@@ -871,18 +979,33 @@ class BookingController extends BaseController
             'seatsLimitByPackage'    => $seatsLimitByPackage,
             'bookedSeatsCountByPackage' => $bookedSeatsCountByPackage,
             'bookedPackageCountByPackage' => $bookedPackageCountByPackage,
-            'agents'    => $db->table('agents')->orderBy('name', 'ASC')->get()->getResultArray(),
+            'agents'    => (function () use ($db, $linkedAgentId) {
+                $query = $db->table('agents');
+                if ($linkedAgentId !== null) {
+                    $query->where('id', $linkedAgentId);
+                }
+
+                return $query->orderBy('name', 'ASC')->get()->getResultArray();
+            })(),
             'branches'  => $db->table('branches')->orderBy('name', 'ASC')->get()->getResultArray(),
             'companies' => company_table_ready()
                 ? $db->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
                 : [],
-            'pilgrims'  => $db->table('pilgrims')
-                ->select('id, first_name, last_name, passport_no')
-                ->where('season_id', $seasonId)
-                ->where($excludeConfirmedCondition, null, false)
-                ->orderBy('id', 'DESC')
-                ->get()
-                ->getResultArray(),
+            'pilgrims'  => (function () use ($db, $seasonId, $excludeConfirmedCondition, $linkedAgentId) {
+                $query = $db->table('pilgrims')
+                    ->select('id, first_name, last_name, passport_no')
+                    ->where('season_id', $seasonId);
+
+                if ($linkedAgentId !== null) {
+                    $query->where('agent_id', $linkedAgentId);
+                }
+
+                return $query
+                    ->where($excludeConfirmedCondition, null, false)
+                    ->orderBy('id', 'DESC')
+                    ->get()
+                    ->getResultArray();
+            })(),
         ];
     }
 
@@ -1042,6 +1165,7 @@ class BookingController extends BaseController
     {
         $bookingId = (int) $this->request->getPost('booking_id');
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -1055,6 +1179,9 @@ class BookingController extends BaseController
             $db = db_connect();
 
             $existing = $bookingModel->where('id', $bookingId)->where('season_id', $seasonId)->first();
+            if ($linkedAgentId !== null && (int) ($existing['agent_id'] ?? 0) !== $linkedAgentId) {
+                $existing = null;
+            }
             if (empty($existing)) {
                 return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
             }
@@ -1079,6 +1206,7 @@ class BookingController extends BaseController
     public function voucher(int $bookingId)
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -1089,17 +1217,25 @@ class BookingController extends BaseController
 
         $db = db_connect();
 
-        $booking = $db->table('bookings b')
+        $bookingQuery = $db->table('bookings b')
             ->select('b.*, p.code AS package_code, p.name AS package_name, p.package_type, p.include_hotel, p.include_ticket, p.include_transport, p.departure_date AS package_departure_date, p.arrival_date AS package_arrival_date, c.id AS shirka_id, c.name AS shirka_name, c.logo_url AS shirka_logo_url, c.address AS shirka_address')
             ->join('packages p', 'p.id = b.package_id', 'left')
             ->join('companies c', 'c.id = b.company_id', 'left')
             ->where('b.season_id', $seasonId)
-            ->where('b.id', $bookingId)
-            ->get()
-            ->getRowArray();
+            ->where('b.id', $bookingId);
+
+        if ($linkedAgentId !== null) {
+            $bookingQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        $booking = $bookingQuery->get()->getRowArray();
 
         if (empty($booking)) {
             return redirect()->to('/bookings')->with('error', 'Booking not found.');
+        }
+
+        if ((string) ($booking['status'] ?? '') === 'draft') {
+            return redirect()->to('/bookings')->with('error', 'Voucher is available after booking approval.');
         }
 
         $configuredShirka = $this->resolveDefaultShirkaCompany($db);

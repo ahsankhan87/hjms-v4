@@ -567,12 +567,14 @@
                     $canFlights = auth_can('flights.view');
                     $canTransports = auth_can('transports.view');
                     $canPayments = auth_can('payments.view');
+                    $canSuppliers = auth_can('suppliers.view');
                     $canBookings = auth_can('bookings.view');
+                    $isLinkedAgentUser = function_exists('active_agent_id') && active_agent_id() !== null;
                     $canBranches = auth_can('branches.view');
                     $canAgents = auth_can('agents.view');
                     $canUsers = auth_can('users.view');
                     $canCompanies = auth_can('companies.view');
-                    $canCompaniesManage = auth_can('companies.manage');
+                    $canCompaniesManage = auth_can('companies.edit');
                     $canReports = auth_can('reports.view');
                     $canAudit = auth_can('audit.view');
                     ?>
@@ -615,16 +617,20 @@
                         </a>
                     <?php endif; ?>
 
-                    <?php if ($canPayments): ?>
+                    <?php if ($canPayments || $canSuppliers): ?>
                         <div class="px-4 mt-6 mb-2">
                             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
                         </div>
-                        <a href="<?= site_url('/payments') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'payments' ? 'active' : '' ?>">
-                            <i class="fa-solid fa-wallet w-4"></i><span>Payments</span>
-                        </a>
-                        <a href="<?= site_url('/suppliers') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'suppliers' ? 'active' : '' ?>">
-                            <i class="fa-solid fa-handshake w-4"></i><span>Suppliers</span>
-                        </a>
+                        <?php if ($canPayments): ?>
+                            <a href="<?= site_url('/payments') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'payments' ? 'active' : '' ?>">
+                                <i class="fa-solid fa-wallet w-4"></i><span>Payments</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($canSuppliers): ?>
+                            <a href="<?= site_url('/suppliers') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'suppliers' ? 'active' : '' ?>">
+                                <i class="fa-solid fa-handshake w-4"></i><span>Suppliers</span>
+                            </a>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <?php if ($canBookings || $canBranches || $canAgents || $canReports): ?>

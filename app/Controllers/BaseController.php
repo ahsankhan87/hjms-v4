@@ -53,4 +53,40 @@ abstract class BaseController extends Controller
 
         return $seasonId !== null && $seasonId > 0 ? (int) $seasonId : null;
     }
+
+    protected function linkedAgentId()
+    {
+        if (! function_exists('active_agent_id')) {
+            return null;
+        }
+
+        $agentId = active_agent_id();
+
+        return $agentId !== null && $agentId > 0 ? (int) $agentId : null;
+    }
+
+    protected function applyLinkedAgentScope($builder, string $column = 'agent_id'): void
+    {
+        $agentId = $this->linkedAgentId();
+        if ($agentId !== null) {
+            $builder->where($column, $agentId);
+        }
+    }
+
+    protected function isForeignAgentRecord($recordAgentId): bool
+    {
+        $linkedAgentId = $this->linkedAgentId();
+        if ($linkedAgentId === null) {
+            return false;
+        }
+
+        return (int) $recordAgentId !== $linkedAgentId;
+    }
+
+    protected function coerceOwnedAgentId(int $requestedAgentId): int
+    {
+        $linkedAgentId = $this->linkedAgentId();
+
+        return $linkedAgentId !== null ? $linkedAgentId : $requestedAgentId;
+    }
 }

@@ -29,6 +29,7 @@ class PilgrimController extends BaseController
     {
         $q = trim((string) $this->request->getGet('q'));
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
 
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
@@ -48,6 +49,10 @@ class PilgrimController extends BaseController
                     GROUP BY bp.pilgrim_id) pb', 'pb.pilgrim_id = p.id', 'left')
                 ->join('bookings bk', 'bk.id = pb.booking_id', 'left')
                 ->where('p.season_id', $seasonId);
+
+            if ($linkedAgentId !== null) {
+                $builder->where('p.agent_id', $linkedAgentId);
+            }
 
             if ($q !== '') {
                 $builder->groupStart()
@@ -75,6 +80,9 @@ class PilgrimController extends BaseController
                     ->orLike('mobile_no', $q)
                     ->orLike('email', $q)
                     ->groupEnd();
+            }
+            if ($linkedAgentId !== null) {
+                $model->where('agent_id', $linkedAgentId);
             }
             $rows = $model->orderBy('id', 'DESC')->findAll();
         }
@@ -126,8 +134,13 @@ class PilgrimController extends BaseController
 
     public function edit(int $id)
     {
+        $linkedAgentId = $this->linkedAgentId();
         $model = new PilgrimModel();
         $row = $model->where('id', $id)->where('season_id', $this->activeSeasonId())->first();
+
+        if ($linkedAgentId !== null && (int) ($row['agent_id'] ?? 0) !== $linkedAgentId) {
+            $row = null;
+        }
 
         if (empty($row)) {
             return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found.');
@@ -150,6 +163,7 @@ class PilgrimController extends BaseController
     public function createPilgrim()
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -201,7 +215,7 @@ class PilgrimController extends BaseController
 
         try {
             $model = new PilgrimModel();
-            $model->insert([
+            $insertData = [
                 'season_id'            => $seasonId,
                 'first_name'           => $payload['first_name'],
                 'last_name'            => $payload['last_name'] !== '' ? $payload['last_name'] : '-',
@@ -222,7 +236,13 @@ class PilgrimController extends BaseController
                 'is_active'            => 1,
                 'created_at'           => date('Y-m-d H:i:s'),
                 'updated_at'           => date('Y-m-d H:i:s'),
-            ] + $imageData);
+            ] + $imageData;
+
+            if ($linkedAgentId !== null) {
+                $insertData['agent_id'] = $linkedAgentId;
+            }
+
+            $model->insert($insertData);
 
             return redirect()->to('/pilgrims')->with('success', 'Pilgrim created successfully.');
         } catch (\Throwable $e) {
@@ -234,6 +254,7 @@ class PilgrimController extends BaseController
     {
         $pilgrimId = (int) $this->request->getPost('pilgrim_id');
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -291,7 +312,11 @@ class PilgrimController extends BaseController
 
         try {
             $model = new PilgrimModel();
-            $existing = $model->where('id', $pilgrimId)->where('season_id', $seasonId)->first();
+            $existingQuery = $model->where('id', $pilgrimId)->where('season_id', $seasonId);
+            if ($linkedAgentId !== null) {
+                $existingQuery->where('agent_id', $linkedAgentId);
+            }
+            $existing = $existingQuery->first();
             if (empty($existing)) {
                 return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found in active season.');
             }
@@ -327,6 +352,7 @@ class PilgrimController extends BaseController
     {
         $pilgrimId = (int) $this->request->getPost('pilgrim_id');
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -337,7 +363,11 @@ class PilgrimController extends BaseController
 
         try {
             $model = new PilgrimModel();
-            $existing = $model->where('id', $pilgrimId)->where('season_id', $seasonId)->first();
+            $existingQuery = $model->where('id', $pilgrimId)->where('season_id', $seasonId);
+            if ($linkedAgentId !== null) {
+                $existingQuery->where('agent_id', $linkedAgentId);
+            }
+            $existing = $existingQuery->first();
             if (empty($existing)) {
                 return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found in active season.');
             }
@@ -356,6 +386,7 @@ class PilgrimController extends BaseController
 
     public function importMofaCsv()
     {
+        $linkedAgentId = $this->linkedAgentId();
         if ($this->activeSeasonId() === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -404,6 +435,10 @@ class PilgrimController extends BaseController
                 if ($mapped === null) {
                     $skipped++;
                     continue;
+                }
+
+                if ($linkedAgentId !== null) {
+                    $mapped['agent_id'] = $linkedAgentId;
                 }
 
                 $passportKey = strtoupper(trim((string) ($mapped['passport_no'] ?? '')));

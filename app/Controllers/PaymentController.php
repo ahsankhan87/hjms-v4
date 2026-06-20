@@ -11,6 +11,7 @@ class PaymentController extends BaseController
     public function index()
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -47,6 +48,10 @@ class PaymentController extends BaseController
             ];
         }
 
+        if ($linkedAgentId !== null) {
+            $filters['agent_id'] = (string) $linkedAgentId;
+        }
+
         $db = db_connect();
 
         $aggregateRows = $db->table('payments')
@@ -62,13 +67,16 @@ class PaymentController extends BaseController
             $paidByBooking[(int) ($aggregate['booking_id'] ?? 0)] = (float) ($aggregate['paid_total'] ?? 0);
         }
 
-        $bookingRows = $db->table('bookings b')
+        $bookingRowsQuery = $db->table('bookings b')
             ->select('b.id, b.booking_no, b.status, b.total_amount, b.agent_id, a.name AS agent_name')
             ->join('agents a', 'a.id = b.agent_id', 'left')
-            ->where('b.season_id', $seasonId)
-            ->orderBy('b.id', 'DESC')
-            ->get()
-            ->getResultArray();
+            ->where('b.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $bookingRowsQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        $bookingRows = $bookingRowsQuery->orderBy('b.id', 'DESC')->get()->getResultArray();
 
         $bookings = [];
         foreach ($bookingRows as $booking) {
@@ -85,6 +93,10 @@ class PaymentController extends BaseController
             ->join('bookings b', 'b.id = p.booking_id', 'left')
             ->join('agents a', 'a.id = b.agent_id', 'left')
             ->where('p.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $recentQuery->where('b.agent_id', $linkedAgentId);
+        }
 
         if ($filters['from_date'] !== '') {
             $recentQuery->where('DATE(p.payment_date) >=', $filters['from_date']);
@@ -159,7 +171,14 @@ class PaymentController extends BaseController
             'userEmail' => (string) session('user_email'),
             'rows'      => $recentRows,
             'bookings'  => $bookings,
-            'agents'    => $db->table('agents')->select('id, name')->orderBy('name', 'ASC')->get()->getResultArray(),
+            'agents'    => (function () use ($db, $linkedAgentId) {
+                $query = $db->table('agents')->select('id, name');
+                if ($linkedAgentId !== null) {
+                    $query->where('id', $linkedAgentId);
+                }
+
+                return $query->orderBy('name', 'ASC')->get()->getResultArray();
+            })(),
             'filters'   => $filters,
             'filterErrors' => $filterErrors,
             'paymentSummary' => $paymentSummary,
@@ -172,6 +191,7 @@ class PaymentController extends BaseController
     public function createPayment()
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -213,7 +233,14 @@ class PaymentController extends BaseController
 
             $paymentNo = $this->generateUniquePaymentNo();
 
-            $booking = db_connect()->table('bookings')->select('id')->where('id', $payload['booking_id'])->where('season_id', $seasonId)->get()->getRowArray();
+            $bookingQuery = db_connect()->table('bookings')
+                ->select('id')
+                ->where('id', $payload['booking_id'])
+                ->where('season_id', $seasonId);
+            if ($linkedAgentId !== null) {
+                $bookingQuery->where('agent_id', $linkedAgentId);
+            }
+            $booking = $bookingQuery->get()->getRowArray();
             if (empty($booking)) {
                 return redirect()->to('/payments/create')->withInput()->with('error', 'Selected booking is not in active season.');
             }
@@ -263,6 +290,7 @@ class PaymentController extends BaseController
     {
         $paymentId = (int) $this->request->getPost('payment_id');
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -338,8 +366,28 @@ class PaymentController extends BaseController
                 return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
             }
 
+            if ($linkedAgentId !== null) {
+                $ownedBooking = db_connect()->table('bookings')
+                    ->select('id')
+                    ->where('id', (int) ($existing['booking_id'] ?? 0))
+                    ->where('season_id', $seasonId)
+                    ->where('agent_id', $linkedAgentId)
+                    ->get()
+                    ->getRowArray();
+                if (empty($ownedBooking)) {
+                    return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                }
+            }
+
             if (isset($data['booking_id'])) {
-                $booking = db_connect()->table('bookings')->select('id')->where('id', (int) $data['booking_id'])->where('season_id', $seasonId)->get()->getRowArray();
+                $bookingQuery = db_connect()->table('bookings')
+                    ->select('id')
+                    ->where('id', (int) $data['booking_id'])
+                    ->where('season_id', $seasonId);
+                if ($linkedAgentId !== null) {
+                    $bookingQuery->where('agent_id', $linkedAgentId);
+                }
+                $booking = $bookingQuery->get()->getRowArray();
                 if (empty($booking)) {
                     return redirect()->to('/payments')->withInput()->with('error', 'Selected booking is not in active season.');
                 }
@@ -399,6 +447,7 @@ class PaymentController extends BaseController
         $paymentId = (int) $this->request->getPost('payment_id');
         $voidReason = trim((string) $this->request->getPost('void_reason'));
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -411,6 +460,19 @@ class PaymentController extends BaseController
             $existing = $model->where('id', $paymentId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
                 return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+            }
+
+            if ($linkedAgentId !== null) {
+                $ownedBooking = db_connect()->table('bookings')
+                    ->select('id')
+                    ->where('id', (int) ($existing['booking_id'] ?? 0))
+                    ->where('season_id', $seasonId)
+                    ->where('agent_id', $linkedAgentId)
+                    ->get()
+                    ->getRowArray();
+                if (empty($ownedBooking)) {
+                    return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                }
             }
 
             if ((string) ($existing['status'] ?? '') === 'voided') {
@@ -446,12 +508,13 @@ class PaymentController extends BaseController
     public function createForm()
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();
-        $bookings = $this->buildBookingsList($db, $seasonId);
+        $bookings = $this->buildBookingsList($db, $seasonId, $linkedAgentId);
 
         return view('portal/payments/create', [
             'title'       => 'HJMS ERP | Post Payment',
@@ -467,6 +530,7 @@ class PaymentController extends BaseController
     public function editForm(int $paymentId)
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -475,20 +539,24 @@ class PaymentController extends BaseController
         }
 
         $db = db_connect();
-        $payment = $db->table('payments p')
+        $paymentQuery = $db->table('payments p')
             ->select('p.*, b.booking_no, b.agent_id, b.total_amount AS booking_total, a.name AS agent_name')
             ->join('bookings b', 'b.id = p.booking_id', 'left')
             ->join('agents a', 'a.id = b.agent_id', 'left')
             ->where('p.id', $paymentId)
-            ->where('p.season_id', $seasonId)
-            ->get()
-            ->getRowArray();
+            ->where('p.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $paymentQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        $payment = $paymentQuery->get()->getRowArray();
 
         if (empty($payment)) {
             return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
         }
 
-        $bookings  = $this->buildBookingsList($db, $seasonId);
+        $bookings  = $this->buildBookingsList($db, $seasonId, $linkedAgentId);
         $financials = $this->getBookingFinancials((int) ($payment['booking_id'] ?? 0), $seasonId, $paymentId);
 
         return view('portal/payments/edit', [
@@ -508,6 +576,7 @@ class PaymentController extends BaseController
     public function show(int $paymentId)
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -516,15 +585,19 @@ class PaymentController extends BaseController
         }
 
         $db = db_connect();
-        $payment = $db->table('payments p')
+        $paymentQuery = $db->table('payments p')
             ->select('p.*, b.booking_no, b.status AS booking_status, b.agent_id, b.total_amount AS booking_total, pkg.name AS package_name, pkg.code AS package_code, a.name AS agent_name')
             ->join('bookings b', 'b.id = p.booking_id', 'left')
             ->join('agents a', 'a.id = b.agent_id', 'left')
             ->join('packages pkg', 'pkg.id = b.package_id', 'left')
             ->where('p.id', $paymentId)
-            ->where('p.season_id', $seasonId)
-            ->get()
-            ->getRowArray();
+            ->where('p.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $paymentQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        $payment = $paymentQuery->get()->getRowArray();
 
         if (empty($payment)) {
             return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
@@ -545,7 +618,7 @@ class PaymentController extends BaseController
     }
 
     /** Shared helper: build bookings list with paid/outstanding amounts. */
-    private function buildBookingsList(\CodeIgniter\Database\BaseConnection $db, int $seasonId): array
+    private function buildBookingsList(\CodeIgniter\Database\BaseConnection $db, int $seasonId, $linkedAgentId = null): array
     {
         $aggregateRows = $db->table('payments')
             ->select('booking_id, COALESCE(SUM(CASE WHEN payment_type = "refund" THEN -amount ELSE amount END), 0) AS paid_total')
@@ -560,13 +633,16 @@ class PaymentController extends BaseController
             $paidByBooking[(int) ($agg['booking_id'] ?? 0)] = (float) ($agg['paid_total'] ?? 0);
         }
 
-        $bookingRows = $db->table('bookings b')
+        $bookingRowsQuery = $db->table('bookings b')
             ->select('b.id, b.booking_no, b.status, b.total_amount, b.agent_id, a.name AS agent_name')
             ->join('agents a', 'a.id = b.agent_id', 'left')
-            ->where('b.season_id', $seasonId)
-            ->orderBy('b.id', 'DESC')
-            ->get()
-            ->getResultArray();
+            ->where('b.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $bookingRowsQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        $bookingRows = $bookingRowsQuery->orderBy('b.id', 'DESC')->get()->getResultArray();
 
         $bookings = [];
         foreach ($bookingRows as $booking) {
@@ -584,6 +660,7 @@ class PaymentController extends BaseController
     public function receipt(int $paymentId)
     {
         $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -593,15 +670,19 @@ class PaymentController extends BaseController
         }
 
         $db = db_connect();
-        $payment = $db->table('payments p')
+        $paymentQuery = $db->table('payments p')
             ->select('p.*, b.booking_no, b.remarks AS booking_remarks, b.total_amount, b.agent_id, pkg.code AS package_code, pkg.name AS package_name, a.name AS agent_name')
             ->join('bookings b', 'b.id = p.booking_id', 'left')
             ->join('packages pkg', 'pkg.id = b.package_id', 'left')
             ->join('agents a', 'a.id = b.agent_id', 'left')
             ->where('p.id', $paymentId)
-            ->where('p.season_id', $seasonId)
-            ->get()
-            ->getRowArray();
+            ->where('p.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $paymentQuery->where('b.agent_id', $linkedAgentId);
+        }
+
+        $payment = $paymentQuery->get()->getRowArray();
 
         if (empty($payment)) {
             return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
@@ -629,48 +710,9 @@ class PaymentController extends BaseController
 
     private function syncBookingStatusByPayments(int $bookingId, int $seasonId)
     {
-        if ($bookingId < 1 || $seasonId < 1) {
-            return;
-        }
-
-        $db = db_connect();
-        $booking = $db->table('bookings')
-            ->select('id, status, total_amount')
-            ->where('id', $bookingId)
-            ->where('season_id', $seasonId)
-            ->get()
-            ->getRowArray();
-
-        if (empty($booking)) {
-            return;
-        }
-
-        if ((string) ($booking['status'] ?? '') === 'cancelled') {
-            return;
-        }
-
-        $postedIncomingCount = (int) $db->table('payments')
-            ->where('booking_id', $bookingId)
-            ->where('season_id', $seasonId)
-            ->where('status', 'posted')
-            ->where('payment_type', 'payment')
-            ->where('amount >', 0)
-            ->countAllResults();
-
-        if ($postedIncomingCount > 0) {
-            $db->table('bookings')->where('id', $bookingId)->update([
-                'status' => 'confirmed',
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-            return;
-        }
-
-        if ((string) ($booking['status'] ?? '') === 'confirmed') {
-            $db->table('bookings')->where('id', $bookingId)->update([
-                'status' => 'draft',
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-        }
+        // Booking approval is manual via BookingController::approveBooking.
+        // Keep this hook for backward compatibility with existing payment flows.
+        return;
     }
 
     private function bookingConfirmMode(): string

@@ -32,14 +32,16 @@
                     <p class="mt-1 text-xs text-slate-500">Browse package performance, facilities, prices, and availability with a richer card view.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <a href="<?= site_url('/packages/inactive') ?>" class="btn btn-md btn-outline inline-flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-box-archive"></i>
-                        <span>Inactive Packages<?= isset($inactiveCount) ? ' (' . (int) $inactiveCount . ')' : '' ?></span>
-                    </a>
-                    <a href="<?= site_url('/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Create New Package</span>
-                    </a>
+                    <?php if (!empty($canManagePackage)): ?>
+                        <a href="<?= site_url('/packages/inactive') ?>" class="btn btn-md btn-outline inline-flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-box-archive"></i>
+                            <span>Inactive Packages<?= isset($inactiveCount) ? ' (' . (int) $inactiveCount . ')' : '' ?></span>
+                        </a>
+                        <a href="<?= site_url('/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Create New Package</span>
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </section>
@@ -281,25 +283,29 @@
 
                         <!-- Card Footer / Actions -->
                         <div class="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50/80 px-3 py-2">
-                            <div class="flex items-center gap-2">
-                                <form method="post" action="<?= site_url('/packages/status') ?>" class="shrink-0" onsubmit="return confirm('Move this package to inactive list?');">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
-                                    <input type="hidden" name="is_active" value="0">
-                                    <input type="hidden" name="redirect_to" value="packages">
-                                    <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-white text-amber-600 transition hover:bg-amber-50" title="Move To Inactive">
-                                        <i class="fa-solid fa-box-archive"></i>
-                                    </button>
-                                </form>
+                            <?php if (!empty($canManagePackage)): ?>
+                                <div class="flex items-center gap-2">
+                                    <form method="post" action="<?= site_url('/packages/status') ?>" class="shrink-0" onsubmit="return confirm('Move this package to inactive list?');">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
+                                        <input type="hidden" name="is_active" value="0">
+                                        <input type="hidden" name="redirect_to" value="packages">
+                                        <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-white text-amber-600 transition hover:bg-amber-50" title="Move To Inactive">
+                                            <i class="fa-solid fa-box-archive"></i>
+                                        </button>
+                                    </form>
 
-                                <form method="post" action="<?= site_url('/packages/delete') ?>" class="shrink-0" onsubmit="return confirm('Are you sure you want to delete this package?');">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
-                                    <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50" title="Delete Package">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                </form>
-                            </div>
+                                    <form method="post" action="<?= site_url('/packages/delete') ?>" class="shrink-0" onsubmit="return confirm('Are you sure you want to delete this package?');">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
+                                        <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50" title="Delete Package">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            <?php else: ?>
+                                <div></div>
+                            <?php endif; ?>
 
                             <button type="button"
                                 onclick="sharePackage(<?= (int) $card['id'] ?>)"
@@ -308,10 +314,17 @@
                                 <i class="fa-solid fa-download"></i>
                             </button>
 
-                            <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="btn btn-md btn-primary inline-flex flex-1 items-center justify-center gap-2 text-center">
-                                <i class="fa-solid fa-gear"></i>
-                                <span>Manage Package</span>
-                            </a>
+                            <?php if (!empty($canManagePackage)): ?>
+                                <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="btn btn-md btn-primary inline-flex flex-1 items-center justify-center gap-2 text-center">
+                                    <i class="fa-solid fa-gear"></i>
+                                    <span>Manage Package</span>
+                                </a>
+                            <?php else: ?>
+                                <span class="btn btn-md btn-secondary inline-flex flex-1 items-center justify-center gap-2 text-center opacity-80 cursor-default pointer-events-none">
+                                    <i class="fa-solid fa-eye"></i>
+                                    <span>View Only</span>
+                                </span>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>

@@ -21,6 +21,27 @@ use App\Models\TransportModel;
 
 class PackageController extends BaseController
 {
+    private function isAgentPackageReadOnlyUser(): bool
+    {
+        return $this->linkedAgentId() !== null;
+    }
+
+    private function denyPackageManagement()
+    {
+        if ($this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'status' => 'error',
+                'message' => 'Linked agent users can only view active packages.',
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ],
+            ]);
+        }
+
+        return redirect()->to('/packages')->with('error', 'Linked agent users can only view active packages.');
+    }
+
     public function index()
     {
         if ($this->activeSeasonId() === null) {
@@ -45,6 +66,7 @@ class PackageController extends BaseController
             'rows'        => $rows,
             'cards'       => $this->buildPackageCards($rows),
             'inactiveCount' => $inactiveCount,
+            'canManagePackage' => ! $this->isAgentPackageReadOnlyUser(),
             'success'     => $successMessage,
             'error'       => session()->getFlashdata('error'),
             'errors'      => session()->getFlashdata('errors') ?: [],
@@ -53,6 +75,10 @@ class PackageController extends BaseController
 
     public function inactive()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         if ($this->activeSeasonId() === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -76,6 +102,10 @@ class PackageController extends BaseController
 
     public function setPackageStatus()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $payload = [
             'package_id' => (int) $this->request->getPost('package_id'),
             'is_active' => (string) $this->request->getPost('is_active'),
@@ -475,6 +505,10 @@ class PackageController extends BaseController
 
     public function add()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         if ($this->activeSeasonId() === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -492,6 +526,10 @@ class PackageController extends BaseController
 
     public function edit(int $id)
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $model = new PackageModel();
         $row = $model->where('id', $id)->where('season_id', $this->activeSeasonId())->first();
 
@@ -631,6 +669,10 @@ class PackageController extends BaseController
 
     public function createPackage()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
@@ -696,6 +738,10 @@ class PackageController extends BaseController
 
     public function updatePackage()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $packageId = (int) $this->request->getPost('package_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
@@ -831,6 +877,10 @@ class PackageController extends BaseController
 
     public function deletePackage()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $packageId = (int) $this->request->getPost('package_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
@@ -860,6 +910,10 @@ class PackageController extends BaseController
 
     public function createPackageCost()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $payload = [
             'package_id'  => (int) $this->request->getPost('package_id'),
             'cost_type'   => (string) $this->request->getPost('cost_type'),
@@ -900,6 +954,10 @@ class PackageController extends BaseController
 
     public function quickCreateHotel()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id' => (int) $this->request->getPost('package_id'),
@@ -989,6 +1047,10 @@ class PackageController extends BaseController
 
     public function quickCreateFlight()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id' => (int) $this->request->getPost('package_id'),
@@ -1115,6 +1177,10 @@ class PackageController extends BaseController
 
     public function quickCreateTransport()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id' => (int) $this->request->getPost('package_id'),
@@ -1211,6 +1277,10 @@ class PackageController extends BaseController
 
     public function deletePackageCost()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $costId = (int) $this->request->getPost('package_cost_id');
         $packageId = (int) $this->request->getPost('package_id');
 
@@ -1232,6 +1302,10 @@ class PackageController extends BaseController
 
     public function createPackageHotel()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id'    => (int) $this->request->getPost('package_id'),
@@ -1561,6 +1635,10 @@ class PackageController extends BaseController
 
     public function deletePackageHotel()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $rowId = (int) $this->request->getPost('package_hotel_id');
         $packageId = (int) $this->request->getPost('package_id');
@@ -1653,6 +1731,10 @@ class PackageController extends BaseController
 
     public function createPackageFlight()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id'   => (int) $this->request->getPost('package_id'),
@@ -1758,6 +1840,10 @@ class PackageController extends BaseController
 
     public function deletePackageFlight()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $rowId = (int) $this->request->getPost('package_flight_id');
         $packageId = (int) $this->request->getPost('package_id');
@@ -1828,6 +1914,10 @@ class PackageController extends BaseController
 
     public function createPackageTransport()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $payload = [
             'package_id'   => (int) $this->request->getPost('package_id'),
@@ -1927,6 +2017,10 @@ class PackageController extends BaseController
 
     public function deletePackageTransport()
     {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
         $isAjax = $this->request->isAJAX();
         $rowId = (int) $this->request->getPost('package_transport_id');
         $packageId = (int) $this->request->getPost('package_id');

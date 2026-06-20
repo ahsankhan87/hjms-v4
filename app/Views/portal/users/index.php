@@ -26,6 +26,7 @@
                         <th class="px-3 py-2 text-left">ID</th>
                         <th class="px-3 py-2 text-left">Name</th>
                         <th class="px-3 py-2 text-left">Email</th>
+                        <th class="px-3 py-2 text-left">Linked Agent</th>
                         <th class="px-3 py-2 text-left">Roles</th>
                         <th class="px-3 py-2 text-left">Status</th>
                         <th class="px-3 py-2 text-left">Last Login</th>
@@ -36,15 +37,22 @@
                 <tbody>
                     <?php if (empty($rows)): ?>
                         <tr>
-                            <td colspan="8" class="px-3 py-6 text-center text-slate-500">No users found.</td>
+                            <td colspan="9" class="px-3 py-6 text-center text-slate-500">No users found.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($rows as $row): ?>
                             <?php $rolesForUser = $userRoles[(int) $row['id']] ?? []; ?>
+                            <?php
+                            $linkedAgentId = (int) ($row['user_agent_id'] ?? 0);
+                            $linkedAgentName = $linkedAgentId > 0
+                                ? (string) ($agentNamesById[$linkedAgentId] ?? '-')
+                                : '-';
+                            ?>
                             <tr class="border-t border-slate-100">
                                 <td class="px-3 py-2 font-medium">#<?= esc($row['id']) ?></td>
                                 <td class="px-3 py-2"><?= esc($row['name'] ?: '-') ?></td>
                                 <td class="px-3 py-2"><?= esc($row['email']) ?></td>
+                                <td class="px-3 py-2"><?= esc($linkedAgentName) ?></td>
                                 <td class="px-3 py-2"><?= esc($rolesForUser !== [] ? implode(', ', $rolesForUser) : '-') ?></td>
                                 <td class="px-3 py-2"><?= (int) $row['is_active'] === 1 ? 'Active' : 'Inactive' ?></td>
                                 <td class="px-3 py-2"><?= esc($row['last_login_at'] ?: '-') ?></td>

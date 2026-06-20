@@ -40,11 +40,11 @@
                 </div>
                 <span class="text-amber-600 text-sm font-semibold">Live</span>
             </div>
-            <h3 class="text-3xl font-bold text-gray-800 mb-1">PKR <?= esc(number_format((float) ($stats['totalPaid'] ?? 0), 2)) ?></h3>
-            <p class="text-gray-500 text-sm">Total Revenue</p>
+            <h3 class="text-3xl font-bold text-gray-800 mb-1">PKR <?= esc(number_format((float) ($stats['revenueCardAmount'] ?? ($stats['totalPaid'] ?? 0)), 2)) ?></h3>
+            <p class="text-gray-500 text-sm"><?= esc((string) ($stats['revenueCardLabel'] ?? 'Total Revenue')) ?></p>
             <div class="mt-4 flex items-center text-xs text-gray-400">
                 <i class="fa-solid fa-arrow-trend-up text-green-500 mr-1"></i>
-                <span>Total posted collections</span>
+                <span><?= esc((string) ($stats['revenueCardSubtext'] ?? 'Total posted collections')) ?></span>
             </div>
         </article>
 
