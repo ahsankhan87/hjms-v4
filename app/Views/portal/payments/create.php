@@ -1,6 +1,7 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
+<?php $isSuperAdmin = function_exists('auth_is_super_admin') && auth_is_super_admin(); ?>
 <main class="space-y-4">
 
     <?php if (!empty($error)): ?>
@@ -28,7 +29,7 @@
                     <p class="text-xs text-slate-500 mt-0.5">All fields marked <span class="text-rose-500">*</span> are required</p>
                 </div>
 
-                <form method="post" action="<?= site_url('/payments') ?>" class="p-6 space-y-5">
+                <form method="post" action="<?= site_url('/payments') ?>" enctype="multipart/form-data" class="p-6 space-y-5">
                     <?= csrf_field() ?>
 
                     <!-- Booking -->
@@ -122,10 +123,18 @@
                             class="w-full resize-none rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-emerald-400 focus:outline-none focus:ring focus:ring-emerald-100"><?= esc(old('note', '')) ?></textarea>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">
+                            Receipt Attachment <span class="text-xs font-normal text-slate-400">(optional, PDF/JPG/PNG/WEBP, max 5MB)</span>
+                        </label>
+                        <input type="file" name="receipt_attachment" accept=".pdf,.jpg,.jpeg,.png,.webp"
+                            class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm shadow-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200 focus:border-emerald-400 focus:outline-none focus:ring focus:ring-emerald-100">
+                    </div>
+
                     <!-- Actions -->
                     <div class="flex items-center gap-3 border-t border-slate-100 pt-4">
                         <button type="submit" class="btn btn-md btn-primary">
-                            <i class="fa-solid fa-check"></i><span>Post Payment</span>
+                            <i class="fa-solid fa-check"></i><span><?= $isSuperAdmin ? 'Post Payment' : 'Submit for Approval' ?></span>
                         </button>
                         <a href="<?= site_url('/payments') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     </div>
@@ -203,6 +212,7 @@
                     <ul class="mt-2 space-y-1.5 text-xs text-blue-700">
                         <li class="flex items-start gap-1.5"><i class="fa-solid fa-circle-check mt-0.5 shrink-0"></i> Payment cannot exceed booking outstanding balance</li>
                         <li class="flex items-start gap-1.5"><i class="fa-solid fa-circle-check mt-0.5 shrink-0"></i> Refund cannot exceed total amount already paid</li>
+                        <li class="flex items-start gap-1.5"><i class="fa-solid fa-circle-check mt-0.5 shrink-0"></i> Non-super-admin entries remain pending until approved</li>
                         <li class="flex items-start gap-1.5"><i class="fa-solid fa-circle-check mt-0.5 shrink-0"></i> Booking auto-confirms when fully paid (if enabled)</li>
                     </ul>
                 </div>

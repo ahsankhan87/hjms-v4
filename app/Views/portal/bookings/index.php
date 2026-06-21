@@ -74,6 +74,10 @@ $pricingModeMap = [
                         $isFlatPackage = (int) ($row['include_hotel'] ?? 1) !== 1;
                         $outstanding = (float) ($row['outstanding_amount'] ?? 0);
                         $isOverpaid  = $outstanding < 0;
+                        $firstPaymentStatus = strtolower((string) ($row['first_payment_status'] ?? ''));
+                        $canPrintVoucher = (string) ($row['status'] ?? 'draft') !== 'draft'
+                            && (float) ($row['paid_amount'] ?? 0) > 0
+                            && $firstPaymentStatus === 'posted';
                         ?>
                         <tr class="group hover:bg-slate-50 transition-colors">
                             <td class="px-4 py-3">
@@ -146,7 +150,7 @@ $pricingModeMap = [
                                         <a href="<?= site_url('/bookings/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-pen-to-square text-slate-400"></i> Edit
                                         </a>
-                                        <?php if ((string) ($row['status'] ?? 'draft') !== 'draft' && (float) ($row['paid_amount'] ?? 0) > 0): ?>
+                                        <?php if ($canPrintVoucher): ?>
                                             <a href="<?= site_url('/bookings/' . (int) $row['id'] . '/voucher') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                                 <i class="fa-solid fa-file-lines text-slate-400"></i> Voucher
                                             </a>

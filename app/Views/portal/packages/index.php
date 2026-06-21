@@ -407,46 +407,52 @@ $companyEmail = esc((string) ($company['email'] ?? ''));
             <?php elseif ($shareOutbound || $shareReturn): ?>
                 <div style="padding:12px 20px;border-bottom:1px solid #f0f0f0;">
                     <div style="font-size:11px;font-weight:600;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Flights</div>
-                    <?php if ($shareOutbound):
-                        $outDepRaw = (string) ($shareOutbound['departure_at'] ?? '');
-                        $outArrRaw = (string) ($shareOutbound['arrival_at'] ?? '');
-                        $outDepFmt = $outDepRaw !== '' ? date('d M Y H:i', strtotime($outDepRaw)) : '';
-                        $outArrFmt = $outArrRaw !== '' ? date('d M Y H:i', strtotime($outArrRaw)) : '';
-                    ?>
-                        <div style="margin-bottom:8px;font-size:12px;">
-                            <span style="display:inline-block;background:#eff6ff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;color:#1d4ed8;margin-right:6px;">OUT</span>
-                            <strong><?= esc($shareOutbound['airline'] ?? '') ?> <?= esc($shareOutbound['flight_no'] ?? '') ?></strong>
-                            <?php if (!empty($shareOutbound['departure_airport']) || !empty($shareOutbound['arrival_airport'])): ?>
-                                &nbsp;· <?= esc($shareOutbound['departure_airport'] ?? '') ?> → <?= esc($shareOutbound['arrival_airport'] ?? '') ?>
-                            <?php endif; ?>
-                            <?php if ($outDepFmt !== '' || $outArrFmt !== ''): ?>
-                                <div style="color:#6b7280;font-size:10px;margin-top:2px;padding-left:2px;">
-                                    <?php if ($outDepFmt !== ''): ?>Dep: <?= esc($outDepFmt) ?><?php endif; ?>
-                                    <?php if ($outArrFmt !== ''): ?>&nbsp;&nbsp;Arr: <?= esc($outArrFmt) ?><?php endif; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-                    <?php if ($shareReturn && $shareReturn['flight_no'] !== ($shareOutbound['flight_no'] ?? '')):
-                        $retDepRaw = (string) ($shareReturn['departure_at'] ?? '');
-                        $retArrRaw = (string) ($shareReturn['arrival_at'] ?? '');
-                        $retDepFmt = $retDepRaw !== '' ? date('d M Y H:i', strtotime($retDepRaw)) : '';
-                        $retArrFmt = $retArrRaw !== '' ? date('d M Y H:i', strtotime($retArrRaw)) : '';
-                    ?>
-                        <div style="font-size:12px;">
-                            <span style="display:inline-block;background:#f0fdf4;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:600;color:#15803d;margin-right:6px;">RET</span>
-                            <strong><?= esc($shareReturn['airline'] ?? '') ?> <?= esc($shareReturn['flight_no'] ?? '') ?></strong>
-                            <?php if (!empty($shareReturn['departure_airport']) || !empty($shareReturn['arrival_airport'])): ?>
-                                &nbsp;· <?= esc($shareReturn['departure_airport'] ?? '') ?> → <?= esc($shareReturn['arrival_airport'] ?? '') ?>
-                            <?php endif; ?>
-                            <?php if ($retDepFmt !== '' || $retArrFmt !== ''): ?>
-                                <div style="color:#6b7280;font-size:10px;margin-top:2px;padding-left:2px;">
-                                    <?php if ($retDepFmt !== ''): ?>Dep: <?= esc($retDepFmt) ?><?php endif; ?>
-                                    <?php if ($retArrFmt !== ''): ?>&nbsp;&nbsp;Arr: <?= esc($retArrFmt) ?><?php endif; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
+                    <div style="display:flex;gap:12px;">
+                        <?php if ($shareOutbound):
+                            $outDepRaw = (string) ($shareOutbound['departure_at'] ?? '');
+                            $outArrRaw = (string) ($shareOutbound['arrival_at'] ?? '');
+                            $outDepFmt = $outDepRaw !== '' ? date('d M Y H:i', strtotime($outDepRaw)) : '';
+                            $outArrFmt = $outArrRaw !== '' ? date('d M Y H:i', strtotime($outArrRaw)) : '';
+                        ?>
+                            <div style="flex:1;font-size:10px;border:1px solid #dbeafe;border-radius:6px;padding:8px;background:#f0f9ff;">
+                                <div style="font-weight:600;color:#1d4ed8;margin-bottom:3px;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Outbound</div>
+                                <div style="color:#1f2937;font-weight:600;margin-bottom:2px;font-size:11px;"><?= esc($shareOutbound['airline'] ?? '') ?> <?= esc($shareOutbound['flight_no'] ?? '') ?></div>
+                                <?php if (!empty($shareOutbound['departure_airport']) || !empty($shareOutbound['arrival_airport'])): ?>
+                                    <div style="color:#4b5563;margin-bottom:2px;font-size:9px;">
+                                        <?= esc($shareOutbound['departure_airport'] ?? '') ?> → <?= esc($shareOutbound['arrival_airport'] ?? '') ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($outDepFmt !== ''): ?>
+                                    <div style="color:#6b7280;font-size:9px;line-height:1.3;">Dep: <?= esc($outDepFmt) ?></div>
+                                <?php endif; ?>
+                                <?php if ($outArrFmt !== ''): ?>
+                                    <div style="color:#6b7280;font-size:9px;">Arr: <?= esc($outArrFmt) ?></div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($shareReturn && $shareReturn['flight_no'] !== ($shareOutbound['flight_no'] ?? '')):
+                            $retDepRaw = (string) ($shareReturn['departure_at'] ?? '');
+                            $retArrRaw = (string) ($shareReturn['arrival_at'] ?? '');
+                            $retDepFmt = $retDepRaw !== '' ? date('d M Y H:i', strtotime($retDepRaw)) : '';
+                            $retArrFmt = $retArrRaw !== '' ? date('d M Y H:i', strtotime($retArrRaw)) : '';
+                        ?>
+                            <div style="flex:1;font-size:10px;border:1px solid #dcfce7;border-radius:6px;padding:8px;background:#f0fdf4;">
+                                <div style="font-weight:600;color:#15803d;margin-bottom:3px;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Return</div>
+                                <div style="color:#1f2937;font-weight:600;margin-bottom:2px;font-size:11px;"><?= esc($shareReturn['airline'] ?? '') ?> <?= esc($shareReturn['flight_no'] ?? '') ?></div>
+                                <?php if (!empty($shareReturn['departure_airport']) || !empty($shareReturn['arrival_airport'])): ?>
+                                    <div style="color:#4b5563;margin-bottom:2px;font-size:9px;">
+                                        <?= esc($shareReturn['departure_airport'] ?? '') ?> → <?= esc($shareReturn['arrival_airport'] ?? '') ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($retDepFmt !== ''): ?>
+                                    <div style="color:#6b7280;font-size:9px;line-height:1.3;">Dep: <?= esc($retDepFmt) ?></div>
+                                <?php endif; ?>
+                                <?php if ($retArrFmt !== ''): ?>
+                                    <div style="color:#6b7280;font-size:9px;">Arr: <?= esc($retArrFmt) ?></div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endif; ?>
 

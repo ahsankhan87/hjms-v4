@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\PaymentModel;
 use App\Services\AgentLedgerService;
+use CodeIgniter\HTTP\Files\UploadedFile;
 
 class PaymentController extends BaseController
 {
@@ -192,6 +193,7 @@ class PaymentController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
+        $canApprovePayments = $this->canApprovePayments();
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
@@ -260,6 +262,9 @@ class PaymentController extends BaseController
                 }
             }
 
+            $receiptAttachment = $this->storeReceiptAttachment('receipt_attachment');
+            $paymentStatus = $canApprovePayments ? 'posted' : 'pending';
+
             $model = new PaymentModel();
             $model->insert([
                 'season_id'          => $seasonId,
@@ -271,16 +276,24 @@ class PaymentController extends BaseController
                 'payment_type'       => $payload['payment_type'],
                 'channel'            => $payload['channel'],
                 'gateway_reference'  => $payload['gateway_reference'] !== '' ? $payload['gateway_reference'] : null,
-                'status'             => 'posted',
+                'status'             => $paymentStatus,
                 'note'               => $payload['note'] !== '' ? $payload['note'] : null,
+                'receipt_attachment_path' => $receiptAttachment['receipt_attachment_path'] ?? null,
+                'receipt_attachment_name' => $receiptAttachment['receipt_attachment_name'] ?? null,
+                'approved_by'        => $paymentStatus === 'posted' && session('user_id') ? (int) session('user_id') : null,
+                'approved_at'        => $paymentStatus === 'posted' ? date('Y-m-d H:i:s') : null,
                 'created_by'         => session('user_id') ? (int) session('user_id') : null,
                 'created_at'         => date('Y-m-d H:i:s'),
             ]);
 
-            $this->syncBookingStatusByPayments((int) $payload['booking_id'], $seasonId);
-            (new AgentLedgerService())->syncBookingLedger((int) $payload['booking_id'], $seasonId);
+            if ($paymentStatus === 'posted') {
+                $this->syncBookingStatusByPayments((int) $payload['booking_id'], $seasonId);
+                (new AgentLedgerService())->syncBookingLedger((int) $payload['booking_id'], $seasonId);
 
-            return redirect()->to('/payments')->with('success', 'Payment posted successfully.');
+                return redirect()->to('/payments')->with('success', 'Payment posted successfully.');
+            }
+
+            return redirect()->to('/payments')->with('success', 'Payment submitted and is pending super admin approval.');
         } catch (\Throwable $e) {
             return redirect()->to('/payments/create')->withInput()->with('error', $e->getMessage());
         }
@@ -366,6 +379,10 @@ class PaymentController extends BaseController
                 return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
             }
 
+            if (isset($data['status']) && (string) $data['status'] === 'posted' && ! $this->canApprovePayments()) {
+                return redirect()->to($editUrl)->withInput()->with('error', 'Only super admin can approve and post payments.');
+            }
+
             if ($linkedAgentId !== null) {
                 $ownedBooking = db_connect()->table('bookings')
                     ->select('id')
@@ -391,6 +408,12 @@ class PaymentController extends BaseController
                 if (empty($booking)) {
                     return redirect()->to('/payments')->withInput()->with('error', 'Selected booking is not in active season.');
                 }
+            }
+
+            $receiptAttachment = $this->storeReceiptAttachment('receipt_attachment');
+            if ($receiptAttachment !== []) {
+                $data['receipt_attachment_path'] = $receiptAttachment['receipt_attachment_path'] ?? null;
+                $data['receipt_attachment_name'] = $receiptAttachment['receipt_attachment_name'] ?? null;
             }
 
             if (isset($data['payment_date'])) {
@@ -424,6 +447,11 @@ class PaymentController extends BaseController
                     if ($effectiveAmount > $paidAmount + 0.01) {
                         return redirect()->to($editUrl)->withInput()->with('error', 'Refund amount cannot exceed paid amount for this booking.');
                     }
+                }
+
+                if ((string) ($existing['status'] ?? 'pending') !== 'posted') {
+                    $data['approved_by'] = session('user_id') ? (int) session('user_id') : null;
+                    $data['approved_at'] = date('Y-m-d H:i:s');
                 }
             }
 
@@ -496,6 +524,85 @@ class PaymentController extends BaseController
             (new AgentLedgerService())->syncBookingLedger((int) $existing['booking_id'], $seasonId);
 
             return redirect()->to('/payments')->with('success', 'Payment voided successfully.');
+        } catch (\Throwable $e) {
+            return redirect()->to('/payments')->with('error', $e->getMessage());
+        }
+    }
+
+    public function approvePayment()
+    {
+        $paymentId = (int) $this->request->getPost('payment_id');
+        $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
+        if ($seasonId === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+        if (! $this->canApprovePayments()) {
+            return redirect()->to('/payments')->with('error', 'Only super admin can approve payments.');
+        }
+        if ($paymentId < 1) {
+            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for approval.');
+        }
+
+        try {
+            $model = new PaymentModel();
+            $payment = $model->where('id', $paymentId)->where('season_id', $seasonId)->first();
+            if (empty($payment)) {
+                return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+            }
+
+            if ($linkedAgentId !== null) {
+                $ownedBooking = db_connect()->table('bookings')
+                    ->select('id')
+                    ->where('id', (int) ($payment['booking_id'] ?? 0))
+                    ->where('season_id', $seasonId)
+                    ->where('agent_id', $linkedAgentId)
+                    ->get()
+                    ->getRowArray();
+                if (empty($ownedBooking)) {
+                    return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                }
+            }
+
+            $status = (string) ($payment['status'] ?? 'pending');
+            if ($status === 'posted') {
+                return redirect()->to('/payments')->with('success', 'Payment is already approved and posted.');
+            }
+            if ($status === 'voided') {
+                return redirect()->to('/payments')->with('error', 'Voided payment cannot be approved.');
+            }
+
+            $bookingId = (int) ($payment['booking_id'] ?? 0);
+            $amount = (float) ($payment['amount'] ?? 0);
+            $paymentType = (string) ($payment['payment_type'] ?? 'payment');
+            if ($amount <= 0) {
+                return redirect()->to('/payments')->with('error', 'Payment amount must be greater than zero.');
+            }
+
+            $financials = $this->getBookingFinancials($bookingId, $seasonId, null);
+            if ($paymentType === 'payment' && (float) ($financials['total_amount'] ?? 0) > 0) {
+                $outstanding = max(0, (float) ($financials['total_amount'] ?? 0) - (float) ($financials['paid_amount'] ?? 0));
+                if ($amount > $outstanding + 0.01) {
+                    return redirect()->to('/payments')->with('error', 'Approval failed: payment amount exceeds booking outstanding amount.');
+                }
+            }
+            if ($paymentType === 'refund') {
+                $paidAmount = (float) ($financials['paid_amount'] ?? 0);
+                if ($amount > $paidAmount + 0.01) {
+                    return redirect()->to('/payments')->with('error', 'Approval failed: refund amount cannot exceed paid amount for this booking.');
+                }
+            }
+
+            $model->update($paymentId, [
+                'status' => 'posted',
+                'approved_by' => session('user_id') ? (int) session('user_id') : null,
+                'approved_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $this->syncBookingStatusByPayments($bookingId, $seasonId);
+            (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
+
+            return redirect()->to('/payments')->with('success', 'Payment approved and posted successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/payments')->with('error', $e->getMessage());
         }
@@ -664,7 +771,6 @@ class PaymentController extends BaseController
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
-
         if ($paymentId < 1) {
             return redirect()->to('/payments')->with('error', 'Valid payment ID is required for receipt.');
         }
@@ -708,6 +814,54 @@ class PaymentController extends BaseController
         ]);
     }
 
+    public function downloadReceiptAttachment(int $paymentId)
+    {
+        $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
+        if ($seasonId === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+        if ($paymentId < 1) {
+            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for attachment.');
+        }
+
+        $db = db_connect();
+        $query = $db->table('payments p')
+            ->select('p.id, p.receipt_attachment_path, p.receipt_attachment_name, b.agent_id')
+            ->join('bookings b', 'b.id = p.booking_id', 'left')
+            ->where('p.id', $paymentId)
+            ->where('p.season_id', $seasonId);
+
+        if ($linkedAgentId !== null) {
+            $query->where('b.agent_id', $linkedAgentId);
+        }
+
+        $payment = $query->get()->getRowArray();
+        if (empty($payment)) {
+            return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+        }
+
+        $relativePath = trim((string) ($payment['receipt_attachment_path'] ?? ''));
+        if ($relativePath === '') {
+            return redirect()->to('/payments/' . $paymentId . '/view')->with('error', 'No receipt attachment found for this payment.');
+        }
+
+        $normalizedRelative = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+        $absolutePath = rtrim((string) WRITEPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($normalizedRelative, DIRECTORY_SEPARATOR);
+        if (! is_file($absolutePath)) {
+            return redirect()->to('/payments/' . $paymentId . '/view')->with('error', 'Receipt attachment file is missing from storage.');
+        }
+
+        $downloadName = trim((string) ($payment['receipt_attachment_name'] ?? ''));
+        if ($downloadName === '') {
+            $downloadName = basename($absolutePath);
+        }
+
+        return $this->response
+            ->download($absolutePath, null)
+            ->setFileName($downloadName);
+    }
+
     private function syncBookingStatusByPayments(int $bookingId, int $seasonId)
     {
         // Booking approval is manual via BookingController::approveBooking.
@@ -736,6 +890,49 @@ class PaymentController extends BaseController
         }
 
         return date('Y-m-d H:i:s', $timestamp);
+    }
+
+    private function canApprovePayments(): bool
+    {
+        return function_exists('auth_is_super_admin') && auth_is_super_admin();
+    }
+
+    private function storeReceiptAttachment(string $fieldName): array
+    {
+        $file = $this->request->getFile($fieldName);
+        if (! $file instanceof UploadedFile || $file->getError() === UPLOAD_ERR_NO_FILE) {
+            return [];
+        }
+
+        if (! $file->isValid() || $file->hasMoved()) {
+            throw new \RuntimeException('Uploaded receipt attachment is invalid.');
+        }
+
+        $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        $extension = strtolower((string) $file->getExtension());
+        if (! in_array($extension, $allowedExtensions, true)) {
+            throw new \RuntimeException('Receipt attachment must be PDF, JPG, JPEG, PNG, or WEBP.');
+        }
+
+        $maxSizeBytes = 5 * 1024 * 1024;
+        if ($file->getSize() > $maxSizeBytes) {
+            throw new \RuntimeException('Receipt attachment must be 5MB or smaller.');
+        }
+
+        $uploadDir = rtrim((string) WRITEPATH, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . 'uploads'
+            . DIRECTORY_SEPARATOR . 'payments';
+        if (! is_dir($uploadDir) && ! @mkdir($uploadDir, 0775, true) && ! is_dir($uploadDir)) {
+            throw new \RuntimeException('Could not create payment receipt upload directory.');
+        }
+
+        $storedName = 'payment-receipt-' . date('YmdHis') . '-' . mt_rand(1000, 9999) . '.' . $extension;
+        $file->move($uploadDir, $storedName, true);
+
+        return [
+            'receipt_attachment_path' => 'uploads/payments/' . $storedName,
+            'receipt_attachment_name' => (string) $file->getClientName(),
+        ];
     }
 
     private function generateUniquePaymentNo(): string

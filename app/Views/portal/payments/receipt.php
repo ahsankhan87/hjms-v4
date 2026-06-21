@@ -224,6 +224,16 @@
                         <th>Note</th>
                         <td><?= esc((string) ($payment['note'] ?? $payment['booking_remarks'] ?? '')) ?></td>
                     </tr>
+                    <?php if (!empty($payment['receipt_attachment_path'])): ?>
+                        <tr>
+                            <th>Receipt Attachment</th>
+                            <td>
+                                <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>">
+                                    <?= esc((string) ($payment['receipt_attachment_name'] ?? 'View Attachment')) ?>
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>

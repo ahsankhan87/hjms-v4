@@ -10,11 +10,11 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h1 class="text-base font-semibold text-slate-800">Main Company Profile</h1>
-                <p class="mt-1 text-xs text-slate-500">Manage branding and voucher details used across receipts, vouchers, and print templates.</p>
+                <p class="mt-1 text-xs text-slate-500">Manage company branding and identity used across receipts, vouchers, and print templates.</p>
             </div>
-            <a href="<?= site_url('/main-company/settings') ?>" class="btn btn-md btn-outline inline-flex items-center gap-2">
-                <i class="fa-solid fa-sliders"></i>
-                <span>Voucher & Contact Settings</span>
+            <a href="<?= site_url('/packages') ?>" class="btn btn-md btn-outline inline-flex items-center gap-2">
+                <i class="fa-solid fa-box-open"></i>
+                <span>Package Voucher Settings</span>
             </a>
         </div>
     </section>

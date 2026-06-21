@@ -89,6 +89,37 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                         <input type="datetime-local" name="arrival_date" value="<?= esc($arrVal) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </label>
                 </div>
+                <div class="rounded-xl border border-slate-200 p-3">
+                    <p class="text-xs font-medium text-slate-600 mb-2">Voucher Settings (Package-wise)</p>
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <label class="block text-xs font-medium text-slate-600 md:col-span-2">Default Shirka Company
+                            <select name="default_shirka_company_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">Select shirka company…</option>
+                                <?php foreach (($companies ?? []) as $item): ?>
+                                    <?php $companyId = (string) ($item['id'] ?? ''); ?>
+                                    <option value="<?= esc($companyId) ?>" <?= (string) old('default_shirka_company_id', (string) ($row['default_shirka_company_id'] ?? '')) === $companyId ? 'selected' : '' ?>><?= esc((string) ($item['name'] ?? '')) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="block text-xs font-medium text-slate-600 md:col-span-2">Voucher Instructions (Urdu)
+                            <textarea name="voucher_instructions_ur" rows="3" dir="rtl" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="واؤچر ہدایات"><?= esc(old('voucher_instructions_ur', (string) ($row['voucher_instructions_ur'] ?? ''))) ?></textarea>
+                        </label>
+                        <label class="block text-xs font-medium text-slate-600 md:col-span-2">Voucher Instructions (English)
+                            <textarea name="voucher_instructions_en" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Optional English instructions"><?= esc(old('voucher_instructions_en', (string) ($row['voucher_instructions_en'] ?? ''))) ?></textarea>
+                        </label>
+
+
+                    </div>
+                    <label class="block text-xs font-medium text-slate-600">Makkah Office
+                        <input name="makkah_contact" value="<?= esc(old('makkah_contact', (string) ($row['makkah_contact'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </label>
+                    <label class="block text-xs font-medium text-slate-600">Madina Office
+                        <input name="madina_contact" value="<?= esc(old('madina_contact', (string) ($row['madina_contact'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </label>
+                    <label class="block text-xs font-medium text-slate-600">Transport Contact
+                        <input name="transport_contact" value="<?= esc(old('transport_contact', (string) ($row['transport_contact'] ?? ''))) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </label>
+                </div>
                 <label class="block text-xs font-medium text-slate-600">Notes
                     <textarea name="notes" rows="2" placeholder="Notes (optional)" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('notes', $row['notes'])) ?></textarea>
                 </label>
@@ -147,7 +178,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Hotel
-                        <select name="hotel_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm select2" required>
+                        <select name="hotel_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm js-select2" required>
                             <option value="">Select Hotel</option>
                             <?php foreach (($hotelOptions ?? []) as $hotelOption): ?>
                                 <?php $label = (string) ($hotelOption['name'] ?? '-') . (!empty($hotelOption['city']) ? ' - ' . (string) $hotelOption['city'] : ''); ?>
@@ -274,7 +305,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-3">Flight
-                        <select name="flight_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                        <select name="flight_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm js-select2" required>
                             <option value="">Select Flight</option>
                             <?php foreach ($flightOptions as $flight): ?>
                                 <?php
@@ -351,7 +382,7 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
                     <?= csrf_field() ?>
                     <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
                     <label class="block text-xs font-medium text-slate-600 md:col-span-2">Transport
-                        <select name="transport_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                        <select name="transport_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm js-select2" required>
                             <option value="">Select Transport</option>
                             <?php foreach ($transportOptions as $transport): ?>
                                 <?php $transportOptionId = (string) ($transport['id'] ?? ''); ?>
@@ -499,23 +530,41 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             <?= csrf_field() ?>
             <input type="hidden" name="package_id" value="<?= esc($row['id']) ?>">
             <div class="md:col-span-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Outbound</div>
+            <?php $outboundAirlineValue = (string) old('outbound_airline'); ?>
             <label class="block text-xs font-medium text-slate-600">Airline
-                <input name="outbound_airline" value="<?= esc(old('outbound_airline')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                <select name="outbound_airline" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                    <option value="">Select airline</option>
+                    <?php foreach (['PIA', 'Saudia', 'Airblue', 'AirSial', 'SereneAir', 'Flynas', 'Flyadeal', 'Emirates', 'Qatar Airways', 'Etihad', 'Turkish Airlines', 'Other'] as $airline): ?>
+                        <option value="<?= esc($airline) ?>" <?= $outboundAirlineValue === $airline ? 'selected' : '' ?>><?= esc($airline) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <label class="block text-xs font-medium text-slate-600">Flight No
-                <input name="outbound_flight_no" value="<?= esc(old('outbound_flight_no')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                <input name="outbound_flight_no" value="<?= esc(old('outbound_flight_no')) ?>" placeholder="e.g. PK-301" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
             </label>
             <label class="block text-xs font-medium text-slate-600">PNR
-                <input name="outbound_pnr" value="<?= esc(old('outbound_pnr')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input name="outbound_pnr" value="<?= esc(old('outbound_pnr')) ?>" placeholder="Booking reference" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </label>
             <label class="block text-xs font-medium text-slate-600">Departure At
                 <input type="datetime-local" name="outbound_departure_at" value="<?= esc(old('outbound_departure_at')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </label>
+            <?php $outboundDepartureAirportValue = (string) old('outbound_departure_airport'); ?>
             <label class="block text-xs font-medium text-slate-600">Departure Airport
-                <input name="outbound_departure_airport" value="<?= esc(old('outbound_departure_airport')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="outbound_departure_airport" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Select departure airport</option>
+                    <?php foreach (['LHE', 'ISB', 'KHI', 'MUX', 'PEW', 'JED', 'MED', 'RUH', 'DMM', 'DXB', 'DOH', 'AUH'] as $airport): ?>
+                        <option value="<?= esc($airport) ?>" <?= $outboundDepartureAirportValue === $airport ? 'selected' : '' ?>><?= esc($airport) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
+            <?php $outboundArrivalAirportValue = (string) old('outbound_arrival_airport'); ?>
             <label class="block text-xs font-medium text-slate-600">Arrival Airport
-                <input name="outbound_arrival_airport" value="<?= esc(old('outbound_arrival_airport')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="outbound_arrival_airport" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Select arrival airport</option>
+                    <?php foreach (['JED', 'MED', 'RUH', 'DMM', 'LHE', 'ISB', 'KHI', 'MUX', 'PEW', 'DXB', 'DOH', 'AUH'] as $airport): ?>
+                        <option value="<?= esc($airport) ?>" <?= $outboundArrivalAirportValue === $airport ? 'selected' : '' ?>><?= esc($airport) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <label class="block text-xs font-medium text-slate-600">Arrival At
                 <input type="datetime-local" name="outbound_arrival_at" value="<?= esc(old('outbound_arrival_at')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -523,23 +572,41 @@ $openQuickModal = (string) session()->getFlashdata('open_quick_modal');
             <div></div>
 
             <div class="md:col-span-4 mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Return</div>
+            <?php $returnAirlineValue = (string) old('return_airline'); ?>
             <label class="block text-xs font-medium text-slate-600">Airline
-                <input name="return_airline" value="<?= esc(old('return_airline')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                <select name="return_airline" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                    <option value="">Select airline</option>
+                    <?php foreach (['PIA', 'Saudia', 'Airblue', 'AirSial', 'SereneAir', 'Flynas', 'Flyadeal', 'Emirates', 'Qatar Airways', 'Etihad', 'Turkish Airlines', 'Other'] as $airline): ?>
+                        <option value="<?= esc($airline) ?>" <?= $returnAirlineValue === $airline ? 'selected' : '' ?>><?= esc($airline) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <label class="block text-xs font-medium text-slate-600">Flight No
-                <input name="return_flight_no" value="<?= esc(old('return_flight_no')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
+                <input name="return_flight_no" value="<?= esc(old('return_flight_no')) ?>" placeholder="e.g. PK-302" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
             </label>
             <label class="block text-xs font-medium text-slate-600">PNR
-                <input name="return_pnr" value="<?= esc(old('return_pnr')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input name="return_pnr" value="<?= esc(old('return_pnr')) ?>" placeholder="Booking reference" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </label>
             <label class="block text-xs font-medium text-slate-600">Departure At
                 <input type="datetime-local" name="return_departure_at" value="<?= esc(old('return_departure_at')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </label>
+            <?php $returnDepartureAirportValue = (string) old('return_departure_airport'); ?>
             <label class="block text-xs font-medium text-slate-600">Departure Airport
-                <input name="return_departure_airport" value="<?= esc(old('return_departure_airport')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="return_departure_airport" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Select departure airport</option>
+                    <?php foreach (['JED', 'MED', 'RUH', 'DMM', 'LHE', 'ISB', 'KHI', 'MUX', 'PEW', 'DXB', 'DOH', 'AUH'] as $airport): ?>
+                        <option value="<?= esc($airport) ?>" <?= $returnDepartureAirportValue === $airport ? 'selected' : '' ?>><?= esc($airport) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
+            <?php $returnArrivalAirportValue = (string) old('return_arrival_airport'); ?>
             <label class="block text-xs font-medium text-slate-600">Arrival Airport
-                <input name="return_arrival_airport" value="<?= esc(old('return_arrival_airport')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="return_arrival_airport" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Select arrival airport</option>
+                    <?php foreach (['LHE', 'ISB', 'KHI', 'MUX', 'PEW', 'JED', 'MED', 'RUH', 'DMM', 'DXB', 'DOH', 'AUH'] as $airport): ?>
+                        <option value="<?= esc($airport) ?>" <?= $returnArrivalAirportValue === $airport ? 'selected' : '' ?>><?= esc($airport) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <label class="block text-xs font-medium text-slate-600">Arrival At
                 <input type="datetime-local" name="return_arrival_at" value="<?= esc(old('return_arrival_at')) ?>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

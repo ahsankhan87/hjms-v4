@@ -40,15 +40,6 @@ class MainCompanyController extends BaseController
             'website' => trim((string) $this->request->getPost('website')),
             'ntn' => trim((string) $this->request->getPost('ntn')),
             'strn' => trim((string) $this->request->getPost('strn')),
-            'default_shirka_company_id' => trim((string) $this->request->getPost('default_shirka_company_id')),
-            'voucher_instructions_ur' => trim((string) $this->request->getPost('voucher_instructions_ur')),
-            'voucher_instructions_en' => trim((string) $this->request->getPost('voucher_instructions_en')),
-            'makkah_contact' => trim((string) $this->request->getPost('makkah_contact')),
-            'makkah_contact_en' => trim((string) $this->request->getPost('makkah_contact_en')),
-            'madina_contact' => trim((string) $this->request->getPost('madina_contact')),
-            'madina_contact_en' => trim((string) $this->request->getPost('madina_contact_en')),
-            'transport_contact' => trim((string) $this->request->getPost('transport_contact')),
-            'transport_contact_en' => trim((string) $this->request->getPost('transport_contact_en')),
         ];
 
         if (! $this->validateData($payload, [
@@ -60,36 +51,14 @@ class MainCompanyController extends BaseController
             'website' => 'permit_empty|max_length[160]',
             'ntn' => 'permit_empty|max_length[80]',
             'strn' => 'permit_empty|max_length[80]',
-            'default_shirka_company_id' => 'permit_empty|integer',
-            'voucher_instructions_ur' => 'permit_empty|max_length[12000]',
-            'voucher_instructions_en' => 'permit_empty|max_length[12000]',
-            'makkah_contact' => 'permit_empty|max_length[255]',
-            'makkah_contact_en' => 'permit_empty|max_length[255]',
-            'madina_contact' => 'permit_empty|max_length[255]',
-            'madina_contact_en' => 'permit_empty|max_length[255]',
-            'transport_contact' => 'permit_empty|max_length[255]',
-            'transport_contact_en' => 'permit_empty|max_length[255]',
         ])) {
             return redirect()->to($redirectPath)->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $model = new MainCompanyModel();
-            $db = db_connect();
             $logoPath = $this->storeLogoUpload('logo_file', 'main-company');
-
-            $defaultShirkaCompanyId = null;
-            if ($payload['default_shirka_company_id'] !== '') {
-                if (! company_table_ready()) {
-                    return redirect()->to($redirectPath)->withInput()->with('error', 'Shirka company table is not available.');
-                }
-
-                $defaultShirkaCompanyId = (int) $payload['default_shirka_company_id'];
-                $company = $db->table('companies')->select('id')->where('id', $defaultShirkaCompanyId)->get()->getRowArray();
-                if (empty($company)) {
-                    return redirect()->to($redirectPath)->withInput()->with('error', 'Selected default shirka company was not found.');
-                }
-            }
+            $db = db_connect();
 
             $existing = $model->orderBy('id', 'ASC')->first();
             $now = date('Y-m-d H:i:s');
@@ -104,15 +73,6 @@ class MainCompanyController extends BaseController
                 'website' => $payload['website'] !== '' ? $payload['website'] : null,
                 'ntn' => $payload['ntn'] !== '' ? $payload['ntn'] : null,
                 'strn' => $payload['strn'] !== '' ? $payload['strn'] : null,
-                'default_shirka_company_id' => $defaultShirkaCompanyId,
-                'voucher_instructions_ur' => $payload['voucher_instructions_ur'] !== '' ? $payload['voucher_instructions_ur'] : null,
-                'voucher_instructions_en' => $payload['voucher_instructions_en'] !== '' ? $payload['voucher_instructions_en'] : null,
-                'makkah_contact' => $payload['makkah_contact'] !== '' ? $payload['makkah_contact'] : null,
-                'makkah_contact_en' => $payload['makkah_contact_en'] !== '' ? $payload['makkah_contact_en'] : null,
-                'madina_contact' => $payload['madina_contact'] !== '' ? $payload['madina_contact'] : null,
-                'madina_contact_en' => $payload['madina_contact_en'] !== '' ? $payload['madina_contact_en'] : null,
-                'transport_contact' => $payload['transport_contact'] !== '' ? $payload['transport_contact'] : null,
-                'transport_contact_en' => $payload['transport_contact_en'] !== '' ? $payload['transport_contact_en'] : null,
                 'updated_at' => $now,
             ];
 

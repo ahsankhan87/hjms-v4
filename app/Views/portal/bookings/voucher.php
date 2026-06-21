@@ -377,14 +377,14 @@
     $shirkaLogo = trim((string) ($shirkaData['logo_url'] ?? ''));
     $shirkaAddress = trim((string) ($shirkaData['address'] ?? ''));
 
-    $voucherInstructionsUr = trim((string) ($mainCompanyData['voucher_instructions_ur'] ?? ''));
-    $voucherInstructionsEn = trim((string) ($mainCompanyData['voucher_instructions_en'] ?? ''));
+    $voucherInstructionsUr = trim((string) ($booking['voucher_instructions_ur'] ?? ''));
+    $voucherInstructionsEn = trim((string) ($booking['voucher_instructions_en'] ?? ''));
 
-    $makkahContact = trim((string) ($mainCompanyData['makkah_contact'] ?? ''));
+    $makkahContact = trim((string) ($booking['makkah_contact'] ?? ''));
 
-    $madinaContact = trim((string) ($mainCompanyData['madina_contact'] ?? ''));
+    $madinaContact = trim((string) ($booking['madina_contact'] ?? ''));
 
-    $transportContact = trim((string) ($mainCompanyData['transport_contact'] ?? ''));
+    $transportContact = trim((string) ($booking['transport_contact'] ?? ''));
     ?>
     <div class="actions">
         <a class="btn secondary" href="<?= site_url('/bookings') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>

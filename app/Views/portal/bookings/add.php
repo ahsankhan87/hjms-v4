@@ -74,10 +74,11 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Agent <span class="text-rose-500">*</span></label>
+                    <?php $selectedAgentId = (string) old('agent_id', isset($agents[0]['id']) ? (string) $agents[0]['id'] : ''); ?>
                     <select name="agent_id" required class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">Select agent...</option>
                         <?php foreach ($agents as $item): ?>
-                            <option value="<?= esc($item['id']) ?>" <?= (string) old('agent_id') === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?></option>
+                            <option value="<?= esc($item['id']) ?>" <?= $selectedAgentId === (string) $item['id'] ? 'selected' : '' ?>><?= esc($item['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

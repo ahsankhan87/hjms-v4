@@ -54,8 +54,14 @@ class BookingController extends BaseController
                         WHERE pm2.booking_id = b.id
                           AND pm2.season_id = b.season_id
                           AND IFNULL(pm2.status, 'posted') = 'posted'
-                    ), 0)) AS outstanding_amount"
-            : ", '' AS pricing_tier, 0 AS unit_price, 0 AS total_amount, 0 AS paid_amount, 0 AS outstanding_amount";
+                    ), 0)) AS outstanding_amount,
+                    (SELECT IFNULL(pm3.status, 'pending')
+                     FROM payments pm3
+                     WHERE pm3.booking_id = b.id
+                       AND pm3.season_id = b.season_id
+                     ORDER BY pm3.payment_date ASC, pm3.id ASC
+                     LIMIT 1) AS first_payment_status"
+            : ", '' AS pricing_tier, 0 AS unit_price, 0 AS total_amount, 0 AS paid_amount, 0 AS outstanding_amount, '' AS first_payment_status";
 
         $stayStartExpr = $this->packageStayDateExpr('b.package_id', 'MIN');
         $stayEndExpr = $this->packageStayDateExpr('b.package_id', 'MAX');
@@ -203,7 +209,12 @@ class BookingController extends BaseController
                     SELECT SUM(CASE WHEN pm2.payment_type = 'refund' THEN -pm2.amount ELSE pm2.amount END)
                     FROM payments pm2
                     WHERE pm2.booking_id = b.id AND pm2.season_id = b.season_id AND IFNULL(pm2.status,'posted') = 'posted'
-                ), 0)) AS outstanding_amount")
+                ), 0)) AS outstanding_amount,
+                (SELECT IFNULL(pm3.status, 'pending')
+                 FROM payments pm3
+                 WHERE pm3.booking_id = b.id AND pm3.season_id = b.season_id
+                 ORDER BY pm3.payment_date ASC, pm3.id ASC
+                 LIMIT 1) AS first_payment_status")
             ->join('packages p',  'p.id  = b.package_id',  'left')
             ->join('companies c', 'c.id  = b.company_id',  'left')
             ->join('agents ag',   'ag.id = b.agent_id',    'left')
@@ -337,7 +348,12 @@ class BookingController extends BaseController
             $db = db_connect();
             $pricingService = new PackagePricingService($db);
 
-            $package = $db->table('packages')->select('id')->where('id', $payload['package_id'])->where('season_id', $seasonId)->get()->getRowArray();
+            $package = $db->table('packages')
+                ->select('id, default_shirka_company_id')
+                ->where('id', $payload['package_id'])
+                ->where('season_id', $seasonId)
+                ->get()
+                ->getRowArray();
             if (empty($package)) {
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Selected package is not in active season.');
             }
@@ -345,9 +361,9 @@ class BookingController extends BaseController
             $pricingSummary = $pricingService->summarizePackage((int) $payload['package_id']);
             $payload['pricing_tier'] = $pricingService->normalizeRequestedTier((int) $payload['package_id'], (string) $payload['pricing_tier']);
 
-            $defaultShirka = $this->resolveDefaultShirkaCompany($db);
+            $defaultShirka = $this->resolveDefaultShirkaCompany($db, (int) ($package['default_shirka_company_id'] ?? 0));
             if ($defaultShirka === null) {
-                return redirect()->to($returnUrl)->withInput()->with('error', 'Please set a default shirka company in Voucher Settings first.');
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Please set a default shirka company on the selected package first.');
             }
             $payload['company_id'] = (int) ($defaultShirka['id'] ?? 0);
 
@@ -586,19 +602,34 @@ class BookingController extends BaseController
             }
 
             if (isset($data['package_id'])) {
-                $package = $db->table('packages')->select('id')->where('id', (int) $data['package_id'])->where('season_id', $seasonId)->get()->getRowArray();
+                $package = $db->table('packages')
+                    ->select('id')
+                    ->where('id', (int) $data['package_id'])
+                    ->where('season_id', $seasonId)
+                    ->get()
+                    ->getRowArray();
                 if (empty($package)) {
                     return redirect()->to($returnUrl)->withInput()->with('error', 'Selected package is not in active season.');
                 }
             }
 
-            $defaultShirka = $this->resolveDefaultShirkaCompany($db);
+            $effectivePackageId = isset($data['package_id']) ? (int) $data['package_id'] : (int) ($existing['package_id'] ?? 0);
+            $effectivePackage = $db->table('packages')
+                ->select('id, default_shirka_company_id')
+                ->where('id', $effectivePackageId)
+                ->where('season_id', $seasonId)
+                ->get()
+                ->getRowArray();
+            if (empty($effectivePackage)) {
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Selected package is not in active season.');
+            }
+
+            $defaultShirka = $this->resolveDefaultShirkaCompany($db, (int) ($effectivePackage['default_shirka_company_id'] ?? 0));
             if ($defaultShirka === null) {
-                return redirect()->to($returnUrl)->withInput()->with('error', 'Please set a default shirka company in Voucher Settings first.');
+                return redirect()->to($returnUrl)->withInput()->with('error', 'Please set a default shirka company on the selected package first.');
             }
             $data['company_id'] = (int) ($defaultShirka['id'] ?? 0);
 
-            $effectivePackageId = isset($data['package_id']) ? (int) $data['package_id'] : (int) ($existing['package_id'] ?? 0);
             $effectivePricingTier = isset($data['pricing_tier'])
                 ? (string) $data['pricing_tier']
                 : trim((string) ($existing['pricing_tier'] ?? ''));
@@ -1140,15 +1171,9 @@ class BookingController extends BaseController
         return $returnUrl;
     }
 
-    private function resolveDefaultShirkaCompany($db)
+    private function resolveDefaultShirkaCompany($db, int $defaultCompanyId)
     {
-        if (! company_table_ready()) {
-            return null;
-        }
-
-        $mainCompanyData = main_company();
-        $defaultCompanyId = (int) ($mainCompanyData['default_shirka_company_id'] ?? 0);
-        if ($defaultCompanyId < 1) {
+        if ($defaultCompanyId < 1 || ! company_table_ready()) {
             return null;
         }
 
@@ -1218,7 +1243,7 @@ class BookingController extends BaseController
         $db = db_connect();
 
         $bookingQuery = $db->table('bookings b')
-            ->select('b.*, p.code AS package_code, p.name AS package_name, p.package_type, p.include_hotel, p.include_ticket, p.include_transport, p.departure_date AS package_departure_date, p.arrival_date AS package_arrival_date, c.id AS shirka_id, c.name AS shirka_name, c.logo_url AS shirka_logo_url, c.address AS shirka_address')
+            ->select('b.*, p.code AS package_code, p.name AS package_name, p.package_type, p.include_hotel, p.include_ticket, p.include_transport, p.departure_date AS package_departure_date, p.arrival_date AS package_arrival_date, p.voucher_instructions_ur, p.voucher_instructions_en, p.makkah_contact, p.makkah_contact_en, p.madina_contact, p.madina_contact_en, p.transport_contact, p.transport_contact_en, c.id AS shirka_id, c.name AS shirka_name, c.logo_url AS shirka_logo_url, c.address AS shirka_address')
             ->join('packages p', 'p.id = b.package_id', 'left')
             ->join('companies c', 'c.id = b.company_id', 'left')
             ->where('b.season_id', $seasonId)
@@ -1238,7 +1263,22 @@ class BookingController extends BaseController
             return redirect()->to('/bookings')->with('error', 'Voucher is available after booking approval.');
         }
 
-        $configuredShirka = $this->resolveDefaultShirkaCompany($db);
+        $firstPayment = $db->table('payments')
+            ->select('id, status')
+            ->where('booking_id', $bookingId)
+            ->where('season_id', $seasonId)
+            ->orderBy('payment_date', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        if (empty($firstPayment)) {
+            return redirect()->to('/bookings')->with('error', 'Final voucher is available after payment is posted for this booking.');
+        }
+
+        if (strtolower((string) ($firstPayment['status'] ?? 'pending')) !== 'posted') {
+            return redirect()->to('/bookings')->with('error', 'Final voucher is available only after the first payment is approved.');
+        }
 
         $paymentRows = $db->table('payments')
             ->where('booking_id', $bookingId)
@@ -1444,10 +1484,10 @@ class BookingController extends BaseController
             'title' => 'HJMS ERP | Final Voucher',
             'mainCompany' => main_company(),
             'shirkaCompany' => [
-                'id' => $configuredShirka['id'] ?? ($booking['shirka_id'] ?? null),
-                'name' => $configuredShirka['name'] ?? ($booking['shirka_name'] ?? ''),
-                'logo_url' => $configuredShirka['logo_url'] ?? ($booking['shirka_logo_url'] ?? ''),
-                'address' => $configuredShirka['address'] ?? ($booking['shirka_address'] ?? ''),
+                'id' => $booking['shirka_id'] ?? null,
+                'name' => $booking['shirka_name'] ?? '',
+                'logo_url' => $booking['shirka_logo_url'] ?? '',
+                'address' => $booking['shirka_address'] ?? '',
             ],
             'booking' => $booking,
             'payments' => $paymentRows,

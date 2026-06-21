@@ -26,6 +26,10 @@ $unitPrice   = (float) ($row['unit_price']         ?? 0);
 $pilgrimCount = (int)  ($row['total_pilgrims']     ?? 0);
 $paidPct     = $total > 0 ? min(100, max(0, ($paid / $total) * 100)) : 0;
 $isOverpaid  = $outstanding < 0;
+$firstPaymentStatus = strtolower((string) ($row['first_payment_status'] ?? ''));
+$canPrintVoucher = (string) ($row['status'] ?? 'draft') !== 'draft'
+    && (float) ($row['paid_amount'] ?? 0) > 0
+    && $firstPaymentStatus === 'posted';
 ?>
 <main class="space-y-3">
 
@@ -72,7 +76,7 @@ $isOverpaid  = $outstanding < 0;
                     <a href="<?= site_url('/bookings/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-100/20">
                         <i class="fa-solid fa-pen-to-square"></i>Edit
                     </a>
-                    <?php if ((string) ($row['status'] ?? 'draft') !== 'draft' && (float) ($row['paid_amount'] ?? 0) > 0): ?>
+                    <?php if ($canPrintVoucher): ?>
                         <a href="<?= site_url('/bookings/' . (int) ($row['id'] ?? 0) . '/voucher') ?>" target="_blank" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-100/20">
                             <i class="fa-solid fa-file-lines"></i>Voucher
                         </a>
@@ -374,10 +378,12 @@ $isOverpaid  = $outstanding < 0;
                         <i class="fa-solid fa-pen-to-square text-sky-500"></i>
                         Edit Booking
                     </a>
-                    <a href="<?= site_url('/bookings/' . (int) ($row['id'] ?? 0) . '/voucher') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
-                        <i class="fa-solid fa-file-lines text-slate-500"></i>
-                        Print Voucher
-                    </a>
+                    <?php if ($canPrintVoucher): ?>
+                        <a href="<?= site_url('/bookings/' . (int) ($row['id'] ?? 0) . '/voucher') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                            <i class="fa-solid fa-file-lines text-slate-500"></i>
+                            Print Voucher
+                        </a>
+                    <?php endif; ?>
                 </div>
             </section>
         </aside>

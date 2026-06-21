@@ -353,6 +353,8 @@ class PackageController extends BaseController
                         'name' => $name,
                         'city' => $city,
                         'nights' => $nights,
+                        'check_in_date' => $checkInDate,
+                        'check_out_date' => $checkOutDate,
                     ];
                 }
             }
@@ -360,7 +362,7 @@ class PackageController extends BaseController
 
             $uniqueHotelStays = [];
             foreach ($hotelStays as $stay) {
-                $key = ($stay['id'] ?? 'null') . '|' . strtolower((string) ($stay['name'] ?? '')) . '|' . strtolower((string) ($stay['city'] ?? '')) . '|' . (int) ($stay['nights'] ?? 0);
+                $key = ($stay['id'] ?? 'null') . '|' . strtolower((string) ($stay['name'] ?? '')) . '|' . strtolower((string) ($stay['city'] ?? '')) . '|' . (int) ($stay['nights'] ?? 0) . '|' . ($stay['check_in_date'] ?? '') . '|' . ($stay['check_out_date'] ?? '');
                 $uniqueHotelStays[$key] = $stay;
             }
             $hotelStays = array_values($uniqueHotelStays);
@@ -518,6 +520,9 @@ class PackageController extends BaseController
             'headerTitle' => 'Add Package',
             'activePage'  => 'packages',
             'userEmail'   => (string) session('user_email'),
+            'companies'   => company_table_ready()
+                ? db_connect()->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
+                : [],
             'success'     => session()->getFlashdata('success'),
             'error'       => session()->getFlashdata('error'),
             'errors'      => session()->getFlashdata('errors') ?: [],
@@ -623,6 +628,9 @@ class PackageController extends BaseController
             'activePage'  => 'packages',
             'userEmail'   => (string) session('user_email'),
             'row'         => $row,
+            'companies'   => company_table_ready()
+                ? $db->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
+                : [],
             'hotelOptions' => (new HotelModel())->orderBy('name', 'ASC')->findAll(),
             'flightOptions' => (new FlightModel())->orderBy('departure_at', 'DESC')->findAll(),
             'transportOptions' => (new TransportModel())->orderBy('provider_name', 'ASC')->findAll(),
@@ -692,6 +700,15 @@ class PackageController extends BaseController
             'duration_days'  => (string) $this->request->getPost('duration_days'),
             'departure_date' => $normDatetime((string) $this->request->getPost('departure_date')),
             'arrival_date'   => $normDatetime((string) $this->request->getPost('arrival_date')),
+            'default_shirka_company_id' => trim((string) $this->request->getPost('default_shirka_company_id')),
+            'voucher_instructions_ur' => trim((string) $this->request->getPost('voucher_instructions_ur')),
+            'voucher_instructions_en' => trim((string) $this->request->getPost('voucher_instructions_en')),
+            'makkah_contact' => trim((string) $this->request->getPost('makkah_contact')),
+            'makkah_contact_en' => trim((string) $this->request->getPost('makkah_contact_en')),
+            'madina_contact' => trim((string) $this->request->getPost('madina_contact')),
+            'madina_contact_en' => trim((string) $this->request->getPost('madina_contact_en')),
+            'transport_contact' => trim((string) $this->request->getPost('transport_contact')),
+            'transport_contact_en' => trim((string) $this->request->getPost('transport_contact_en')),
             'notes'          => (string) $this->request->getPost('notes'),
         ];
 
@@ -703,15 +720,38 @@ class PackageController extends BaseController
             'duration_days' => 'required|integer|greater_than[0]',
             'departure_date' => 'required',
             'arrival_date'  => 'permit_empty',
+            'default_shirka_company_id' => 'permit_empty|integer',
+            'voucher_instructions_ur' => 'permit_empty|max_length[12000]',
+            'voucher_instructions_en' => 'permit_empty|max_length[12000]',
+            'makkah_contact' => 'permit_empty|max_length[255]',
+            'makkah_contact_en' => 'permit_empty|max_length[255]',
+            'madina_contact' => 'permit_empty|max_length[255]',
+            'madina_contact_en' => 'permit_empty|max_length[255]',
+            'transport_contact' => 'permit_empty|max_length[255]',
+            'transport_contact_en' => 'permit_empty|max_length[255]',
             'notes'         => 'permit_empty',
         ])) {
             return redirect()->to('/packages/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
+            $db = db_connect();
             $arrivalDate = $payload['arrival_date'] !== ''
                 ? $payload['arrival_date']
                 : $this->deriveArrivalDate($payload['departure_date'], (int) $payload['duration_days']);
+
+            $defaultShirkaCompanyId = null;
+            if ($payload['default_shirka_company_id'] !== '') {
+                if (! company_table_ready()) {
+                    return redirect()->to('/packages/add')->withInput()->with('error', 'Shirka company table is not available.');
+                }
+
+                $defaultShirkaCompanyId = (int) $payload['default_shirka_company_id'];
+                $companyRow = $db->table('companies')->select('id')->where('id', $defaultShirkaCompanyId)->get()->getRowArray();
+                if (empty($companyRow)) {
+                    return redirect()->to('/packages/add')->withInput()->with('error', 'Selected default shirka company was not found.');
+                }
+            }
 
             $model = new PackageModel();
             $model->insert([
@@ -724,6 +764,15 @@ class PackageController extends BaseController
                 'departure_date' => $payload['departure_date'],
                 'arrival_date'   => $arrivalDate,
                 'is_active'      => 1,
+                'default_shirka_company_id' => $defaultShirkaCompanyId,
+                'voucher_instructions_ur' => $payload['voucher_instructions_ur'] !== '' ? $payload['voucher_instructions_ur'] : null,
+                'voucher_instructions_en' => $payload['voucher_instructions_en'] !== '' ? $payload['voucher_instructions_en'] : null,
+                'makkah_contact' => $payload['makkah_contact'] !== '' ? $payload['makkah_contact'] : null,
+                'makkah_contact_en' => $payload['makkah_contact_en'] !== '' ? $payload['makkah_contact_en'] : null,
+                'madina_contact' => $payload['madina_contact'] !== '' ? $payload['madina_contact'] : null,
+                'madina_contact_en' => $payload['madina_contact_en'] !== '' ? $payload['madina_contact_en'] : null,
+                'transport_contact' => $payload['transport_contact'] !== '' ? $payload['transport_contact'] : null,
+                'transport_contact_en' => $payload['transport_contact_en'] !== '' ? $payload['transport_contact_en'] : null,
                 'notes'          => $payload['notes'] !== '' ? $payload['notes'] : null,
                 'created_at'     => date('Y-m-d H:i:s'),
                 'updated_at'     => date('Y-m-d H:i:s'),
@@ -761,6 +810,15 @@ class PackageController extends BaseController
             'duration_days'     => (string) $this->request->getPost('duration_days'),
             'departure_date'    => $normDatetime((string) $this->request->getPost('departure_date')),
             'arrival_date'      => $normDatetime((string) $this->request->getPost('arrival_date')),
+            'default_shirka_company_id' => trim((string) $this->request->getPost('default_shirka_company_id')),
+            'voucher_instructions_ur' => trim((string) $this->request->getPost('voucher_instructions_ur')),
+            'voucher_instructions_en' => trim((string) $this->request->getPost('voucher_instructions_en')),
+            'makkah_contact' => trim((string) $this->request->getPost('makkah_contact')),
+            'makkah_contact_en' => trim((string) $this->request->getPost('makkah_contact_en')),
+            'madina_contact' => trim((string) $this->request->getPost('madina_contact')),
+            'madina_contact_en' => trim((string) $this->request->getPost('madina_contact_en')),
+            'transport_contact' => trim((string) $this->request->getPost('transport_contact')),
+            'transport_contact_en' => trim((string) $this->request->getPost('transport_contact_en')),
             'notes'             => (string) $this->request->getPost('notes'),
             'is_active'         => (string) $this->request->getPost('is_active'),
             'include_hotel'     => (string) ($this->request->getPost('include_hotel') ?? ''),
@@ -780,6 +838,15 @@ class PackageController extends BaseController
             'duration_days' => 'permit_empty|integer|greater_than[0]',
             'departure_date'    => 'permit_empty',
             'arrival_date'      => 'permit_empty',
+            'default_shirka_company_id' => 'permit_empty|integer',
+            'voucher_instructions_ur' => 'permit_empty|max_length[12000]',
+            'voucher_instructions_en' => 'permit_empty|max_length[12000]',
+            'makkah_contact' => 'permit_empty|max_length[255]',
+            'makkah_contact_en' => 'permit_empty|max_length[255]',
+            'madina_contact' => 'permit_empty|max_length[255]',
+            'madina_contact_en' => 'permit_empty|max_length[255]',
+            'transport_contact' => 'permit_empty|max_length[255]',
+            'transport_contact_en' => 'permit_empty|max_length[255]',
             'notes'             => 'permit_empty',
             'is_active'         => 'permit_empty|in_list[0,1]',
             'include_hotel'     => 'permit_empty|in_list[0,1]',
@@ -809,6 +876,22 @@ class PackageController extends BaseController
             $existing = $model->where('id', $packageId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
                 return redirect()->to('/packages')->with('error', 'Package not found in active season.');
+            }
+
+            if (isset($data['default_shirka_company_id'])) {
+                if ((string) $data['default_shirka_company_id'] === '') {
+                    $data['default_shirka_company_id'] = null;
+                } else {
+                    if (! company_table_ready()) {
+                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Shirka company table is not available.');
+                    }
+                    $shirkaId = (int) $data['default_shirka_company_id'];
+                    $companyRow = db_connect()->table('companies')->select('id')->where('id', $shirkaId)->get()->getRowArray();
+                    if (empty($companyRow)) {
+                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Selected default shirka company was not found.');
+                    }
+                    $data['default_shirka_company_id'] = $shirkaId;
+                }
             }
 
             if (isset($data['departure_date']) || isset($data['duration_days'])) {

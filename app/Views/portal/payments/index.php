@@ -1,6 +1,7 @@
 ﻿<?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
+<?php $isSuperAdmin = function_exists('auth_is_super_admin') && auth_is_super_admin(); ?>
 <main class="space-y-4">
 
     <?php if (!empty($success)): ?>
@@ -188,6 +189,20 @@
                                         <a href="<?= site_url('/payments/' . (int) $row['id'] . '/receipt') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-receipt text-slate-400"></i> Receipt
                                         </a>
+                                        <?php if (!empty($row['receipt_attachment_path'])): ?>
+                                            <a href="<?= site_url('/payments/' . (int) $row['id'] . '/attachment') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                                <i class="fa-solid fa-paperclip text-slate-400"></i> Attachment
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if ($rowStatus === 'pending' && $isSuperAdmin): ?>
+                                            <form method="post" action="<?= site_url('/payments/approve') ?>" class="block">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="payment_id" value="<?= esc((string) $row['id']) ?>">
+                                                <button type="submit" onclick="return confirm('Approve this payment?');" class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">
+                                                    <i class="fa-solid fa-circle-check text-emerald-500"></i> Approve
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
                                         <?php if ((int) ($row['agent_id'] ?? 0) > 0): ?>
                                             <a href="<?= site_url('/agents/' . (int) $row['agent_id'] . '/ledger') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                                 <i class="fa-solid fa-book-open text-slate-400"></i> Agent Ledger

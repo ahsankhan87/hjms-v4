@@ -21,6 +21,10 @@ class PaymentModel extends SeasonScopedModel
         'gateway_reference',
         'status',
         'note',
+        'receipt_attachment_path',
+        'receipt_attachment_name',
+        'approved_by',
+        'approved_at',
         'created_by',
         'created_at',
     ];

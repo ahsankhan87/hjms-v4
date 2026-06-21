@@ -2,6 +2,7 @@
 
 <?php $this->section('main') ?>
 <?php
+$isSuperAdmin = function_exists('auth_is_super_admin') && auth_is_super_admin();
 $status   = (string) ($payment['status'] ?? 'pending');
 $statusMap = [
     'posted'  => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],
@@ -54,6 +55,15 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
         </div>
 
         <div class="flex flex-wrap gap-2">
+            <?php if ($status === 'pending' && $isSuperAdmin): ?>
+                <form method="post" action="<?= site_url('/payments/approve') ?>">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="payment_id" value="<?= esc((string) ($payment['id'] ?? '')) ?>">
+                    <button type="submit" onclick="return confirm('Approve this payment?');" class="btn btn-sm btn-primary">
+                        <i class="fa-solid fa-circle-check"></i><span>Approve</span>
+                    </button>
+                </form>
+            <?php endif; ?>
             <?php if (!$isVoided): ?>
                 <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/edit') ?>" class="btn btn-sm btn-secondary">
                     <i class="fa-solid fa-pen"></i><span>Edit</span>
@@ -158,6 +168,17 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                         <div class="grid grid-cols-2 gap-2 px-6 py-3.5">
                             <dt class="text-sm text-slate-500">Notes</dt>
                             <dd class="text-sm text-slate-700 whitespace-pre-line"><?= esc($payment['note']) ?></dd>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($payment['receipt_attachment_path'])): ?>
+                        <div class="grid grid-cols-2 gap-2 px-6 py-3.5">
+                            <dt class="text-sm text-slate-500">Receipt Attachment</dt>
+                            <dd class="text-sm">
+                                <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>" class="font-semibold text-sky-600 hover:underline">
+                                    <?= esc((string) ($payment['receipt_attachment_name'] ?? 'View Attachment')) ?>
+                                </a>
+                            </dd>
                         </div>
                     <?php endif; ?>
 
