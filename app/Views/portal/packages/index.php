@@ -170,7 +170,7 @@
                                             <div class="font-medium text-slate-700 truncate"><?= !empty($return) ? esc(trim((string) (($return['airline'] ?? '') . ' ' . ($return['flight_no'] ?? '')))) : 'TBA' ?></div>
                                             <div class="text-slate-500 truncate"><?= !empty($return) ? esc(trim((string) (($return['departure_airport'] ?? '') . ' -> ' . ($return['arrival_airport'] ?? '')), ' ->')) : 'Route TBA' ?></div>
                                         </div>
-                                        <div class="text-[10px] text-slate-600 whitespace-nowrap"><?= esc($formatDateTime($return['arrival_at'] ?? ($card['return_arrival_datetime'] ?? ''))) ?></div>
+                                        <div class="text-[10px] text-slate-600 whitespace-nowrap"><?= esc($formatDateTime($return['departure_at'] ?? ($card['departure_datetime'] ?? ''))) ?></div>
                                     </div>
                                 <?php endif; ?>
                             </div>

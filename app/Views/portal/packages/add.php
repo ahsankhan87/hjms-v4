@@ -57,10 +57,16 @@
                     <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div class="md:col-span-2">
                             <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Default Shirka Company</label>
+                            <?php
+                            $selectedShirkaCompanyId = (string) old('default_shirka_company_id');
+                            if ($selectedShirkaCompanyId === '' && !empty($companies)) {
+                                $selectedShirkaCompanyId = (string) (($companies[0]['id'] ?? ''));
+                            }
+                            ?>
                             <select name="default_shirka_company_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                                 <option value="">Select shirka company…</option>
                                 <?php foreach (($companies ?? []) as $item): ?>
-                                    <option value="<?= esc($item['id']) ?>" <?= (string) old('default_shirka_company_id') === (string) ($item['id'] ?? '') ? 'selected' : '' ?>><?= esc((string) ($item['name'] ?? '')) ?></option>
+                                    <option value="<?= esc($item['id']) ?>" <?= $selectedShirkaCompanyId === (string) ($item['id'] ?? '') ? 'selected' : '' ?>><?= esc((string) ($item['name'] ?? '')) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

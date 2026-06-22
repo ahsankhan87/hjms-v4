@@ -120,7 +120,7 @@
                                     <div class="rounded-md bg-white border border-slate-200 px-2 py-1.5">
                                         <div class="text-[10px] font-semibold uppercase text-emerald-700">Return</div>
                                         <div class="text-slate-700"><?= !empty($return) ? esc(trim((string) (($return['departure_airport'] ?? '') . ' -> ' . ($return['arrival_airport'] ?? '')), ' ->')) : 'Route TBA' ?></div>
-                                        <div class="text-[11px] text-slate-500"><?= esc($formatDateTime($return['arrival_at'] ?? ($card['return_arrival_datetime'] ?? ''))) ?></div>
+                                        <div class="text-[11px] text-slate-500"><?= esc($formatDateTime($return['departure_at'] ?? ($card['departure_datetime'] ?? ''))) ?></div>
                                     </div>
                                 </div>
                             </div>

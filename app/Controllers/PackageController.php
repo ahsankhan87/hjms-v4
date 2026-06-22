@@ -192,7 +192,7 @@ class PackageController extends BaseController
         $db = db_connect();
 
         $flightRows = $db->table('package_flights pf')
-            ->select('pf.*, f.departure_airport, f.arrival_airport, f.pnr')
+            ->select('pf.*, f.departure_airport, f.arrival_airport, f.departure_at, f.arrival_at, f.pnr, f.return_airline, f.return_flight_no, f.return_pnr, f.return_departure_airport, f.return_arrival_airport, f.return_departure_at, f.return_arrival_at')
             ->join('flights f', 'f.id = pf.flight_id', 'left')
             ->whereIn('pf.package_id', $packageIds)
             ->orderBy('pf.departure_at', 'ASC')
@@ -262,6 +262,7 @@ class PackageController extends BaseController
             $airlineName = (string) ($row['airline'] ?? '');
             $travelDate = (string) ($row['departure_date'] ?? '');
             $departureDateTime = (string) ($row['departure_date'] ?? '');
+            $returnDepartureDateTime = '';
             $returnArrivalDateTime = (string) ($row['arrival_date'] ?? '');
             $ticketRefs = [];
             $outboundFlight = null;
@@ -285,7 +286,12 @@ class PackageController extends BaseController
                     $departureDateTime = $departureAt;
                 }
 
-                $returnArrivalAt = (string) ($lastFlight['arrival_at'] ?? '');
+                $returnDepartureAt = (string) ($lastFlight['return_departure_at'] ?? '');
+                if ($returnDepartureAt !== '') {
+                    $returnDepartureDateTime = $returnDepartureAt;
+                }
+
+                $returnArrivalAt = (string) ($lastFlight['return_arrival_at'] ?? '');
                 if ($returnArrivalAt !== '') {
                     $returnArrivalDateTime = $returnArrivalAt;
                 }
@@ -300,13 +306,13 @@ class PackageController extends BaseController
                     'arrival_at' => (string) ($firstFlight['arrival_at'] ?? ''),
                 ];
                 $returnFlight = [
-                    'airline' => (string) ($lastFlight['airline'] ?? ''),
-                    'flight_no' => (string) ($lastFlight['flight_no'] ?? ''),
-                    'pnr' => trim((string) ($lastFlight['pnr'] ?? '')),
-                    'departure_airport' => (string) ($lastFlight['departure_airport'] ?? ''),
-                    'arrival_airport' => (string) ($lastFlight['arrival_airport'] ?? ''),
-                    'departure_at' => (string) ($lastFlight['departure_at'] ?? ''),
-                    'arrival_at' => (string) ($lastFlight['arrival_at'] ?? ''),
+                    'airline' => (string) ($lastFlight['return_airline'] ?? ''),
+                    'flight_no' => (string) ($lastFlight['return_flight_no'] ?? ''),
+                    'pnr' => trim((string) ($lastFlight['return_pnr'] ?? '')),
+                    'departure_airport' => (string) ($lastFlight['return_departure_airport'] ?? ''),
+                    'arrival_airport' => (string) ($lastFlight['return_arrival_airport'] ?? ''),
+                    'departure_at' => (string) ($lastFlight['return_departure_at'] ?? ''),
+                    'arrival_at' => (string) ($lastFlight['return_arrival_at'] ?? ''),
                 ];
 
                 foreach ($linkedFlights as $flight) {
@@ -433,6 +439,7 @@ class PackageController extends BaseController
                 'hotel_stays' => $hotelStays,
                 'travel_date' => $travelDate,
                 'departure_datetime' => $departureDateTime,
+                'return_departure_datetime' => $returnDepartureDateTime,
                 'return_arrival_datetime' => $returnArrivalDateTime,
                 'outbound_flight' => $outboundFlight,
                 'return_flight' => $returnFlight,
@@ -649,7 +656,7 @@ class PackageController extends BaseController
             'packageStayStart' => $packageStayStart,
             'packageStayEnd' => $packageStayEnd,
             'flightRows' => $db->table('package_flights pf')
-                ->select('pf.*, f.pnr, f.departure_airport, f.arrival_airport')
+                ->select('pf.*, f.pnr, f.departure_airport, f.arrival_airport, f.return_airline, f.return_flight_no, f.return_pnr, f.return_departure_airport, f.return_arrival_airport, f.return_departure_at, f.return_arrival_at')
                 ->join('flights f', 'f.id = pf.flight_id', 'left')
                 ->where('pf.package_id', $id)
                 ->orderBy('pf.id', 'ASC')
@@ -1893,6 +1900,13 @@ class PackageController extends BaseController
                         'arrival_airport' => (string) ($flight['arrival_airport'] ?? ''),
                         'departure_at' => (string) ($flight['departure_at'] ?? ''),
                         'arrival_at' => (string) ($flight['arrival_at'] ?? ''),
+                        'return_airline' => (string) ($flight['return_airline'] ?? ''),
+                        'return_flight_no' => (string) ($flight['return_flight_no'] ?? ''),
+                        'return_pnr' => (string) ($flight['return_pnr'] ?? ''),
+                        'return_departure_airport' => (string) ($flight['return_departure_airport'] ?? ''),
+                        'return_arrival_airport' => (string) ($flight['return_arrival_airport'] ?? ''),
+                        'return_departure_at' => (string) ($flight['return_departure_at'] ?? ''),
+                        'return_arrival_at' => (string) ($flight['return_arrival_at'] ?? ''),
                         'pnr' => (string) ($flight['pnr'] ?? ''),
                         'cost_amount' => (float) $payload['cost_amount'],
                     ],

@@ -482,28 +482,15 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06) !important;
             font-size: 0.8125rem !important;
             overflow: hidden !important;
-            max-height: 400px !important;
         }
 
-        .select2-results {
-            max-height: 350px !important;
-            overflow-y: auto !important;
-        }
-
-        .select2-container--default .select2-results__option {
-            padding: 0.45rem 0.75rem !important;
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 0.35rem 0.6rem !important;
+            font-size: 0.875rem !important;
             color: #374151 !important;
-            white-space: normal !important;
-            word-wrap: break-word !important;
-            max-width: 100% !important;
-        }
-
-        border: 1px solid #d1d5db !important;
-        border-radius: 0.375rem !important;
-        padding: 0.35rem 0.6rem !important;
-        font-size: 0.875rem !important;
-        color: #374151 !important;
-        outline: none !important;
+            outline: none !important;
         }
 
         .select2-container--default .select2-search--dropdown .select2-search__field:focus {
@@ -917,9 +904,7 @@
                     $select.select2({
                         width: '100%',
                         placeholder: hasEmptyOption ? 'Select option' : '',
-                        allowClear: hasEmptyOption,
-                        dropdownAutoWidth: false,
-                        dropdownParent: $(document.body)
+                        allowClear: hasEmptyOption
                     });
                 });
 
