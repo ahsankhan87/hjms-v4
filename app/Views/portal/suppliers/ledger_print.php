@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= esc((string) ($title ?? 'Ledger Print')) ?></title>
+    <title><?= esc((string) ($title ?? 'Supplier Ledger Print')) ?></title>
     <style>
         * {
             box-sizing: border-box;
@@ -178,7 +178,7 @@
     <?php
     $mainCompanyData = function_exists('main_company') ? (main_company() ?? []) : [];
     $companyName = trim((string) ($mainCompanyData['name'] ?? 'HJMS ERP'));
-    $companyTagline = trim((string) ($mainCompanyData['tagline'] ?? 'Agent ledger statement'));
+    $companyTagline = trim((string) ($mainCompanyData['tagline'] ?? 'Supplier ledger statement'));
     $companyAddress = trim((string) ($mainCompanyData['address'] ?? ''));
     $companyPhone = trim((string) ($mainCompanyData['phone'] ?? ''));
     $companyEmail = trim((string) ($mainCompanyData['email'] ?? ''));
@@ -192,13 +192,13 @@
 
     <div class="actions">
         <button class="btn" onclick="window.print()">Print / Save PDF</button>
-        <a class="btn alt" href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>">Back to Ledger</a>
+        <a class="btn alt" href="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger') ?>">Back to Ledger</a>
     </div>
 
     <main class="sheet">
         <section class="top">
             <h1><?= esc($companyName !== '' ? $companyName : 'HJMS ERP') ?></h1>
-            <p><?= esc($companyTagline !== '' ? $companyTagline : 'Agent ledger statement') ?></p>
+            <p><?= esc($companyTagline !== '' ? $companyTagline : 'Supplier ledger statement') ?></p>
             <?php if ($companyAddress !== ''): ?>
                 <p><?= esc($companyAddress) ?></p>
             <?php endif; ?>
@@ -207,18 +207,24 @@
             <?php endif; ?>
         </section>
 
-        <section class="heading">Account Ledger</section>
+        <section class="heading">Supplier Ledger</section>
 
         <table class="meta">
             <tr>
-                <td class="label">Account Code:</td>
-                <td class="value"><?= esc((string) ($agent['code'] ?? 'N/A')) ?></td>
+                <td class="label">Supplier Code:</td>
+                <td class="value"><?= esc((string) ($supplier['supplier_code'] ?? 'N/A')) ?></td>
+                <td class="label">Opening Balance:</td>
+                <td class="right"><?= esc(number_format((float) ($supplier['opening_balance'] ?? 0), 2)) ?></td>
+            </tr>
+            <tr>
+                <td class="label">Supplier Name:</td>
+                <td class="value"><?= esc((string) ($supplier['supplier_name'] ?? 'N/A')) ?></td>
                 <td class="label">Closing Balance:</td>
                 <td class="right"><?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>
             </tr>
             <tr>
-                <td class="label">Account Title:</td>
-                <td class="value"><?= esc((string) ($agent['name'] ?? 'N/A')) ?></td>
+                <td class="label">Supplier Type:</td>
+                <td class="value"><?= esc(ucfirst((string) ($supplier['supplier_type'] ?? 'N/A'))) ?></td>
                 <td class="label">Entries:</td>
                 <td class="right"><?= esc((string) ($entryCount ?? 0)) ?></td>
             </tr>
@@ -234,7 +240,7 @@
             <thead>
                 <tr>
                     <th style="width: 82px;">Date</th>
-                    <th style="width: 85px;">Type</th>
+                    <th style="width: 95px;">Type</th>
                     <th style="width: 90px;">Trans.#</th>
                     <th>Particulars</th>
                     <th style="width: 100px;">Inv/Ref</th>
@@ -259,12 +265,10 @@
                             <td><?= $referenceId > 0 ? esc((string) $referenceId) : '-' ?></td>
                             <td><?= esc((string) ($row['description'] ?? '-')) ?></td>
                             <td>
-                                <?php if ($referenceType === 'booking' && $referenceId > 0): ?>
-                                    BK-<?= esc((string) $referenceId) ?>
-                                <?php elseif ($referenceType === 'payment' && $referenceId > 0): ?>
-                                    PM-<?= esc((string) $referenceId) ?>
-                                <?php elseif ($referenceType === 'sale' && $referenceId > 0): ?>
-                                    SL-<?= esc((string) $referenceId) ?>
+                                <?php if ($referenceType !== '' && $referenceId > 0): ?>
+                                    <?= esc(strtoupper(substr($referenceType, 0, 2))) ?>-<?= esc((string) $referenceId) ?>
+                                <?php elseif ($referenceId > 0): ?>
+                                    REF-<?= esc((string) $referenceId) ?>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>
@@ -285,6 +289,7 @@
         <table class="totals">
             <tr>
                 <td>Total</td>
+                <td class="right">Opening: <?= esc(number_format((float) ($supplier['opening_balance'] ?? 0), 2)) ?></td>
                 <td class="right">Debit: <?= esc(number_format((float) ($totalDebit ?? 0), 2)) ?></td>
                 <td class="right">Credit: <?= esc(number_format((float) ($totalCredit ?? 0), 2)) ?></td>
                 <td class="right">Balance: <?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>

@@ -117,20 +117,10 @@ class SupplierController extends BaseController
             return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
         }
 
-        $rows = (new SupplierLedgerEntryModel())
-            ->where('supplier_id', $id)
-            ->orderBy('entry_date', 'ASC')
-            ->orderBy('id', 'ASC')
-            ->findAll();
+        $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
+        $toDate = $this->normalizeDateFilter((string) $this->request->getGet('to'));
 
-        $runningBalance = (float) ($supplier['opening_balance'] ?? 0);
-        foreach ($rows as &$item) {
-            // Supplier payable balance: credit increases liability, debit decreases it.
-            $runningBalance += (float) ($item['credit_amount'] ?? 0);
-            $runningBalance -= (float) ($item['debit_amount'] ?? 0);
-            $item['running_balance'] = $runningBalance;
-        }
-        unset($item);
+        $ledgerData = $this->buildSupplierLedgerViewData($id, $fromDate, $toDate, (float) ($supplier['opening_balance'] ?? 0));
 
         return view('portal/suppliers/ledger', [
             'title' => 'HJMS ERP | Supplier Ledger',
@@ -138,11 +128,45 @@ class SupplierController extends BaseController
             'activePage' => 'suppliers',
             'userEmail' => (string) session('user_email'),
             'supplier' => $supplier,
-            'rows' => $rows,
-            'closingBalance' => $runningBalance,
+            'rows' => $ledgerData['rows'],
+            'entryCount' => $ledgerData['entryCount'],
+            'totalDebit' => $ledgerData['totalDebit'],
+            'totalCredit' => $ledgerData['totalCredit'],
+            'closingBalance' => $ledgerData['closingBalance'],
+            'periodFrom' => $ledgerData['periodFrom'],
+            'periodTo' => $ledgerData['periodTo'],
+            'filterFrom' => $ledgerData['filterFrom'],
+            'filterTo' => $ledgerData['filterTo'],
             'success' => session()->getFlashdata('success'),
             'error' => session()->getFlashdata('error'),
             'errors' => session()->getFlashdata('errors') ?: [],
+        ]);
+    }
+
+    public function ledgerPrint(int $id)
+    {
+        $supplier = (new SupplierModel())->find($id);
+        if (empty($supplier)) {
+            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+        }
+
+        $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
+        $toDate = $this->normalizeDateFilter((string) $this->request->getGet('to'));
+        $autoPrint = (string) $this->request->getGet('autoprint') === '1';
+
+        $ledgerData = $this->buildSupplierLedgerViewData($id, $fromDate, $toDate, (float) ($supplier['opening_balance'] ?? 0));
+
+        return view('portal/suppliers/ledger_print', [
+            'title' => 'HJMS ERP | Supplier Ledger Print',
+            'supplier' => $supplier,
+            'rows' => $ledgerData['rows'],
+            'entryCount' => $ledgerData['entryCount'],
+            'totalDebit' => $ledgerData['totalDebit'],
+            'totalCredit' => $ledgerData['totalCredit'],
+            'closingBalance' => $ledgerData['closingBalance'],
+            'periodFrom' => $ledgerData['periodFrom'],
+            'periodTo' => $ledgerData['periodTo'],
+            'autoPrint' => $autoPrint,
         ]);
     }
 
@@ -300,6 +324,81 @@ class SupplierController extends BaseController
             'opening_balance' => (string) $this->request->getPost('opening_balance'),
             'is_active' => (string) ($this->request->getPost('is_active') ?? '1'),
         ];
+    }
+
+    private function buildSupplierLedgerViewData(int $supplierId, string $fromDate = '', string $toDate = '', float $openingBalance = 0.0): array
+    {
+        $allRows = (new SupplierLedgerEntryModel())
+            ->where('supplier_id', $supplierId)
+            ->orderBy('entry_date', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->findAll();
+
+        $filteredRows = [];
+        foreach ($allRows as $row) {
+            $entryDate = (string) ($row['entry_date'] ?? '');
+            if ($fromDate !== '' && $entryDate < $fromDate) {
+                continue;
+            }
+            if ($toDate !== '' && $entryDate > $toDate) {
+                continue;
+            }
+
+            $filteredRows[] = $row;
+        }
+
+        $runningBalance = $openingBalance;
+        $totalDebit = 0.0;
+        $totalCredit = 0.0;
+        $periodFrom = '';
+        $periodTo = '';
+
+        $dates = array_values(array_filter(array_map(static function (array $item): string {
+            return (string) ($item['entry_date'] ?? '');
+        }, $filteredRows)));
+        if (! empty($dates)) {
+            sort($dates);
+            $periodFrom = (string) $dates[0];
+            $periodTo = (string) $dates[count($dates) - 1];
+        }
+
+        foreach ($filteredRows as &$item) {
+            $debitAmount = (float) ($item['debit_amount'] ?? 0);
+            $creditAmount = (float) ($item['credit_amount'] ?? 0);
+            // Supplier payable balance: credit increases liability, debit decreases it.
+            $runningBalance += $creditAmount;
+            $runningBalance -= $debitAmount;
+            $item['running_balance'] = $runningBalance;
+            $totalDebit += $debitAmount;
+            $totalCredit += $creditAmount;
+        }
+        unset($item);
+
+        return [
+            'rows' => $filteredRows,
+            'entryCount' => count($filteredRows),
+            'periodFrom' => $periodFrom,
+            'periodTo' => $periodTo,
+            'totalDebit' => $totalDebit,
+            'totalCredit' => $totalCredit,
+            'closingBalance' => $runningBalance,
+            'filterFrom' => $fromDate,
+            'filterTo' => $toDate,
+        ];
+    }
+
+    private function normalizeDateFilter(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return '';
+        }
+
+        return $value;
     }
 
     private function supplierRules(): array

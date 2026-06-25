@@ -79,11 +79,10 @@
                                 Amount <span class="text-rose-500">*</span>
                             </label>
                             <div class="relative">
-                                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-400">SAR</span>
                                 <input id="create-payment-amount" type="text" name="amount" required
                                     value="<?= esc(old('amount', '')) ?>"
                                     placeholder="0.00"
-                                    class="w-full rounded-lg border border-slate-300 pl-10 pr-3 py-2.5 text-sm shadow-sm focus:border-emerald-400 focus:outline-none focus:ring focus:ring-emerald-100">
+                                    class="w-full rounded-lg border border-slate-300 pl-3 pr-3 py-2.5 text-sm shadow-sm focus:border-emerald-400 focus:outline-none focus:ring focus:ring-emerald-100">
                             </div>
                         </div>
                         <div>

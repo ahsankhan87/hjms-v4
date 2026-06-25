@@ -117,7 +117,6 @@ $isVoided = $status === 'voided';
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Amount</label>
                             <div class="relative">
-                                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-400">SAR</span>
                                 <input type="text" name="amount"
                                     value="<?= esc(old('amount', (string) ($payment['amount'] ?? ''))) ?>"
                                     placeholder="Leave blank for no change"
@@ -246,7 +245,7 @@ $isVoided = $status === 'voided';
                     <div class="flex justify-between py-2.5">
                         <dt class="text-xs text-slate-500">Amount</dt>
                         <dd class="text-sm font-bold text-slate-900">
-                            SAR <?= esc(number_format((float) ($payment['amount'] ?? 0), 2)) ?>
+                            <?= esc(number_format((float) ($payment['amount'] ?? 0), 2)) ?>
                         </dd>
                     </div>
                     <div class="flex justify-between py-2.5">
@@ -291,16 +290,16 @@ $isVoided = $status === 'voided';
                     <div class="rounded-lg bg-slate-50 p-4 space-y-2.5">
                         <div class="flex justify-between">
                             <span class="text-xs text-slate-500">Booking Total</span>
-                            <span class="text-sm font-semibold text-slate-800">SAR <?= number_format($fTotal, 2) ?></span>
+                            <span class="text-sm font-semibold text-slate-800"><?= number_format($fTotal, 2) ?></span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-xs text-slate-500">Amount Paid</span>
-                            <span class="text-sm font-semibold text-emerald-600">SAR <?= number_format($fPaid, 2) ?></span>
+                            <span class="text-sm font-semibold text-emerald-600"><?= number_format($fPaid, 2) ?></span>
                         </div>
                         <div class="border-t border-slate-200 pt-2 flex justify-between">
                             <span class="text-xs font-semibold text-slate-600">Outstanding</span>
                             <span class="text-sm font-bold <?= $fOutstand > 0 ? 'text-rose-600' : 'text-emerald-600' ?>">
-                                SAR <?= number_format($fOutstand, 2) ?>
+                                <?= number_format($fOutstand, 2) ?>
                             </span>
                         </div>
                     </div>

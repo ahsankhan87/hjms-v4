@@ -109,8 +109,8 @@ class BookingController extends BaseController
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
-        if ($linkedAgentId !== null) {
-            return redirect()->to('/bookings')->with('error', 'Only admin can approve bookings.');
+        if (! function_exists('auth_can') || ! auth_can('bookings.approve')) {
+            return redirect()->to('/bookings')->with('error', 'You are not authorized to approve bookings.');
         }
 
         if ($bookingId < 1) {

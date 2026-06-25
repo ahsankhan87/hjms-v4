@@ -2,7 +2,7 @@
 
 <?php $this->section('main') ?>
 <?php
-$isSuperAdmin = function_exists('auth_is_super_admin') && auth_is_super_admin();
+$canApprovePayments = function_exists('auth_can') && auth_can('payments.approve');
 $status   = (string) ($payment['status'] ?? 'pending');
 $statusMap = [
     'posted'  => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],
@@ -55,7 +55,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <?php if ($status === 'pending' && $isSuperAdmin): ?>
+            <?php if ($status === 'pending' && $canApprovePayments): ?>
                 <form method="post" action="<?= site_url('/payments/approve') ?>">
                     <?= csrf_field() ?>
                     <input type="hidden" name="payment_id" value="<?= esc((string) ($payment['id'] ?? '')) ?>">
@@ -93,7 +93,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                         <?= $isRefund ? 'Refund Amount' : 'Payment Amount' ?>
                     </p>
                     <p class="mt-1 text-5xl font-extrabold tracking-tight text-white">
-                        SAR <?= esc(number_format((float) ($payment['amount'] ?? 0), 2)) ?>
+                        <?= esc(number_format((float) ($payment['amount'] ?? 0), 2)) ?>
                     </p>
                 </div>
                 <div class="grid grid-cols-3 divide-x divide-slate-100">
@@ -231,16 +231,16 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                     <div class="rounded-lg bg-slate-50 p-4 space-y-2.5">
                         <div class="flex justify-between">
                             <span class="text-xs text-slate-500">Booking Total</span>
-                            <span class="text-sm font-semibold text-slate-800">SAR <?= number_format($bookingTotal, 2) ?></span>
+                            <span class="text-sm font-semibold text-slate-800"><?= number_format($bookingTotal, 2) ?></span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-xs text-slate-500">Total Paid</span>
-                            <span class="text-sm font-semibold text-emerald-600">SAR <?= number_format($paidAmount, 2) ?></span>
+                            <span class="text-sm font-semibold text-emerald-600"><?= number_format($paidAmount, 2) ?></span>
                         </div>
                         <div class="border-t border-slate-200 pt-2 flex justify-between">
                             <span class="text-xs font-semibold text-slate-600">Outstanding</span>
                             <span class="text-sm font-bold <?= $outstanding > 0 ? 'text-rose-600' : 'text-emerald-600' ?>">
-                                SAR <?= number_format($outstanding, 2) ?>
+                                <?= number_format($outstanding, 2) ?>
                             </span>
                         </div>
                     </div>
@@ -306,7 +306,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                         <p class="text-sm font-semibold text-amber-800">Confirm Void</p>
                         <p class="mt-0.5 text-xs text-amber-700">
                             Payment <strong><?= esc($payment['payment_no'] ?? '') ?></strong>
-                            of <strong>SAR <?= number_format((float) ($payment['amount'] ?? 0), 2) ?></strong> will be voided.
+                            of <strong><?= esc(number_format((float) ($payment['amount'] ?? 0), 2)) ?></strong> will be voided.
                         </p>
                     </div>
                 </div>

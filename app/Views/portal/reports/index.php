@@ -23,6 +23,14 @@
                     <i class="fa-solid fa-gears text-[10px]"></i>
                     Operations Reports
                 </a>
+                <a href="<?= site_url('/reports/suppliers-payable') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-file-invoice-dollar text-[10px]"></i>
+                    Supplier / AP
+                </a>
+                <a href="<?= site_url('/reports/profit-loss') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-scale-balanced text-[10px]"></i>
+                    Profit &amp; Loss
+                </a>
                 <a href="<?= site_url('/reports/ksa-status') ?>" class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
                     <i class="fa-solid fa-plane-departure text-[10px]"></i>
                     KSA Status Report
@@ -113,7 +121,7 @@
                 <div class="rounded-lg bg-slate-50 p-3">Total Receivable: <strong>PKR <?= esc(number_format((float) ($agentTotals['receivable'] ?? 0), 2)) ?></strong></div>
                 <div class="rounded-lg bg-slate-50 p-3">Total Collected: <strong>PKR <?= esc(number_format((float) ($agentTotals['collected'] ?? 0), 2)) ?></strong></div>
                 <div class="rounded-lg bg-slate-50 p-3">Total Outstanding: <strong>PKR <?= esc(number_format((float) ($agentTotals['outstanding'] ?? 0), 2)) ?></strong></div>
-                <div class="rounded-lg bg-slate-50 p-3">Active Agents: <strong><?= esc((int) ($agentTotals['active_agents'] ?? 0)) ?></strong></div>
+                <div class="rounded-lg bg-slate-50 p-3">Active Agents: <strong><?= esc((string) ((int) ($agentTotals['active_agents'] ?? 0))) ?></strong></div>
             </div>
         </article>
 

@@ -894,7 +894,7 @@ class PaymentController extends BaseController
 
     private function canApprovePayments(): bool
     {
-        return function_exists('auth_is_super_admin') && auth_is_super_admin();
+        return function_exists('auth_can') && auth_can('payments.approve');
     }
 
     private function storeReceiptAttachment(string $fieldName): array

@@ -617,6 +617,187 @@ class ReportController extends BaseController
         ]);
     }
 
+    public function suppliersPayable(): string
+    {
+        $filters = [
+            'from_date' => (string) $this->request->getGet('from_date'),
+            'to_date'   => (string) $this->request->getGet('to_date'),
+        ];
+
+        $filterErrors = [];
+        if (! $this->validateData($filters, [
+            'from_date' => 'permit_empty|valid_date[Y-m-d]',
+            'to_date'   => 'permit_empty|valid_date[Y-m-d]',
+        ])) {
+            $filterErrors = $this->validator->getErrors();
+            $filters = ['from_date' => '', 'to_date' => ''];
+        }
+
+        $db = db_connect();
+
+        $suppliers = $db->table('suppliers s')
+            ->select('s.id, s.supplier_code, s.supplier_name, s.supplier_type, s.opening_balance, s.is_active')
+            ->orderBy('s.supplier_name', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $ledgerQuery = $db->table('supplier_ledger_entries sle')
+            ->select('sle.supplier_id, COALESCE(SUM(sle.debit_amount), 0) AS total_debit, COALESCE(SUM(sle.credit_amount), 0) AS total_credit', false)
+            ->groupBy('sle.supplier_id');
+        if ($filters['from_date'] !== '') {
+            $ledgerQuery->where('sle.entry_date >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $ledgerQuery->where('sle.entry_date <=', $filters['to_date']);
+        }
+        $ledgerAggRows = $ledgerQuery->get()->getResultArray();
+
+        $ledgerMap = [];
+        foreach ($ledgerAggRows as $row) {
+            $supplierId = (int) ($row['supplier_id'] ?? 0);
+            if ($supplierId < 1) {
+                continue;
+            }
+            $ledgerMap[$supplierId] = [
+                'total_debit' => (float) ($row['total_debit'] ?? 0),
+                'total_credit' => (float) ($row['total_credit'] ?? 0),
+            ];
+        }
+
+        $payableRows = [];
+        $totals = [
+            'opening' => 0.0,
+            'debit' => 0.0,
+            'credit' => 0.0,
+            'closing' => 0.0,
+            'payable' => 0.0,
+        ];
+
+        foreach ($suppliers as $supplier) {
+            $supplierId = (int) ($supplier['id'] ?? 0);
+            $opening = (float) ($supplier['opening_balance'] ?? 0);
+            $debit = (float) ($ledgerMap[$supplierId]['total_debit'] ?? 0);
+            $credit = (float) ($ledgerMap[$supplierId]['total_credit'] ?? 0);
+            $closing = $opening + $credit - $debit;
+
+            $payableRows[] = [
+                'supplier_id' => $supplierId,
+                'supplier_code' => (string) ($supplier['supplier_code'] ?? ''),
+                'supplier_name' => (string) ($supplier['supplier_name'] ?? ''),
+                'supplier_type' => (string) ($supplier['supplier_type'] ?? ''),
+                'is_active' => (int) ($supplier['is_active'] ?? 0),
+                'opening_balance' => $opening,
+                'total_debit' => $debit,
+                'total_credit' => $credit,
+                'closing_balance' => $closing,
+                'payable_balance' => max(0, $closing),
+            ];
+
+            $totals['opening'] += $opening;
+            $totals['debit'] += $debit;
+            $totals['credit'] += $credit;
+            $totals['closing'] += $closing;
+            $totals['payable'] += max(0, $closing);
+        }
+
+        usort($payableRows, static function (array $a, array $b): int {
+            return (float) ($b['payable_balance'] ?? 0) <=> (float) ($a['payable_balance'] ?? 0);
+        });
+
+        return view('portal/reports/suppliers_payable', [
+            'title' => 'HJMS ERP | Supplier Payables',
+            'headerTitle' => 'Business Reports',
+            'activePage' => 'reports',
+            'userEmail' => (string) session('user_email'),
+            'filters' => $filters,
+            'filterErrors' => $filterErrors,
+            'rows' => $payableRows,
+            'totals' => $totals,
+        ]);
+    }
+
+    public function profitLoss(): string
+    {
+        $filters = [
+            'from_date' => (string) $this->request->getGet('from_date'),
+            'to_date'   => (string) $this->request->getGet('to_date'),
+        ];
+
+        $filterErrors = [];
+        if (! $this->validateData($filters, [
+            'from_date' => 'permit_empty|valid_date[Y-m-d]',
+            'to_date'   => 'permit_empty|valid_date[Y-m-d]',
+        ])) {
+            $filterErrors = $this->validator->getErrors();
+            $filters = ['from_date' => '', 'to_date' => ''];
+        }
+
+        $db = db_connect();
+        $seasonId = $this->activeSeasonId();
+
+        $salesQuery = $db->table('sales')->select('COALESCE(SUM(amount), 0) AS total_amount', false);
+        if ($seasonId !== null && $this->tableHasColumn($db, 'sales', 'season_id')) {
+            $salesQuery->where('season_id', $seasonId);
+        }
+        if ($this->tableHasColumn($db, 'sales', 'status')) {
+            $salesQuery->where('status !=', 'voided');
+        }
+        if ($filters['from_date'] !== '') {
+            $salesQuery->where('sale_date >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $salesQuery->where('sale_date <=', $filters['to_date']);
+        }
+        $salesAmount = (float) (($salesQuery->get()->getRowArray()['total_amount'] ?? 0));
+
+        $bookingQuery = $db->table('bookings')->select('COALESCE(SUM(total_amount), 0) AS total_amount', false);
+        if ($seasonId !== null && $this->tableHasColumn($db, 'bookings', 'season_id')) {
+            $bookingQuery->where('season_id', $seasonId);
+        }
+        if ($this->tableHasColumn($db, 'bookings', 'status')) {
+            $bookingQuery->where('status !=', 'cancelled');
+        }
+        if ($filters['from_date'] !== '') {
+            $bookingQuery->where('DATE(created_at) >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $bookingQuery->where('DATE(created_at) <=', $filters['to_date']);
+        }
+        $packageAmount = (float) (($bookingQuery->get()->getRowArray()['total_amount'] ?? 0));
+
+        $expenseQuery = $db->table('expenses')->select('COALESCE(SUM(amount), 0) AS total_amount', false);
+        if ($seasonId !== null && $this->tableHasColumn($db, 'expenses', 'season_id')) {
+            $expenseQuery->where('season_id', $seasonId);
+        }
+        if ($this->tableHasColumn($db, 'expenses', 'status')) {
+            $expenseQuery->where('status !=', 'voided');
+        }
+        if ($filters['from_date'] !== '') {
+            $expenseQuery->where('expense_date >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $expenseQuery->where('expense_date <=', $filters['to_date']);
+        }
+        $expenseAmount = (float) (($expenseQuery->get()->getRowArray()['total_amount'] ?? 0));
+
+        $totalIncome = $salesAmount + $packageAmount;
+        $netProfit = $totalIncome - $expenseAmount;
+
+        return view('portal/reports/profit_loss', [
+            'title' => 'HJMS ERP | Profit & Loss',
+            'headerTitle' => 'Business Reports',
+            'activePage' => 'reports',
+            'userEmail' => (string) session('user_email'),
+            'filters' => $filters,
+            'filterErrors' => $filterErrors,
+            'salesAmount' => $salesAmount,
+            'packageAmount' => $packageAmount,
+            'expenseAmount' => $expenseAmount,
+            'totalIncome' => $totalIncome,
+            'netProfit' => $netProfit,
+        ]);
+    }
+
     private function isDateYmd(string $value): bool
     {
         if ($value === '' || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {

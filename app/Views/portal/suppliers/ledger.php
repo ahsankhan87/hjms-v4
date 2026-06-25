@@ -8,8 +8,30 @@
 
     <section class="space-y-3">
         <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-            <h3 class="text-sm font-semibold text-slate-800">Supplier Ledger</h3>
-            <p class="text-xs text-slate-500">Track supplier bills, payments, and running balances.</p>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-800">Supplier Ledger</h3>
+                    <p class="text-xs text-slate-500">Track supplier bills, payments, and running balances.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="btn btn-sm btn-secondary"><i class="fa-solid fa-print"></i><span>Print</span></a>
+                    <a href="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger/print?autoprint=1&from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="btn btn-sm btn-secondary"><i class="fa-solid fa-file-pdf"></i><span>Export PDF</span></a>
+                </div>
+            </div>
+            <form method="get" action="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger') ?>" class="mt-3 grid gap-2 md:grid-cols-6">
+                <div>
+                    <label for="from" class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">From Date</label>
+                    <input id="from" type="date" name="from" value="<?= esc((string) ($filterFrom ?? '')) ?>" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
+                </div>
+                <div>
+                    <label for="to" class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">To Date</label>
+                    <input id="to" type="date" name="to" value="<?= esc((string) ($filterTo ?? '')) ?>" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
+                </div>
+                <div class="md:col-span-4 flex items-end gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="fa-solid fa-filter"></i><span>Apply Filter</span></button>
+                    <a href="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger') ?>" class="btn btn-sm btn-secondary"><i class="fa-solid fa-rotate-left"></i><span>Reset</span></a>
+                </div>
+            </form>
         </article>
 
         <div class="grid gap-3 lg:grid-cols-3">
@@ -42,12 +64,8 @@
             <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2 overflow-auto">
                 <h3 class="mb-3 text-sm font-semibold text-slate-800">Ledger Entries</h3>
                 <?php
-                $totalDebit = 0.0;
-                $totalCredit = 0.0;
-                foreach (($rows ?? []) as $item) {
-                    $totalDebit += (float) ($item['debit_amount'] ?? 0);
-                    $totalCredit += (float) ($item['credit_amount'] ?? 0);
-                }
+                $totalDebit = (float) ($totalDebit ?? 0);
+                $totalCredit = (float) ($totalCredit ?? 0);
                 ?>
                 <table class="list-table">
                     <thead class="bg-slate-50 text-slate-600">

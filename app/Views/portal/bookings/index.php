@@ -2,6 +2,7 @@
 
 <?php $this->section('main') ?>
 <?php
+$canApproveBookings = function_exists('auth_can') && auth_can('bookings.approve');
 $statusMap = [
     'draft'     => ['bg' => 'bg-slate-100',   'text' => 'text-slate-600'],
     'confirmed' => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],
@@ -138,7 +139,7 @@ $pricingModeMap = [
                                         <a href="<?= site_url('/bookings/' . (int) $row['id']) ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-eye text-slate-400"></i> View
                                         </a>
-                                        <?php if ((string) $status === 'draft' && function_exists('auth_is_super_admin') && auth_is_super_admin()): ?>
+                                        <?php if ((string) $status === 'draft' && $canApproveBookings): ?>
                                             <form method="post" action="<?= site_url('/bookings/approve') ?>" class="block">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="booking_id" value="<?= esc((string) ((int) $row['id'])) ?>">

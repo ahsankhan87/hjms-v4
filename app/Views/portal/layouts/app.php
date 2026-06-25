@@ -569,6 +569,7 @@
                     $canPayments = auth_can('payments.view');
                     $canSuppliers = auth_can('suppliers.view');
                     $canExpenses = auth_can('expenses.view');
+                    $canSales = auth_can('sales.view');
                     $canBookings = auth_can('bookings.view');
                     $isLinkedAgentUser = function_exists('active_agent_id') && active_agent_id() !== null;
                     $canBranches = auth_can('branches.view');
@@ -618,7 +619,7 @@
                         </a>
                     <?php endif; ?>
 
-                    <?php if ($canPayments || $canSuppliers || $canExpenses): ?>
+                    <?php if ($canPayments || $canSuppliers || $canExpenses || $canSales): ?>
                         <div class="px-4 mt-6 mb-2">
                             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
                         </div>
@@ -630,6 +631,11 @@
                         <?php if ($canExpenses): ?>
                             <a href="<?= site_url('/expenses') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'expenses' ? 'active' : '' ?>">
                                 <i class="fa-solid fa-receipt w-4"></i><span>Expenses</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($canSales): ?>
+                            <a href="<?= site_url('/sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'sales' ? 'active' : '' ?>">
+                                <i class="fa-solid fa-cash-register w-4"></i><span>Sales</span>
                             </a>
                         <?php endif; ?>
                         <?php if ($canSuppliers): ?>

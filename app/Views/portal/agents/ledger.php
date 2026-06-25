@@ -95,6 +95,8 @@
                                             <a class="text-sky-700 hover:underline" href="<?= site_url('/bookings/' . $referenceId) ?>">Booking #<?= esc((string) $referenceId) ?></a>
                                         <?php elseif ($referenceType === 'payment' && $referenceId > 0): ?>
                                             <a class="text-sky-700 hover:underline" href="<?= site_url('/payments/' . $referenceId . '/receipt') ?>" target="_blank">Payment #<?= esc((string) $referenceId) ?></a>
+                                        <?php elseif ($referenceType === 'sale' && $referenceId > 0): ?>
+                                            <a class="text-sky-700 hover:underline" href="<?= site_url('/sales/' . $referenceId . '/edit') ?>">Sale #<?= esc((string) $referenceId) ?></a>
                                         <?php else: ?>
                                             -
                                         <?php endif; ?>

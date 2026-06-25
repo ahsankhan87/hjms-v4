@@ -534,9 +534,7 @@ class AgentLedgerService
     private function tableExists(string $table): bool
     {
         try {
-            db_connect()->query('SELECT 1 FROM ' . $table . ' LIMIT 1');
-
-            return true;
+            return db_connect()->tableExists($table);
         } catch (\Throwable $e) {
             return false;
         }

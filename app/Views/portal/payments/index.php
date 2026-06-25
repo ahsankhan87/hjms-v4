@@ -1,7 +1,7 @@
 ﻿<?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<?php $isSuperAdmin = function_exists('auth_is_super_admin') && auth_is_super_admin(); ?>
+<?php $canApprovePayments = function_exists('auth_can') && auth_can('payments.approve'); ?>
 <main class="space-y-4">
 
     <?php if (!empty($success)): ?>
@@ -194,7 +194,7 @@
                                                 <i class="fa-solid fa-paperclip text-slate-400"></i> Attachment
                                             </a>
                                         <?php endif; ?>
-                                        <?php if ($rowStatus === 'pending' && $isSuperAdmin): ?>
+                                        <?php if ($rowStatus === 'pending' && $canApprovePayments): ?>
                                             <form method="post" action="<?= site_url('/payments/approve') ?>" class="block">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="payment_id" value="<?= esc((string) $row['id']) ?>">
@@ -330,7 +330,7 @@
             btn.addEventListener('click', function() {
                 pidInput.value = btn.dataset.paymentId || '';
                 pnoSpan.textContent = btn.dataset.paymentNo || '';
-                amtSpan.textContent = 'SAR ' + (btn.dataset.amount || '0.00');
+                amtSpan.textContent = (btn.dataset.amount || '0.00');
                 reasonInput.value = '';
                 modal.style.display = 'flex';
             });
