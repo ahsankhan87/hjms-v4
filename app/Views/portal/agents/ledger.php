@@ -31,6 +31,10 @@
                             <i class="fa-solid fa-plus text-[11px]"></i>
                             Post Manual Entry
                         </a>
+                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" class="inline-flex items-center gap-2 rounded-lg border border-sky-300/60 bg-sky-100/10 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-100/20">
+                            <i class="fa-solid fa-table-cells-large text-[11px]"></i>
+                            Ledger 2
+                        </a>
                     </div>
                 </div>
             </div>
@@ -97,6 +101,8 @@
                                             <a class="text-sky-700 hover:underline" href="<?= site_url('/payments/' . $referenceId . '/receipt') ?>" target="_blank">Payment #<?= esc((string) $referenceId) ?></a>
                                         <?php elseif ($referenceType === 'sale' && $referenceId > 0): ?>
                                             <a class="text-sky-700 hover:underline" href="<?= site_url('/sales/' . $referenceId . '/edit') ?>">Sale #<?= esc((string) $referenceId) ?></a>
+                                        <?php elseif ($referenceType === 'credit_note' && $referenceId > 0): ?>
+                                            <span class="text-slate-700">Credit Note #<?= esc((string) $referenceId) ?></span>
                                         <?php else: ?>
                                             -
                                         <?php endif; ?>

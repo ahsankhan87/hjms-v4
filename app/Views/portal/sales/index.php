@@ -9,12 +9,13 @@
     <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
-                <h3 class="text-sm font-semibold text-slate-800">Sales</h3>
-                <p class="text-xs text-slate-500">Sell visas and other office services with cash and credit tracking.</p>
+                <h3 class="text-sm font-semibold text-slate-800">Visa Sale</h3>
+                <p class="text-xs text-slate-500">Manage visa sales for pilgrims/pax with reference tracking.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="<?= site_url('/sales-categories') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-tags"></i><span>Manage Categories</span></a>
-                <a href="<?= site_url('/sales/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Sale</span></a>
+                <a href="<?= site_url('/sales/credit-notes') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-file-invoice-dollar"></i><span>Credit Notes</span></a>
+                <a href="<?= site_url('/sales/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Visa Sale</span></a>
             </div>
         </div>
     </article>
@@ -76,41 +77,45 @@
         <table class="list-table">
             <thead class="bg-slate-50 text-slate-600">
                 <tr>
-                    <th class="px-3 py-2 text-left">ID</th>
-                    <th class="px-3 py-2 text-left">Date</th>
+                    <th class="px-3 py-2 text-left">Invoice #</th>
+                    <th class="px-3 py-2 text-left">Inv Date</th>
                     <th class="px-3 py-2 text-left">Category</th>
-                    <th class="px-3 py-2 text-left">Customer</th>
-                    <th class="px-3 py-2 text-left">Method</th>
-                    <th class="px-3 py-2 text-left">Amount</th>
-                    <th class="px-3 py-2 text-left">Status</th>
+                    <th class="px-3 py-2 text-left">Pax Name</th>
+                    <th class="px-3 py-2 text-left">Reference Number</th>
+                    <th class="px-3 py-2 text-left">Remarks</th>
+                    <th class="px-3 py-2 text-left">Visa Type</th>
+                    <th class="px-3 py-2 text-left">Visa Agency</th>
+                    <th class="px-3 py-2 text-left">Total</th>
                     <th class="px-3 py-2 text-left">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($rows)): ?>
                     <tr>
-                        <td colspan="8" class="px-3 py-6 text-center text-slate-500">No sales found.</td>
+                        <td colspan="10" class="px-3 py-6 text-center text-slate-500">No Visa Booking Found.</td>
                     </tr>
                     <?php else: foreach ($rows as $row): ?>
                         <?php $amount = (float) ($row['amount'] ?? 0); ?>
                         <tr class="border-t border-slate-100">
-                            <td class="px-3 py-2">#<?= esc((string) $row['id']) ?></td>
+                            <td class="px-3 py-2"><?= esc((string) (($row['invoice_no'] ?? '') !== '' ? $row['invoice_no'] : ('VS-' . $row['id']))) ?></td>
                             <td class="px-3 py-2 text-slate-700"><?= esc((string) ($row['sale_date'] ?? '-')) ?></td>
                             <td class="px-3 py-2 font-medium text-slate-800"><?= esc((string) ($row['category_name'] ?? '-')) ?></td>
-                            <td class="px-3 py-2 text-slate-600"><?= (string) ($row['customer_type'] ?? '') === 'agent' ? esc((string) ($row['agent_name'] ?? '-')) . ' (Agent)' : esc((string) ($row['customer_name'] ?? '-')) . ' (Walk-In)' ?></td>
-                            <td class="px-3 py-2 text-slate-600"><?= esc(str_replace('_', ' ', ucfirst((string) ($row['payment_method'] ?? '-')))) ?></td>
-                            <td class="px-3 py-2 font-semibold text-slate-800"><?= esc(number_format($amount, 2)) ?></td>
-                            <td class="px-3 py-2">
-                                <?php $status = (string) ($row['status'] ?? 'posted'); ?>
-                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold <?= $status === 'posted' ? 'bg-emerald-100 text-emerald-700' : ($status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700') ?>"><?= esc(ucfirst($status)) ?></span>
-                            </td>
+                            <td class="px-3 py-2 text-slate-600"><?= esc(trim((string) ($row['pax_name'] ?? '')) !== '' ? (string) $row['pax_name'] : (string) (($row['pilgrim_name'] ?? '') !== '' ? $row['pilgrim_name'] : '-')) ?></td>
+                            <td class="px-3 py-2 text-slate-600"><?= esc((string) ($row['reference_no'] ?? '-')) ?></td>
+                            <td class="px-3 py-2 text-slate-600"><?= esc((string) ($row['note'] ?? '-')) ?></td>
+                            <td class="px-3 py-2 text-slate-600"><?= esc((string) (($row['visa_type'] ?? '') !== '' ? $row['visa_type'] : '-')) ?></td>
+                            <td class="px-3 py-2 text-slate-600"><?= esc((string) (($row['visa_agency'] ?? '') !== '' ? $row['visa_agency'] : '-')) ?></td>
+                            <td class="px-3 py-2 font-semibold text-slate-800 text-right" data-col="amount" data-value="<?= esc((string) $amount) ?>"><?= esc(number_format($amount, 2)) ?></td>
                             <td class="px-3 py-2">
                                 <div class="flex items-center gap-2">
-                                    <a href="<?= site_url('/sales/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Sale"><i class="fa-solid fa-pen"></i></a>
+                                    <?php if ((string) ($row['customer_type'] ?? '') === 'agent' && (int) ($row['agent_id'] ?? 0) > 0 && (string) ($row['status'] ?? 'posted') !== 'voided'): ?>
+                                        <a href="<?= site_url('/sales/credit-notes/add?sale_id=' . (int) $row['id']) ?>" class="icon-btn" title="Create Credit Note"><i class="fa-solid fa-file-circle-plus"></i></a>
+                                    <?php endif; ?>
+                                    <a href="<?= site_url('/sales/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Visa Sale"><i class="fa-solid fa-pen"></i></a>
                                     <form method="post" action="<?= site_url('/sales/delete') ?>" class="inline">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="sale_id" value="<?= esc((string) $row['id']) ?>">
-                                        <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this sale?')" title="Delete Sale"><i class="fa-solid fa-trash"></i></button>
+                                        <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this visa sale?')" title="Delete Visa Sale"><i class="fa-solid fa-trash"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -118,7 +123,70 @@
                 <?php endforeach;
                 endif; ?>
             </tbody>
+            <tfoot>
+                <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
+                    <td colspan="8" class="px-3 py-2 text-right">Total Amount</td>
+                    <td id="sales-total-amount" class="px-3 py-2 text-right">0.00</td>
+                    <td class="px-3 py-2"></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </main>
+<script>
+    (function() {
+        function numberFormat(value) {
+            return Number(value || 0).toLocaleString('en-PK', {
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 2
+            });
+        }
+
+        function getVisibleRows(table) {
+            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable && window.jQuery.fn.DataTable.isDataTable(table)) {
+                return window.jQuery(table).DataTable().rows({
+                    search: 'applied'
+                }).nodes().toArray();
+            }
+
+            return Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+        }
+
+        function refreshSalesTotalAmount() {
+            var table = document.querySelector('table.list-table');
+            if (!table) {
+                return;
+            }
+
+            var totalAmount = 0;
+            var rows = getVisibleRows(table);
+
+            rows.forEach(function(row) {
+                var amountCell = row.querySelector('[data-col="amount"]');
+                if (!amountCell || !amountCell.dataset) {
+                    return;
+                }
+
+                totalAmount += Number(amountCell.dataset.value || 0);
+            });
+
+            var totalTarget = document.getElementById('sales-total-amount');
+            if (totalTarget) {
+                totalTarget.textContent = numberFormat(totalAmount);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshSalesTotalAmount();
+
+            if (window.jQuery) {
+                var $table = window.jQuery('table.list-table').first();
+                if ($table.length) {
+                    $table.on('draw.dt search.dt page.dt order.dt', refreshSalesTotalAmount);
+                    setTimeout(refreshSalesTotalAmount, 0);
+                }
+            }
+        });
+    }());
+</script>
 <?php $this->endSection() ?>

@@ -634,8 +634,14 @@
                             </a>
                         <?php endif; ?>
                         <?php if ($canSales): ?>
-                            <a href="<?= site_url('/sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'sales' ? 'active' : '' ?>">
-                                <i class="fa-solid fa-cash-register w-4"></i><span>Sales</span>
+                            <a href="<?= site_url('/sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= in_array(($activePage ?? ''), ['sales', 'visa_sales'], true) ? 'active' : '' ?>">
+                                <i class="fa-solid fa-passport w-4"></i><span>Visa Sale</span>
+                            </a>
+                            <a href="<?= site_url('/hotel-sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'hotel_sales' ? 'active' : '' ?>">
+                                <i class="fa-solid fa-hotel w-4"></i><span>Hotel Sale</span>
+                            </a>
+                            <a href="<?= site_url('/ticket-sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'ticket_sales' ? 'active' : '' ?>">
+                                <i class="fa-solid fa-plane-departure w-4"></i><span>Ticket Sale</span>
                             </a>
                         <?php endif; ?>
                         <?php if ($canSuppliers): ?>

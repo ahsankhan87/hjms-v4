@@ -780,8 +780,53 @@ class ReportController extends BaseController
         }
         $expenseAmount = (float) (($expenseQuery->get()->getRowArray()['total_amount'] ?? 0));
 
-        $totalIncome = $salesAmount + $packageAmount;
-        $netProfit = $totalIncome - $expenseAmount;
+        $suppliers = $db->table('suppliers s')
+            ->select('s.id, s.opening_balance')
+            ->get()
+            ->getResultArray();
+
+        $supplierLedgerQuery = $db->table('supplier_ledger_entries sle')
+            ->select('sle.supplier_id, COALESCE(SUM(sle.debit_amount), 0) AS total_debit, COALESCE(SUM(sle.credit_amount), 0) AS total_credit', false)
+            ->groupBy('sle.supplier_id');
+        if ($filters['from_date'] !== '') {
+            $supplierLedgerQuery->where('sle.entry_date >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $supplierLedgerQuery->where('sle.entry_date <=', $filters['to_date']);
+        }
+        $supplierLedgerRows = $supplierLedgerQuery->get()->getResultArray();
+
+        $supplierLedgerMap = [];
+        foreach ($supplierLedgerRows as $row) {
+            $supplierId = (int) ($row['supplier_id'] ?? 0);
+            if ($supplierId < 1) {
+                continue;
+            }
+
+            $supplierLedgerMap[$supplierId] = [
+                'total_debit' => (float) ($row['total_debit'] ?? 0),
+                'total_credit' => (float) ($row['total_credit'] ?? 0),
+            ];
+        }
+
+        $purchaseAmount = 0.0;
+        foreach ($suppliers as $supplier) {
+            $supplierId = (int) ($supplier['id'] ?? 0);
+            if ($supplierId < 1) {
+                continue;
+            }
+
+            $opening = (float) ($supplier['opening_balance'] ?? 0);
+            $debit = (float) ($supplierLedgerMap[$supplierId]['total_debit'] ?? 0);
+            $credit = (float) ($supplierLedgerMap[$supplierId]['total_credit'] ?? 0);
+            $closing = $opening + $credit - $debit;
+
+            $purchaseAmount += max(0, $closing);
+        }
+
+        $totalSales = $salesAmount + $packageAmount;
+        $grossProfit = $totalSales - $purchaseAmount;
+        $netProfit = $grossProfit - $expenseAmount;
 
         return view('portal/reports/profit_loss', [
             'title' => 'HJMS ERP | Profit & Loss',
@@ -792,8 +837,10 @@ class ReportController extends BaseController
             'filterErrors' => $filterErrors,
             'salesAmount' => $salesAmount,
             'packageAmount' => $packageAmount,
+            'totalSales' => $totalSales,
+            'purchaseAmount' => $purchaseAmount,
+            'grossProfit' => $grossProfit,
             'expenseAmount' => $expenseAmount,
-            'totalIncome' => $totalIncome,
             'netProfit' => $netProfit,
         ]);
     }

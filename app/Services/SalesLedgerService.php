@@ -33,10 +33,11 @@ class SalesLedgerService
             $db->table($ledgerTable)->where('id', (int) ($entry['id'] ?? 0))->delete();
         }
 
-        $saleQuery = $db->table('sales')
-            ->select('id, season_id, sales_category_id, sale_date, customer_type, agent_id, amount, status, reference_no')
-            ->where('id', $saleId)
-            ->where('season_id', $seasonId)
+        $saleQuery = $db->table('sales s')
+            ->select('s.id, s.season_id, s.sales_category_id, s.sale_type, s.sale_date, s.customer_type, s.agent_id, s.amount, s.status, s.reference_no, s.note, sc.name AS sales_category_name')
+            ->join('sales_categories sc', 'sc.id = s.sales_category_id AND sc.season_id = s.season_id', 'left')
+            ->where('s.id', $saleId)
+            ->where('s.season_id', $seasonId)
             ->get();
 
         $sale = is_object($saleQuery) ? $saleQuery->getRowArray() : [];
@@ -51,21 +52,24 @@ class SalesLedgerService
             // be recorded as separate ledger credit entries. Payments are handled separately
             // in the agent ledger/payment flow.
             if ($status !== 'voided' && $customerType === 'agent' && $agentId > 0 && $amount > 0) {
-                $description = 'Sale receivable';
-                $referenceNo = trim((string) ($sale['reference_no'] ?? ''));
-                if ($referenceNo !== '') {
-                    $description .= ' [' . $referenceNo . ']';
+                $description = $this->buildSaleDescription($sale);
+                $saleNote = trim((string) ($sale['note'] ?? ''));
+                $txnType = trim((string) ($sale['sales_category_name'] ?? ''));
+                if ($txnType === '') {
+                    $txnType = ucfirst((string) ($sale['sale_type'] ?? 'sale'));
                 }
 
                 $this->insertLedgerEntry([
                     'agent_id' => $agentId,
                     'entry_date' => (string) ($sale['sale_date'] ?? date('Y-m-d')),
                     'entry_type' => 'sale_receivable',
+                    'txn_type' => $txnType,
                     'debit_amount' => $amount,
                     'credit_amount' => 0,
                     'reference_type' => 'sale',
                     'reference_id' => $saleId,
                     'description' => $description,
+                    'sale_note' => $saleNote,
                     'created_by' => session('user_id') ? (int) session('user_id') : null,
                 ]);
 
@@ -105,6 +109,11 @@ class SalesLedgerService
         if ($this->hasLedgerColumn('entry_type')) {
             $row['entry_type'] = (string) ($payload['entry_type'] ?? 'adjustment');
         }
+        if ($this->hasLedgerColumn('txn_type')) {
+            $row['txn_type'] = trim((string) ($payload['txn_type'] ?? '')) !== ''
+                ? trim((string) ($payload['txn_type'] ?? ''))
+                : (string) ($payload['entry_type'] ?? 'adjustment');
+        }
         if ($this->hasLedgerColumn('debit_amount')) {
             $row['debit_amount'] = (float) ($payload['debit_amount'] ?? 0);
         } elseif ($this->hasLedgerColumn('debit')) {
@@ -123,6 +132,16 @@ class SalesLedgerService
         }
         if ($this->hasLedgerColumn('description')) {
             $row['description'] = (string) ($payload['description'] ?? '');
+        }
+        if ($this->hasLedgerColumn('note')) {
+            $row['note'] = trim((string) ($payload['sale_note'] ?? '')) !== ''
+                ? trim((string) ($payload['sale_note'] ?? ''))
+                : (string) ($payload['description'] ?? '');
+        }
+        if ($this->hasLedgerColumn('decs')) {
+            $row['decs'] = trim((string) ($payload['sale_note'] ?? '')) !== ''
+                ? trim((string) ($payload['sale_note'] ?? ''))
+                : (string) ($payload['description'] ?? '');
         }
         if ($this->hasLedgerColumn('created_by')) {
             $row['created_by'] = isset($payload['created_by']) ? (int) $payload['created_by'] : null;
@@ -188,5 +207,36 @@ class SalesLedgerService
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    private function buildSaleDescription(array $sale): string
+    {
+        $saleType = (string) ($sale['sale_type'] ?? '');
+        $base = 'Sale receivable';
+
+        if ($saleType === 'visa') {
+            $base = 'Visa sale receivable';
+        } elseif ($saleType === 'hotel') {
+            $base = 'Hotel sale receivable';
+        } elseif ($saleType === 'ticket') {
+            $base = 'Ticket sale receivable';
+        }
+
+        $referenceNo = trim((string) ($sale['reference_no'] ?? ''));
+        if ($referenceNo !== '') {
+            $base .= ' [' . $referenceNo . ']';
+        }
+
+        $saleNote = trim((string) ($sale['note'] ?? ''));
+        if ($saleNote === '') {
+            return $base;
+        }
+
+        $saleNote = preg_replace('/\s+/', ' ', $saleNote) ?? $saleNote;
+        if (strlen($saleNote) > 160) {
+            $saleNote = substr($saleNote, 0, 157) . '...';
+        }
+
+        return $base . ' | Note: ' . $saleNote;
     }
 }

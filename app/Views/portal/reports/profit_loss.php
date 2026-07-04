@@ -12,7 +12,7 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
                 <h1 class="text-base font-semibold text-slate-900">Profit &amp; Loss Report</h1>
-                <p class="text-xs text-slate-500">Formula: (Sales + Package Amounts) - Expenses</p>
+                <p class="text-xs text-slate-500">Formula: Gross Profit = Sales - Purchases, Net Profit/Loss = Gross Profit - Expenses</p>
             </div>
             <a href="<?= site_url('/reports') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
                 <i class="fa-solid fa-arrow-left text-[10px]"></i>
@@ -42,7 +42,7 @@
         </form>
     </section>
 
-    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
         <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
             <p class="text-[11px] uppercase tracking-wide text-slate-500">Sales Amount</p>
             <p class="mt-1 text-lg font-semibold text-slate-900">PKR <?= esc(number_format((float) ($salesAmount ?? 0), 2)) ?></p>
@@ -52,8 +52,16 @@
             <p class="mt-1 text-lg font-semibold text-slate-900">PKR <?= esc(number_format((float) ($packageAmount ?? 0), 2)) ?></p>
         </article>
         <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-            <p class="text-[11px] uppercase tracking-wide text-slate-500">Total Income</p>
-            <p class="mt-1 text-lg font-semibold text-emerald-700">PKR <?= esc(number_format((float) ($totalIncome ?? 0), 2)) ?></p>
+            <p class="text-[11px] uppercase tracking-wide text-slate-500">Total Sales</p>
+            <p class="mt-1 text-lg font-semibold text-emerald-700">PKR <?= esc(number_format((float) ($totalSales ?? 0), 2)) ?></p>
+        </article>
+        <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wide text-slate-500">Purchases (Suppliers Closing)</p>
+            <p class="mt-1 text-lg font-semibold text-rose-700">PKR <?= esc(number_format((float) ($purchaseAmount ?? 0), 2)) ?></p>
+        </article>
+        <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wide text-slate-500">Gross Profit</p>
+            <p class="mt-1 text-lg font-semibold <?= ((float) ($grossProfit ?? 0)) >= 0 ? 'text-emerald-700' : 'text-rose-700' ?>">PKR <?= esc(number_format((float) ($grossProfit ?? 0), 2)) ?></p>
         </article>
         <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
             <p class="text-[11px] uppercase tracking-wide text-slate-500">Expenses</p>
@@ -81,19 +89,27 @@
                         <td class="px-3 py-2">PKR <?= esc(number_format((float) ($salesAmount ?? 0), 2)) ?></td>
                     </tr>
                     <tr class="border-t border-slate-100">
-                        <td class="px-3 py-2">Package Income</td>
+                        <td class="px-3 py-2">Package Sales</td>
                         <td class="px-3 py-2">PKR <?= esc(number_format((float) ($packageAmount ?? 0), 2)) ?></td>
                     </tr>
                     <tr class="border-t border-slate-100 bg-emerald-50/40">
-                        <td class="px-3 py-2 font-semibold">Total Income (Sales + Packages)</td>
-                        <td class="px-3 py-2 font-semibold text-emerald-700">PKR <?= esc(number_format((float) ($totalIncome ?? 0), 2)) ?></td>
+                        <td class="px-3 py-2 font-semibold">Total Sales (Sales + Packages)</td>
+                        <td class="px-3 py-2 font-semibold text-emerald-700">PKR <?= esc(number_format((float) ($totalSales ?? 0), 2)) ?></td>
+                    </tr>
+                    <tr class="border-t border-slate-100">
+                        <td class="px-3 py-2">Purchases (Suppliers Closing Balance)</td>
+                        <td class="px-3 py-2 text-rose-700">PKR <?= esc(number_format((float) ($purchaseAmount ?? 0), 2)) ?></td>
+                    </tr>
+                    <tr class="border-t border-slate-100 bg-slate-50">
+                        <td class="px-3 py-2 font-semibold">Gross Profit = Total Sales - Purchases</td>
+                        <td class="px-3 py-2 font-semibold <?= ((float) ($grossProfit ?? 0)) >= 0 ? 'text-emerald-700' : 'text-rose-700' ?>">PKR <?= esc(number_format((float) ($grossProfit ?? 0), 2)) ?></td>
                     </tr>
                     <tr class="border-t border-slate-100">
                         <td class="px-3 py-2">Total Expenses</td>
                         <td class="px-3 py-2 text-rose-700">PKR <?= esc(number_format((float) ($expenseAmount ?? 0), 2)) ?></td>
                     </tr>
                     <tr class="border-t border-slate-100 bg-slate-50">
-                        <td class="px-3 py-2 font-semibold">Net Profit/Loss = (Sales + Packages) - Expenses</td>
+                        <td class="px-3 py-2 font-semibold">Net Profit/Loss = Gross Profit - Expenses</td>
                         <td class="px-3 py-2 font-semibold <?= ((float) ($netProfit ?? 0)) >= 0 ? 'text-emerald-700' : 'text-rose-700' ?>">PKR <?= esc(number_format((float) ($netProfit ?? 0), 2)) ?></td>
                     </tr>
                 </tbody>

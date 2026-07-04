@@ -64,6 +64,53 @@
         </form>
     </section>
 
+    <?php
+    $postedTotal = 0.0;
+    $pendingTotal = 0.0;
+    $voidedTotal = 0.0;
+    $postedCount = 0;
+    $pendingCount = 0;
+    $voidedCount = 0;
+
+    foreach ((array) ($rows ?? []) as $expenseRow) {
+        $amount = (float) ($expenseRow['amount'] ?? 0);
+        $status = strtolower((string) ($expenseRow['status'] ?? 'posted'));
+        if ($status === 'pending') {
+            $pendingTotal += $amount;
+            $pendingCount++;
+        } elseif ($status === 'voided') {
+            $voidedTotal += $amount;
+            $voidedCount++;
+        } else {
+            $postedTotal += $amount;
+            $postedCount++;
+        }
+    }
+    ?>
+
+    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wide text-slate-500">Grand Total</p>
+            <p class="mt-1 text-lg font-semibold text-slate-900">PKR <?= esc(number_format((float) ($totalAmount ?? 0), 2)) ?></p>
+            <p class="mt-1 text-xs text-slate-500">Entries: <?= esc((string) count((array) ($rows ?? []))) ?></p>
+        </article>
+        <article class="rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wide text-emerald-700">Posted Total</p>
+            <p class="mt-1 text-lg font-semibold text-emerald-700">PKR <?= esc(number_format($postedTotal, 2)) ?></p>
+            <p class="mt-1 text-xs text-emerald-700/80">Entries: <?= esc((string) $postedCount) ?></p>
+        </article>
+        <article class="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wide text-amber-700">Pending Total</p>
+            <p class="mt-1 text-lg font-semibold text-amber-700">PKR <?= esc(number_format($pendingTotal, 2)) ?></p>
+            <p class="mt-1 text-xs text-amber-700/80">Entries: <?= esc((string) $pendingCount) ?></p>
+        </article>
+        <article class="rounded-xl border border-rose-200 bg-rose-50/40 px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wide text-rose-700">Voided Total</p>
+            <p class="mt-1 text-lg font-semibold text-rose-700">PKR <?= esc(number_format($voidedTotal, 2)) ?></p>
+            <p class="mt-1 text-xs text-rose-700/80">Entries: <?= esc((string) $voidedCount) ?></p>
+        </article>
+    </section>
+
     <div class="list-card overflow-auto">
         <table class="list-table">
             <thead class="bg-slate-50 text-slate-600">
@@ -111,6 +158,13 @@
                 <?php endforeach;
                 endif; ?>
             </tbody>
+            <tfoot>
+                <tr class="border-t-2 border-slate-200 bg-slate-50">
+                    <td colspan="6" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">Filtered Total</td>
+                    <td class="px-3 py-2 text-sm font-semibold text-slate-900">PKR <?= esc(number_format((float) ($totalAmount ?? 0), 2)) ?></td>
+                    <td colspan="2" class="px-3 py-2"></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </main>

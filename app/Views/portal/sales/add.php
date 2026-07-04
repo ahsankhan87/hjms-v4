@@ -7,8 +7,8 @@
     <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
     <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <h3 class="text-sm font-semibold text-slate-800">Create Sale</h3>
-        <p class="text-xs text-slate-500">Create office sale records for visas and related services.</p>
+        <h3 class="text-sm font-semibold text-slate-800">Create Visa Sale</h3>
+        <p class="text-xs text-slate-500">Create visa sale records for pilgrims.</p>
     </article>
 
     <article class="rounded-xl border border-slate-200 bg-white p-4">
@@ -17,9 +17,16 @@
             <?= csrf_field() ?>
             <div class="grid gap-3 md:grid-cols-2">
                 <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Invoice #</label>
+                    <input name="invoice_no" value="<?= esc(old('invoice_no')) ?>" placeholder="Auto: VS-0001" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Sale Date</label>
                     <input type="date" name="sale_date" value="<?= esc(old('sale_date', date('Y-m-d'))) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Category</label>
                     <select name="sales_category_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -29,6 +36,25 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 p-3">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                    <label class="block text-xs font-semibold text-slate-700">Pilgrims <span class="text-rose-500">*</span></label>
+                    <button type="button" id="open-add-pilgrim-modal" class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                        <i class="fa-solid fa-plus"></i>
+                        Add Pilgrim
+                    </button>
+                </div>
+                <?php $oldPilgrimIds = array_map('intval', (array) old('pilgrim_ids')); ?>
+                <select id="pilgrim_ids" name="pilgrim_ids[]" multiple required class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <?php foreach (($pilgrims ?? []) as $item): ?>
+                        <?php $displayName = trim((string) ($item['first_name'] ?? '') . ' ' . (string) ($item['last_name'] ?? '')); ?>
+                        <option value="<?= esc((string) $item['id']) ?>" <?= in_array((int) $item['id'], $oldPilgrimIds, true) ? 'selected' : '' ?>>
+                            #<?= esc((string) $item['id']) ?> - <?= esc($displayName !== '' ? $displayName : ('Pilgrim #' . $item['id'])) ?><?= !empty($item['passport_no']) ? ' (' . esc((string) $item['passport_no']) . ')' : '' ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="grid gap-3 md:grid-cols-2">
@@ -82,6 +108,17 @@
 
             <div class="grid gap-3 md:grid-cols-2">
                 <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Visa Type</label>
+                    <input name="visa_type" value="<?= esc(old('visa_type')) ?>" placeholder="Umrah / Visit / Tourist" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Visa Agency</label>
+                    <input name="visa_agency" value="<?= esc(old('visa_agency')) ?>" placeholder="Agency Name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+                <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Reference No</label>
                     <input name="reference_no" value="<?= esc(old('reference_no')) ?>" placeholder="Invoice / Voucher / Receipt No" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
@@ -95,37 +132,162 @@
 
             <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
                 <a href="<?= site_url('/sales') ?>" class="btn btn-md btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-md btn-primary" <?= empty($categories) ? 'disabled' : '' ?>><i class="fa-solid fa-check"></i><span>Create Sale</span></button>
+                <button type="submit" class="btn btn-md btn-primary" <?= empty($categories) ? 'disabled' : '' ?>><i class="fa-solid fa-check"></i><span>Create Visa Sale</span></button>
             </div>
         </form>
     </article>
 </main>
 
+<div id="quick-add-pilgrim-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="quick-add-pilgrim-title">
+    <div class="w-full max-w-2xl rounded-xl border border-slate-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <div>
+                <h4 id="quick-add-pilgrim-title" class="text-sm font-semibold text-slate-800">Add New Pilgrim</h4>
+                <p class="text-[11px] text-slate-500">Create a pilgrim without leaving visa sale form.</p>
+            </div>
+            <button type="button" id="close-add-pilgrim-modal" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100" aria-label="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form id="quick-add-pilgrim-form" method="post" action="<?= site_url('/bookings/pilgrims/quick-create') ?>" class="grid gap-3 p-4 md:grid-cols-2">
+            <?= csrf_field() ?>
+            <div id="quick-add-pilgrim-errors" class="hidden rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 md:col-span-2"></div>
+            <label class="block text-xs font-medium text-slate-600">First Name <span class="text-rose-500">*</span>
+                <input type="text" name="first_name" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Given name">
+            </label>
+            <label class="block text-xs font-medium text-slate-600">Last Name
+                <input type="text" name="last_name" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Family name">
+            </label>
+            <label class="block text-xs font-medium text-slate-600">Passport No <span class="text-rose-500">*</span>
+                <input type="text" name="passport_no" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="e.g. AB1234567">
+            </label>
+            <label class="block text-xs font-medium text-slate-600">Mobile No
+                <input type="text" name="mobile_no" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="03001234567">
+            </label>
+            <label class="block text-xs font-medium text-slate-600">Gender
+                <select name="gender" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </label>
+            <label class="block text-xs font-medium text-slate-600">City
+                <input type="text" name="city" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="City">
+            </label>
+            <input type="hidden" name="country" value="Pakistan">
+            <div class="md:col-span-2 flex items-center justify-end gap-2 pt-1">
+                <button type="button" id="cancel-add-pilgrim-modal" class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Cancel</button>
+                <button type="submit" id="quick-add-pilgrim-submit" class="btn btn-primary px-3 py-2 text-xs font-semibold">
+                    <i class="fa-solid fa-check mr-1"></i>Create & Select
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-    (function() {
-        var customerType = document.getElementById('customer_type');
-        var agentWrap = document.getElementById('agent_wrap');
-        var walkinWrap = document.getElementById('walkin_wrap');
-        var customerName = document.getElementById('customer_name');
-        var paymentMethod = document.getElementById('payment_method');
+    (function($) {
+        var customerType = $('#customer_type');
+        var agentWrap = $('#agent_wrap');
+        var walkinWrap = $('#walkin_wrap');
+        var customerName = $('#customer_name');
+        var paymentMethod = $('#payment_method');
+        var $pilgrims = $('#pilgrim_ids');
+        var $quickPilgrimModal = $('#quick-add-pilgrim-modal');
+        var $quickPilgrimForm = $('#quick-add-pilgrim-form');
+        var $quickPilgrimErrors = $('#quick-add-pilgrim-errors');
+        var $quickPilgrimSubmit = $('#quick-add-pilgrim-submit');
 
         function toggleCustomerFields() {
-            var isAgent = customerType.value === 'agent';
-            agentWrap.classList.toggle('hidden', !isAgent);
-            walkinWrap.classList.toggle('hidden', isAgent);
+            var isAgent = customerType.val() === 'agent';
+            agentWrap.toggleClass('hidden', !isAgent);
+            walkinWrap.toggleClass('hidden', isAgent);
 
             if (!isAgent) {
-                if (customerName && customerName.value.trim() === '') {
-                    customerName.value = 'Walk-In';
+                if (customerName.val().trim() === '') {
+                    customerName.val('Walk-In');
                 }
-                if (paymentMethod) {
-                    paymentMethod.value = 'cash';
-                }
+                paymentMethod.val('cash');
             }
         }
 
-        customerType.addEventListener('change', toggleCustomerFields);
+        function showQuickPilgrimModal() {
+            $quickPilgrimErrors.addClass('hidden').empty();
+            $quickPilgrimModal.removeClass('hidden').addClass('flex');
+            $('body').addClass('overflow-hidden');
+            setTimeout(function() {
+                $quickPilgrimForm.find('input[name="first_name"]').trigger('focus');
+            }, 30);
+        }
+
+        function hideQuickPilgrimModal() {
+            $quickPilgrimModal.addClass('hidden').removeClass('flex');
+            $('body').removeClass('overflow-hidden');
+        }
+
+        function applyCsrfToken(csrf) {
+            if (!csrf || !csrf.tokenName || !csrf.hash) {
+                return;
+            }
+            $('input[name="' + csrf.tokenName + '"]').val(csrf.hash);
+        }
+
+        $('#open-add-pilgrim-modal').on('click', showQuickPilgrimModal);
+        $('#close-add-pilgrim-modal, #cancel-add-pilgrim-modal').on('click', hideQuickPilgrimModal);
+
+        $quickPilgrimModal.on('click', function(e) {
+            if (e.target === this) {
+                hideQuickPilgrimModal();
+            }
+        });
+
+        $quickPilgrimForm.on('submit', function(e) {
+            e.preventDefault();
+            $quickPilgrimErrors.addClass('hidden').empty();
+            $quickPilgrimSubmit.prop('disabled', true).addClass('opacity-70 cursor-not-allowed');
+
+            $.ajax({
+                url: $quickPilgrimForm.attr('action'),
+                method: 'POST',
+                data: $quickPilgrimForm.serialize(),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).done(function(resp) {
+                applyCsrfToken(resp && resp.csrf ? resp.csrf : null);
+                if (!resp || resp.status !== 'ok' || !resp.item || !resp.item.id) {
+                    $quickPilgrimErrors.removeClass('hidden').text((resp && resp.message) ? resp.message : 'Unable to create pilgrim.');
+                    return;
+                }
+
+                var newId = String(resp.item.id);
+                var optionText = resp.item.optionText || ('#' + newId + ' - New Pilgrim');
+                var existing = $pilgrims.find('option[value="' + newId + '"]');
+                if (existing.length === 0) {
+                    var newOption = new Option(optionText, newId, true, true);
+                    $pilgrims.append(newOption);
+                } else {
+                    existing.prop('selected', true);
+                }
+
+                $pilgrims.trigger('change');
+                $quickPilgrimForm[0].reset();
+                hideQuickPilgrimModal();
+            }).fail(function(xhr) {
+                var resp = xhr.responseJSON || {};
+                applyCsrfToken(resp && resp.csrf ? resp.csrf : null);
+                if (resp.errors && typeof resp.errors === 'object') {
+                    var list = Object.values(resp.errors).filter(Boolean);
+                    $quickPilgrimErrors.removeClass('hidden').html(list.join('<br>'));
+                } else {
+                    $quickPilgrimErrors.removeClass('hidden').text(resp.message || 'Failed to create pilgrim. Please check details and try again.');
+                }
+            }).always(function() {
+                $quickPilgrimSubmit.prop('disabled', false).removeClass('opacity-70 cursor-not-allowed');
+            });
+        });
+
+        customerType.on('change', toggleCustomerFields);
         toggleCustomerFields();
-    })();
+    }(jQuery));
 </script>
 <?php $this->endSection() ?>

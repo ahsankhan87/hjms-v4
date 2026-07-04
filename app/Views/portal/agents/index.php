@@ -71,7 +71,7 @@
                                         }
                                         ?>
                                         <span class="inline-flex items-center rounded-full <?= $balance > 0 ? 'bg-emerald-100' : ($balance < 0 ? 'bg-rose-100' : 'bg-slate-100') ?> px-3 py-1 text-xs font-semibold <?= $balanceClass ?>" data-col="balance" data-value="<?= esc((string) $balance) ?>">
-                                            <?= $balance > 0 ? '+' : '' ?><?= esc(number_format($balance, 2)) ?>
+                                            <?= esc(number_format($balance, 2)) ?>
                                         </span>
                                     </td>
                                     <td>
@@ -105,7 +105,7 @@
                     <tfoot>
                         <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
                             <td colspan="6" class="px-3 py-2 text-right">Total Balance</td>
-                            <td id="agents-total-balance" class="px-3 py-2 text-right">0</td>
+                            <td id="agents-total-balance" class="px-3 py-2">0.00</td>
                             <td colspan="2" class="px-3 py-2"></td>
                         </tr>
                     </tfoot>
@@ -131,28 +131,32 @@
             });
         }
 
+        function getVisibleRows(table) {
+            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable && window.jQuery.fn.DataTable.isDataTable(table)) {
+                return window.jQuery(table).DataTable().rows({
+                    search: 'applied'
+                }).nodes().toArray();
+            }
+
+            return Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+        }
+
         function refreshAgentBalanceTotal() {
-            if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.DataTable) {
+            var table = document.querySelector('table.list-table');
+            if (!table) {
                 return;
             }
-
-            var $table = window.jQuery('table.list-table').first();
-            if (!$table.length || !window.jQuery.fn.DataTable.isDataTable($table[0])) {
-                return;
-            }
-
-            var api = $table.DataTable();
-            var nodes = api.rows({
-                search: 'applied'
-            }).nodes().to$();
 
             var totalBalance = 0;
-            nodes.each(function() {
-                var td = this.querySelector('td[data-col="balance"]');
-                if (!td || !td.dataset) {
+            var rows = getVisibleRows(table);
+
+            rows.forEach(function(row) {
+                var balanceNode = row.querySelector('[data-col="balance"]');
+                if (!balanceNode || !balanceNode.dataset) {
                     return;
                 }
-                totalBalance += Number(td.dataset.value || 0);
+
+                totalBalance += Number(balanceNode.dataset.value || 0);
             });
 
             var target = document.getElementById('agents-total-balance');
@@ -162,13 +166,15 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            if (!window.jQuery) {
-                return;
-            }
+            refreshAgentBalanceTotal();
 
-            var $table = window.jQuery('table.list-table').first();
-            $table.on('draw.dt search.dt page.dt order.dt', refreshAgentBalanceTotal);
-            setTimeout(refreshAgentBalanceTotal, 0);
+            if (window.jQuery) {
+                var $table = window.jQuery('table.list-table').first();
+                if ($table.length) {
+                    $table.on('draw.dt search.dt page.dt order.dt', refreshAgentBalanceTotal);
+                    setTimeout(refreshAgentBalanceTotal, 0);
+                }
+            }
         });
     }());
 </script>
