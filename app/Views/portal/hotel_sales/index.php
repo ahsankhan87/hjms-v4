@@ -88,6 +88,7 @@
                     <th class="px-3 py-2 text-left">Pax Name</th>
                     <th class="px-3 py-2 text-left">Reference Number</th>
                     <th class="px-3 py-2 text-left">Remarks</th>
+                    <th class="px-3 py-2 text-left">Attachments</th>
                     <th class="px-3 py-2 text-left">Total</th>
                     <th class="px-3 py-2 text-left">Actions</th>
                 </tr>
@@ -95,7 +96,7 @@
             <tbody>
                 <?php if (empty($rows)): ?>
                     <tr>
-                        <td colspan="13" class="px-3 py-6 text-center text-slate-500">No Hotel Sale Found.</td>
+                        <td colspan="14" class="px-3 py-6 text-center text-slate-500">No Hotel Sale Found.</td>
                     </tr>
                     <?php else: foreach ($rows as $row): ?>
                         <?php $amount = (float) ($row['amount'] ?? 0); ?>
@@ -108,9 +109,34 @@
                             <td class="px-3 py-2 text-slate-700"><?= esc((string) (($row['no_of_nights'] ?? '') !== '' ? $row['no_of_nights'] : '-')) ?></td>
                             <td class="px-3 py-2 text-slate-700"><?= esc((string) (($row['room_name'] ?? '') !== '' ? $row['room_name'] : '-')) ?></td>
                             <td class="px-3 py-2 text-slate-700"><?= esc((string) (($row['room_qty'] ?? '') !== '' ? $row['room_qty'] : '-')) ?></td>
-                            <td class="px-3 py-2 text-slate-600"><?= esc(trim((string) ($row['pax_name'] ?? '')) !== '' ? (string) $row['pax_name'] : (string) (($row['pilgrim_name'] ?? '') !== '' ? $row['pilgrim_name'] : '-')) ?></td>
+                            <td class="px-3 py-2 text-slate-600"><?= esc((string) ($row['pax_display'] ?? '-')) ?></td>
                             <td class="px-3 py-2 text-slate-600"><?= esc((string) ($row['reference_no'] ?? '-')) ?></td>
                             <td class="px-3 py-2 text-slate-600"><?= esc((string) ($row['note'] ?? '-')) ?></td>
+                            <td class="px-3 py-2 text-slate-600">
+                                <div class="flex flex-wrap gap-2">
+                                    <?php if (!empty($row['attachment'])): ?>
+                                        <a href="<?= site_url('/writable/uploads/' . esc((string) $row['attachment'])) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 1">
+                                            <i class="fa-solid fa-file"></i>
+                                            <span>A1</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($row['attachment2'])): ?>
+                                        <a href="<?= site_url('/writable/uploads/' . esc((string) $row['attachment2'])) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 2">
+                                            <i class="fa-solid fa-file"></i>
+                                            <span>A2</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($row['attachment3'])): ?>
+                                        <a href="<?= site_url('/writable/uploads/' . esc((string) $row['attachment3'])) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 3">
+                                            <i class="fa-solid fa-file"></i>
+                                            <span>A3</span>
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if (empty($row['attachment']) && empty($row['attachment2']) && empty($row['attachment3'])): ?>
+                                        <span class="text-slate-400">-</span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                             <td class="px-3 py-2 font-semibold text-slate-800 text-right" data-col="amount" data-value="<?= esc((string) $amount) ?>"><?= esc(number_format($amount, 2)) ?></td>
                             <td class="px-3 py-2">
                                 <div class="flex items-center gap-2">
@@ -131,7 +157,7 @@
             </tbody>
             <tfoot>
                 <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
-                    <td colspan="11" class="px-3 py-2 text-right">Total Amount</td>
+                    <td colspan="12" class="px-3 py-2 text-right">Total Amount</td>
                     <td id="sales-total-amount" class="px-3 py-2 text-right">0.00</td>
                     <td class="px-3 py-2"></td>
                 </tr>

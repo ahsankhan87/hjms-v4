@@ -80,7 +80,7 @@
                             <td class="px-3 py-2 font-semibold text-slate-800"><?= esc((string) ($row['invoice_no'] ?? '-')) ?></td>
                             <td class="px-3 py-2"><?= esc((string) ($row['sale_date'] ?? '-')) ?></td>
                             <td class="px-3 py-2"><?= esc((string) ($row['credit_note_date'] ?? '-')) ?></td>
-                            <td class="px-3 py-2"><?= esc(trim((string) ($row['pax_name'] ?? '')) !== '' ? (string) $row['pax_name'] : (string) (($row['customer_name'] ?? '') !== '' ? $row['customer_name'] : '-')) ?></td>
+                            <td class="px-3 py-2"><?= esc((string) ($row['pax_display'] ?? '-')) ?></td>
                             <td class="px-3 py-2">
                                 <span class="text-slate-700"><?= esc((string) (($row['sale_invoice_no'] ?? '') !== '' ? $row['sale_invoice_no'] : ('Sale #' . ((int) ($row['sale_id'] ?? 0))))) ?></span>
                                 <?php if (!empty($row['reference_no'])): ?>

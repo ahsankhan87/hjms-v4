@@ -716,6 +716,97 @@ class ReportController extends BaseController
         ]);
     }
 
+    public function expensesByCategory(): string
+    {
+        $filters = [
+            'from_date' => (string) $this->request->getGet('from_date'),
+            'to_date'   => (string) $this->request->getGet('to_date'),
+        ];
+
+        $filterErrors = [];
+        if (! $this->validateData($filters, [
+            'from_date' => 'permit_empty|valid_date[Y-m-d]',
+            'to_date'   => 'permit_empty|valid_date[Y-m-d]',
+        ])) {
+            $filterErrors = $this->validator->getErrors();
+            $filters = ['from_date' => '', 'to_date' => ''];
+        }
+
+        $db = db_connect();
+        $seasonId = $this->activeSeasonId();
+
+        $categoryQuery = $db->table('expenses e')
+            ->select('ec.name AS category, COUNT(*) AS expense_count, COALESCE(SUM(e.amount), 0) AS category_total', false)
+            ->join('expense_categories ec', 'ec.id = e.expense_category_id', 'left')
+            ->groupBy('e.expense_category_id')
+            ->groupBy('ec.name');
+
+        if ($seasonId !== null && $this->tableHasColumn($db, 'expenses', 'season_id')) {
+            $categoryQuery->where('e.season_id', $seasonId);
+        }
+        if ($this->tableHasColumn($db, 'expenses', 'status')) {
+            $categoryQuery->where('e.status !=', 'voided');
+        }
+        if ($filters['from_date'] !== '') {
+            $categoryQuery->where('e.expense_date >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $categoryQuery->where('e.expense_date <=', $filters['to_date']);
+        }
+
+        $categoryRows = $categoryQuery->orderBy('category_total', 'DESC')->get()->getResultArray();
+
+        $totalExpense = 0.0;
+        foreach ($categoryRows as $row) {
+            $totalExpense += (float) ($row['category_total'] ?? 0);
+        }
+
+        $categoryData = [];
+        foreach ($categoryRows as $row) {
+            $categoryAmount = (float) ($row['category_total'] ?? 0);
+            $categoryData[] = [
+                'category' => (string) ($row['category'] ?? 'Uncategorized'),
+                'expense_count' => (int) ($row['expense_count'] ?? 0),
+                'category_total' => $categoryAmount,
+                'percentage' => $totalExpense > 0 ? round(($categoryAmount / $totalExpense) * 100, 2) : 0,
+            ];
+        }
+
+        // Get detailed expense listing
+        $detailedQuery = $db->table('expenses e')
+            ->select('e.id, e.expense_date, ec.name AS category, e.amount, e.paid_to, e.note, e.status')
+            ->join('expense_categories ec', 'ec.id = e.expense_category_id', 'left')
+            ->orderBy('e.expense_date', 'DESC')
+            ->orderBy('e.id', 'DESC');
+
+        if ($seasonId !== null && $this->tableHasColumn($db, 'expenses', 'season_id')) {
+            $detailedQuery->where('e.season_id', $seasonId);
+        }
+        if ($this->tableHasColumn($db, 'expenses', 'status')) {
+            $detailedQuery->where('e.status !=', 'voided');
+        }
+        if ($filters['from_date'] !== '') {
+            $detailedQuery->where('e.expense_date >=', $filters['from_date']);
+        }
+        if ($filters['to_date'] !== '') {
+            $detailedQuery->where('e.expense_date <=', $filters['to_date']);
+        }
+
+        $detailedRows = $detailedQuery->limit(200)->get()->getResultArray();
+
+        return view('portal/reports/expenses_by_category', [
+            'title' => 'HJMS ERP | Expenses by Category',
+            'headerTitle' => 'Business Reports',
+            'activePage' => 'reports',
+            'userEmail' => (string) session('user_email'),
+            'filters' => $filters,
+            'filterErrors' => $filterErrors,
+            'categoryData' => $categoryData,
+            'totalExpense' => $totalExpense,
+            'detailedRows' => $detailedRows,
+        ]);
+    }
+
     public function profitLoss(): string
     {
         $filters = [

@@ -20,6 +20,7 @@ class SupplierLedgerEntryModel extends Model
         'reference_type',
         'reference_id',
         'description',
+        'attachment',
         'created_at',
     ];
 }

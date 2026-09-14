@@ -643,6 +643,9 @@
                             <a href="<?= site_url('/ticket-sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'ticket_sales' ? 'active' : '' ?>">
                                 <i class="fa-solid fa-plane-departure w-4"></i><span>Ticket Sale</span>
                             </a>
+                            <a href="<?= site_url('/package-sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'package_sales' ? 'active' : '' ?>">
+                                <i class="fa-solid fa-box-open w-4"></i><span>Package Sale</span>
+                            </a>
                         <?php endif; ?>
                         <?php if ($canSuppliers): ?>
                             <a href="<?= site_url('/suppliers') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'suppliers' ? 'active' : '' ?>">

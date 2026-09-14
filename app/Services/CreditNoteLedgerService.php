@@ -45,6 +45,7 @@ class CreditNoteLedgerService
                 $saleType = (string) ($creditNote['sale_type'] ?? 'visa');
                 $invoiceNo = trim((string) ($creditNote['invoice_no'] ?? ''));
                 $saleId = (int) ($creditNote['sale_id'] ?? 0);
+                $sale = $this->fetchSaleForLedgerNote($saleId, $seasonId);
 
                 $description = 'Credit note';
                 if ($invoiceNo !== '') {
@@ -64,11 +65,13 @@ class CreditNoteLedgerService
                     'agent_id' => $agentId,
                     'entry_date' => $entryDate,
                     'entry_type' => 'sale_credit_note',
+                    'txn_type' => 'REFUND',
                     'debit_amount' => 0,
                     'credit_amount' => $amount,
                     'reference_type' => 'credit_note',
                     'reference_id' => $creditNoteId,
                     'description' => $description,
+                    'note' => $this->buildLedgerNote($sale, $seasonId),
                     'created_by' => session('user_id') ? (int) session('user_id') : null,
                 ]);
 
@@ -140,6 +143,9 @@ class CreditNoteLedgerService
         if ($this->hasLedgerColumn('entry_type')) {
             $row['entry_type'] = (string) ($payload['entry_type'] ?? 'adjustment');
         }
+        if ($this->hasLedgerColumn('txn_type')) {
+            $row['txn_type'] = (string) ($payload['txn_type'] ?? 'REFUND');
+        }
         if ($this->hasLedgerColumn('debit_amount')) {
             $row['debit_amount'] = (float) ($payload['debit_amount'] ?? 0);
         } elseif ($this->hasLedgerColumn('debit')) {
@@ -158,6 +164,16 @@ class CreditNoteLedgerService
         }
         if ($this->hasLedgerColumn('description')) {
             $row['description'] = (string) ($payload['description'] ?? '');
+        }
+        if ($this->hasLedgerColumn('note')) {
+            $row['note'] = trim((string) ($payload['note'] ?? '')) !== ''
+                ? trim((string) ($payload['note'] ?? ''))
+                : (string) ($payload['description'] ?? '');
+        }
+        if ($this->hasLedgerColumn('decs')) {
+            $row['decs'] = trim((string) ($payload['note'] ?? '')) !== ''
+                ? trim((string) ($payload['note'] ?? ''))
+                : (string) ($payload['description'] ?? '');
         }
         if ($this->hasLedgerColumn('created_by')) {
             $row['created_by'] = isset($payload['created_by']) ? (int) $payload['created_by'] : null;
@@ -222,5 +238,111 @@ class CreditNoteLedgerService
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    private function fetchSaleForLedgerNote(int $saleId, int $seasonId): array
+    {
+        if ($saleId < 1 || $seasonId < 1) {
+            return [];
+        }
+
+        $query = db_connect()->table('sales')
+            ->select('id, season_id, pilgrim_id, pilgrim_ids, pax_name')
+            ->where('id', $saleId)
+            ->where('season_id', $seasonId)
+            ->get();
+
+        return is_object($query) ? ((array) ($query->getRowArray() ?? [])) : [];
+    }
+
+    private function buildLedgerNote(array $sale, int $seasonId): string
+    {
+        $paxDisplay = $this->buildPaxDisplay($sale, $seasonId);
+        if ($paxDisplay === '') {
+            return '';
+        }
+
+        $text = 'PAX: ' . $paxDisplay;
+        if (strlen($text) > 1000) {
+            $text = substr($text, 0, 997) . '...';
+        }
+
+        return $text;
+    }
+
+    private function buildPaxDisplay(array $sale, int $seasonId): string
+    {
+        $map = $this->pilgrimDisplayMap($seasonId);
+        $pilgrimIds = $this->extractPilgrimIds($sale);
+
+        $items = [];
+        foreach ($pilgrimIds as $pilgrimId) {
+            if (isset($map[$pilgrimId]) && trim((string) $map[$pilgrimId]) !== '') {
+                $items[] = (string) $map[$pilgrimId];
+            }
+        }
+
+        if ($items !== []) {
+            return implode(', ', $items);
+        }
+
+        return trim((string) ($sale['pax_name'] ?? ''));
+    }
+
+    private function extractPilgrimIds(array $sale): array
+    {
+        $ids = [];
+
+        $pilgrimIdsCsv = trim((string) ($sale['pilgrim_ids'] ?? ''));
+        if ($pilgrimIdsCsv !== '') {
+            foreach (explode(',', $pilgrimIdsCsv) as $part) {
+                $id = (int) trim($part);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        $singlePilgrimId = (int) ($sale['pilgrim_id'] ?? 0);
+        if ($singlePilgrimId > 0) {
+            $ids[] = $singlePilgrimId;
+        }
+
+        return array_values(array_unique(array_filter($ids, static function ($id) {
+            return (int) $id > 0;
+        })));
+    }
+
+    private function pilgrimDisplayMap(int $seasonId): array
+    {
+        $db = db_connect();
+        if (! $db->tableExists('pilgrims')) {
+            return [];
+        }
+
+        $rows = $db->table('pilgrims')
+            ->select('id, first_name, last_name, passport_no')
+            ->where('season_id', $seasonId)
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+
+            $name = trim((string) ($row['first_name'] ?? '') . ' ' . (string) ($row['last_name'] ?? ''));
+            $passportNo = trim((string) ($row['passport_no'] ?? ''));
+
+            if ($name === '' && $passportNo === '') {
+                continue;
+            }
+
+            $map[$id] = $passportNo !== '' ? (($name !== '' ? $name : 'Pax') . ' (' . $passportNo . ')') : $name;
+        }
+
+        return $map;
     }
 }

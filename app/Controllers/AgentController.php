@@ -9,6 +9,7 @@ use App\Services\AgentLedgerService;
 class AgentController extends BaseController
 {
     private $tableColumnsCache = [];
+    private $pilgrimDisplayCacheBySeason = [];
 
     public function index(): string
     {
@@ -171,6 +172,7 @@ class AgentController extends BaseController
             'userEmail'      => (string) session('user_email'),
             'agent'          => $agent,
             'summary'        => $detailData['summary'],
+            'tableTotals'    => $detailData['tableTotals'],
             'ticketSales'    => $detailData['ticketSales'],
             'hotelSales'     => $detailData['hotelSales'],
             'visaSales'      => $detailData['visaSales'],
@@ -182,6 +184,41 @@ class AgentController extends BaseController
             'success'        => session()->getFlashdata('success'),
             'error'          => session()->getFlashdata('error'),
             'errors'         => session()->getFlashdata('errors') ?: [],
+        ]);
+    }
+
+    public function ledger2Print(int $id)
+    {
+        $linkedAgentId = $this->linkedAgentId();
+        if ($linkedAgentId !== null) {
+            $id = $linkedAgentId;
+        }
+
+        $agent = (new AgentModel())->find($id);
+        if (empty($agent)) {
+            return redirect()->to('/agents')->with('error', 'Agent not found.');
+        }
+
+        $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
+        $toDate = $this->normalizeDateFilter((string) $this->request->getGet('to'));
+        $autoPrint = (string) $this->request->getGet('autoprint') === '1';
+
+        $detailData = $this->buildLedgerDetailViewData($id, $fromDate, $toDate);
+
+        return view('portal/agents/ledger2_print', [
+            'title'        => 'Agent Ledger 2 Print',
+            'agent'        => $agent,
+            'summary'      => $detailData['summary'],
+            'tableTotals'  => $detailData['tableTotals'],
+            'ticketSales'  => $detailData['ticketSales'],
+            'hotelSales'   => $detailData['hotelSales'],
+            'visaSales'    => $detailData['visaSales'],
+            'generalSales' => $detailData['generalSales'],
+            'vouchers'     => $detailData['vouchers'],
+            'creditNotes'  => $detailData['creditNotes'],
+            'filterFrom'   => $detailData['filterFrom'],
+            'filterTo'     => $detailData['filterTo'],
+            'autoPrint'    => $autoPrint,
         ]);
     }
 
@@ -379,7 +416,7 @@ class AgentController extends BaseController
         $closingBalance = $openingBalance + $periodNet;
 
         $ticketSalesQuery = $db->table('sales s')
-            ->select('s.id, s.invoice_no, s.sale_date, s.sector, s.pax_name, s.pnr, s.ticket_no, s.reference_no, s.note, s.amount')
+            ->select('s.id, s.invoice_no, s.sale_date, s.sector, s.pax_name, s.pilgrim_id, s.pilgrim_ids, s.pnr, s.ticket_no, s.reference_no, s.note, s.amount')
             ->where('s.agent_id', $agentId)
             ->where('s.customer_type', 'agent')
             ->where('s.sale_type', 'ticket')
@@ -399,13 +436,14 @@ class AgentController extends BaseController
             $ticketSalesQuery->where('DATE(s.sale_date) <=', $toDate);
         }
         $ticketSales = $ticketSalesQuery->get()->getResultArray();
+        $ticketSales = $this->normalizePaxDisplayRows($ticketSales, $seasonId);
         $ticketSaleTotal = 0.0;
         foreach ($ticketSales as $row) {
             $ticketSaleTotal += (float) ($row['amount'] ?? 0);
         }
 
         $hotelSalesQuery = $db->table('sales s')
-            ->select('s.id, s.invoice_no, s.sale_date, s.hotel_name, s.checkin_date, s.checkout_date, s.no_of_nights, s.room_name, s.room_qty, s.pax_name, s.reference_no, s.note, s.amount')
+            ->select('s.id, s.invoice_no, s.sale_date, s.hotel_name, s.checkin_date, s.checkout_date, s.no_of_nights, s.room_name, s.room_qty, s.pax_name, s.pilgrim_id, s.pilgrim_ids, s.reference_no, s.note, s.amount')
             ->where('s.agent_id', $agentId)
             ->where('s.customer_type', 'agent')
             ->where('s.sale_type', 'hotel')
@@ -425,13 +463,14 @@ class AgentController extends BaseController
             $hotelSalesQuery->where('DATE(s.sale_date) <=', $toDate);
         }
         $hotelSales = $hotelSalesQuery->get()->getResultArray();
+        $hotelSales = $this->normalizePaxDisplayRows($hotelSales, $seasonId);
         $hotelSaleTotal = 0.0;
         foreach ($hotelSales as $row) {
             $hotelSaleTotal += (float) ($row['amount'] ?? 0);
         }
 
         $visaSalesQuery = $db->table('sales s')
-            ->select('s.id, s.invoice_no, s.sale_date, sc.name AS category_name, s.pax_name, s.reference_no, s.note, s.visa_type, s.visa_agency, s.amount')
+            ->select('s.id, s.invoice_no, s.sale_date, sc.name AS category_name, s.pax_name, s.pilgrim_id, s.pilgrim_ids, s.reference_no, s.note, s.visa_type, s.visa_agency, s.amount')
             ->join('sales_categories sc', 'sc.id = s.sales_category_id', 'left')
             ->where('s.agent_id', $agentId)
             ->where('s.customer_type', 'agent')
@@ -452,6 +491,7 @@ class AgentController extends BaseController
             $visaSalesQuery->where('DATE(s.sale_date) <=', $toDate);
         }
         $visaSales = $visaSalesQuery->get()->getResultArray();
+        $visaSales = $this->normalizePaxDisplayRows($visaSales, $seasonId);
         $visaSaleTotal = 0.0;
         foreach ($visaSales as $row) {
             $visaSaleTotal += (float) ($row['amount'] ?? 0);
@@ -461,7 +501,20 @@ class AgentController extends BaseController
             ->select(
                 "b.id, b.booking_no, DATE(b.created_at) AS inv_date, p.name AS category_name,
                 COALESCE((
-                    SELECT GROUP_CONCAT(TRIM(CONCAT(COALESCE(pl.first_name, ''), ' ', COALESCE(pl.last_name, ''))) SEPARATOR ', ')
+                    SELECT GROUP_CONCAT(
+                        TRIM(
+                            CONCAT(
+                                COALESCE(pl.first_name, ''),
+                                ' ',
+                                COALESCE(pl.last_name, ''),
+                                CASE
+                                    WHEN TRIM(COALESCE(pl.passport_no, '')) != '' THEN CONCAT(' (', pl.passport_no, ')')
+                                    ELSE ''
+                                END
+                            )
+                        )
+                        SEPARATOR ', '
+                    )
                     FROM booking_pilgrims bp
                     LEFT JOIN pilgrims pl ON pl.id = bp.pilgrim_id
                     WHERE bp.booking_id = b.id
@@ -517,11 +570,59 @@ class AgentController extends BaseController
             $voucherQuery->where('DATE(p.payment_date) <=', $toDate);
         }
         $vouchers = $voucherQuery->get()->getResultArray();
+
+        foreach ($ledgerRows as $ledgerRow) {
+            $entryDate = (string) ($ledgerRow['entry_date'] ?? '');
+            if ($fromDate !== '' && $entryDate < $fromDate) {
+                continue;
+            }
+            if ($toDate !== '' && $entryDate > $toDate) {
+                continue;
+            }
+
+            $referenceType = trim((string) ($ledgerRow['reference_type'] ?? ''));
+            if ($referenceType !== '') {
+                continue;
+            }
+
+            $entryType = trim((string) ($ledgerRow['entry_type'] ?? ''));
+            if (! in_array($entryType, ['debit', 'credit', 'adjustment'], true)) {
+                continue;
+            }
+
+            $debitAmount = (float) ($ledgerRow['debit_amount'] ?? 0);
+            $creditAmount = (float) ($ledgerRow['credit_amount'] ?? 0);
+            $signedAmount = $debitAmount - $creditAmount;
+
+            $vouchers[] = [
+                'id' => (int) ($ledgerRow['id'] ?? 0),
+                'payment_no' => 'ML-' . (int) ($ledgerRow['id'] ?? 0),
+                'payment_date' => $entryDate,
+                'gateway_reference' => '-',
+                'amount' => abs($signedAmount),
+                'payment_type' => $signedAmount >= 0 ? 'refund' : 'payment',
+                'note' => trim((string) ($ledgerRow['description'] ?? '')),
+                'signed_amount' => $signedAmount,
+            ];
+        }
+
+        usort($vouchers, static function (array $a, array $b): int {
+            $dateA = (string) ($a['payment_date'] ?? '');
+            $dateB = (string) ($b['payment_date'] ?? '');
+            if ($dateA !== $dateB) {
+                return strcmp($dateA, $dateB);
+            }
+
+            return ((int) ($a['id'] ?? 0)) <=> ((int) ($b['id'] ?? 0));
+        });
+
         $voucherTotal = 0.0;
         foreach ($vouchers as &$voucher) {
-            $amount = (float) ($voucher['amount'] ?? 0);
-            $isRefund = ((string) ($voucher['payment_type'] ?? 'payment')) === 'refund';
-            $signedAmount = $isRefund ? $amount : ($amount * -1);
+            $signedAmount = isset($voucher['signed_amount'])
+                ? (float) ($voucher['signed_amount'] ?? 0)
+                : ((((string) ($voucher['payment_type'] ?? 'payment')) === 'refund')
+                    ? (float) ($voucher['amount'] ?? 0)
+                    : ((float) ($voucher['amount'] ?? 0) * -1));
             $voucher['signed_amount'] = $signedAmount;
             $voucherTotal += $signedAmount;
         }
@@ -533,7 +634,7 @@ class AgentController extends BaseController
         $psfExpr = $this->tableHasColumn('sales', 'psf_wht') ? 's.psf_wht' : ($this->tableHasColumn('sales', 'psf') ? 's.psf' : '0');
 
         $creditNotesQuery = $db->table('credit_notes cn')
-            ->select('cn.id, cn.invoice_no, cn.sale_date, cn.credit_note_date, cn.amount, s.sector, s.pax_name, s.pnr, s.ticket_no', false)
+            ->select('cn.id, cn.invoice_no, cn.sale_date, cn.credit_note_date, cn.amount, s.sector, s.pax_name, s.pilgrim_id, s.pilgrim_ids, s.pnr, s.ticket_no', false)
             ->select($baseFareExpr . ' AS base_fare', false)
             ->select($taxExpr . ' AS tax', false)
             ->select($discountExpr . ' AS discount', false)
@@ -546,9 +647,6 @@ class AgentController extends BaseController
         if ($seasonId !== null && $this->tableHasColumn('credit_notes', 'season_id')) {
             $creditNotesQuery->where('cn.season_id', $seasonId);
         }
-        if ($this->tableHasColumn('credit_notes', 'sale_type')) {
-            $creditNotesQuery->where('cn.sale_type', 'ticket');
-        }
         if ($this->tableHasColumn('credit_notes', 'status')) {
             $creditNotesQuery->where('cn.status !=', 'voided');
         }
@@ -559,10 +657,19 @@ class AgentController extends BaseController
             $creditNotesQuery->where('cn.credit_note_date <=', $toDate);
         }
         $creditNotes = $creditNotesQuery->get()->getResultArray();
+        $creditNotes = $this->normalizePaxDisplayRows($creditNotes, $seasonId);
 
         $creditNoteTotal = 0.0;
+        $creditNoteBaseFareTotal = 0.0;
+        $creditNoteTaxTotal = 0.0;
+        $creditNoteDiscountTotal = 0.0;
+        $creditNotePsfWhtTotal = 0.0;
         foreach ($creditNotes as $creditNote) {
             $creditNoteTotal += (float) ($creditNote['amount'] ?? 0);
+            $creditNoteBaseFareTotal += (float) ($creditNote['base_fare'] ?? 0);
+            $creditNoteTaxTotal += (float) ($creditNote['tax'] ?? 0);
+            $creditNoteDiscountTotal += (float) ($creditNote['discount'] ?? 0);
+            $creditNotePsfWhtTotal += (float) ($creditNote['psf_wht'] ?? 0);
         }
 
         return [
@@ -575,6 +682,18 @@ class AgentController extends BaseController
                 'bookingSaleTotal' => $bookingSaleTotal,
                 'creditNoteTotal' => $creditNoteTotal,
                 'voucherTotal' => $voucherTotal,
+            ],
+            'tableTotals' => [
+                'ticketSales' => $ticketSaleTotal,
+                'hotelSales' => $hotelSaleTotal,
+                'visaSales' => $visaSaleTotal,
+                'generalSales' => $bookingSaleTotal,
+                'vouchers' => $voucherTotal,
+                'creditNotes' => $creditNoteTotal,
+                'creditNoteBaseFare' => $creditNoteBaseFareTotal,
+                'creditNoteTax' => $creditNoteTaxTotal,
+                'creditNoteDiscount' => $creditNoteDiscountTotal,
+                'creditNotePsfWht' => $creditNotePsfWhtTotal,
             ],
             'ticketSales' => $ticketSales,
             'hotelSales' => $hotelSales,
@@ -614,10 +733,109 @@ class AgentController extends BaseController
         return in_array($column, $this->tableColumnsCache[$table], true);
     }
 
+    private function normalizePaxDisplayRows(array $rows, $seasonId): array
+    {
+        $seasonId = (int) $seasonId;
+        if ($seasonId < 1 || empty($rows)) {
+            return $rows;
+        }
+
+        $pilgrimMap = $this->pilgrimDisplayMap($seasonId);
+        if ($pilgrimMap === []) {
+            return $rows;
+        }
+
+        foreach ($rows as &$row) {
+            $display = $this->buildPaxDisplayFromRow((array) $row, $pilgrimMap);
+            if ($display !== '') {
+                $row['pax_name'] = $display;
+            }
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    private function buildPaxDisplayFromRow(array $row, array $pilgrimMap): string
+    {
+        $ids = [];
+        $csv = trim((string) ($row['pilgrim_ids'] ?? ''));
+        if ($csv !== '') {
+            foreach (explode(',', $csv) as $part) {
+                $id = (int) trim($part);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        $singleId = (int) ($row['pilgrim_id'] ?? 0);
+        if ($singleId > 0) {
+            $ids[] = $singleId;
+        }
+
+        $ids = array_values(array_unique($ids));
+        $items = [];
+        foreach ($ids as $id) {
+            if (isset($pilgrimMap[$id])) {
+                $items[] = (string) $pilgrimMap[$id];
+            }
+        }
+
+        if ($items !== []) {
+            return implode(', ', $items);
+        }
+
+        return trim((string) ($row['pax_name'] ?? ''));
+    }
+
+    private function pilgrimDisplayMap(int $seasonId): array
+    {
+        if (isset($this->pilgrimDisplayCacheBySeason[$seasonId]) && is_array($this->pilgrimDisplayCacheBySeason[$seasonId])) {
+            return $this->pilgrimDisplayCacheBySeason[$seasonId];
+        }
+
+        $db = db_connect();
+        if (! $db->tableExists('pilgrims')) {
+            $this->pilgrimDisplayCacheBySeason[$seasonId] = [];
+            return [];
+        }
+
+        $rows = $db->table('pilgrims')
+            ->select('id, first_name, last_name, passport_no')
+            ->where('season_id', $seasonId)
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+
+            $name = trim((string) ($row['first_name'] ?? '') . ' ' . (string) ($row['last_name'] ?? ''));
+            $passport = trim((string) ($row['passport_no'] ?? ''));
+
+            if ($name === '' && $passport === '') {
+                continue;
+            }
+
+            if ($passport !== '') {
+                $map[$id] = ($name !== '' ? $name : 'Pax') . ' (' . $passport . ')';
+            } else {
+                $map[$id] = $name;
+            }
+        }
+
+        $this->pilgrimDisplayCacheBySeason[$seasonId] = $map;
+        return $map;
+    }
+
     public function createAgent()
     {
         $payload = [
-            'code'              => trim((string) $this->request->getPost('code')),
+            'type'              => trim((string) $this->request->getPost('type')),
             'name'              => trim((string) $this->request->getPost('name')),
             'email'             => strtolower(trim((string) $this->request->getPost('email'))),
             'phone'             => trim((string) $this->request->getPost('phone')),
@@ -628,7 +846,7 @@ class AgentController extends BaseController
         ];
 
         if (! $this->validateData($payload, [
-            'code'             => 'required|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'type'             => 'required|in_list[agent,customer]',
             'name'             => 'required|min_length[3]|max_length[150]',
             'email'            => 'permit_empty|valid_email',
             'phone'            => 'permit_empty|max_length[30]',
@@ -643,10 +861,6 @@ class AgentController extends BaseController
         try {
             $model = new AgentModel();
 
-            if ($this->isCodeTaken($payload['code'])) {
-                return redirect()->back()->withInput()->with('error', 'Agent code already exists.');
-            }
-
             if ($payload['email'] !== '' && $this->isEmailTaken($payload['email'])) {
                 return redirect()->back()->withInput()->with('error', 'Agent email already exists.');
             }
@@ -657,7 +871,7 @@ class AgentController extends BaseController
 
             $model->insert([
                 'branch_id'         => $payload['branch_id'],
-                'code'              => $payload['code'],
+                'type'              => $payload['type'],
                 'name'              => $payload['name'],
                 'email'             => $payload['email'] !== '' ? $payload['email'] : null,
                 'phone'             => $payload['phone'] !== '' ? $payload['phone'] : null,
@@ -670,6 +884,12 @@ class AgentController extends BaseController
                 'updated_at'        => date('Y-m-d H:i:s'),
             ]);
 
+            $agentId = $model->getInsertID();
+            $prefix = $payload['type'] === 'customer' ? 'CST' : 'AGT';
+            $code = $prefix . '-' . str_pad((string) $agentId, 4, '0', STR_PAD_LEFT);
+
+            $model->update($agentId, ['code' => $code]);
+
             return redirect()->to('/agents')->with('success', 'Agent created successfully.');
         } catch (\Throwable $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
@@ -680,7 +900,7 @@ class AgentController extends BaseController
     {
         $agentId = (int) $this->request->getPost('agent_id');
         $payload = [
-            'code'             => trim((string) $this->request->getPost('code')),
+            'type'             => trim((string) $this->request->getPost('type')),
             'name'             => trim((string) $this->request->getPost('name')),
             'email'            => strtolower(trim((string) $this->request->getPost('email'))),
             'phone'            => trim((string) $this->request->getPost('phone')),
@@ -696,7 +916,7 @@ class AgentController extends BaseController
         }
 
         if (! $this->validateData($payload, [
-            'code'             => 'permit_empty|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'type'             => 'permit_empty|in_list[agent,customer]',
             'name'             => 'permit_empty|min_length[3]|max_length[150]',
             'email'            => 'permit_empty|valid_email',
             'phone'            => 'permit_empty|max_length[30]',
@@ -737,10 +957,6 @@ class AgentController extends BaseController
         }
         if (isset($data['is_active'])) {
             $data['is_active'] = (int) $data['is_active'];
-        }
-
-        if (isset($data['code']) && $this->isCodeTaken($data['code'], $agentId)) {
-            return redirect()->back()->withInput()->with('error', 'Agent code already exists.');
         }
 
         if (isset($data['email']) && $data['email'] !== '' && $this->isEmailTaken($data['email'], $agentId)) {

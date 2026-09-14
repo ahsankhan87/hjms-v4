@@ -21,15 +21,21 @@
                 <?= csrf_field() ?>
                 <input type="hidden" name="agent_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
 
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Code</label>
-                        <input name="code" value="<?= esc(old('code', (string) ($row['code'] ?? ''))) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Name</label>
-                        <input name="name" value="<?= esc(old('name', (string) ($row['name'] ?? ''))) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Code</label>
+                    <input name="code" value="<?= esc((string) ($row['code'] ?? '')) ?>" readonly class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600" title="Code is auto-generated">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Type</label>
+                    <?php $type = (string) old('type', (string) ($row['type'] ?? 'agent')); ?>
+                    <select name="type" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="agent" <?= $type === 'agent' ? 'selected' : '' ?>>Agent</option>
+                        <option value="customer" <?= $type === 'customer' ? 'selected' : '' ?>>Customer</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Name</label>
+                    <input name="name" value="<?= esc(old('name', (string) ($row['name'] ?? ''))) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>

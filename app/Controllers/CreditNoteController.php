@@ -7,6 +7,8 @@ use App\Services\CreditNoteLedgerService;
 
 class CreditNoteController extends BaseController
 {
+    private $pilgrimDisplayCacheBySeason = [];
+
     public function visaIndex()
     {
         return $this->indexByType('visa');
@@ -20,6 +22,11 @@ class CreditNoteController extends BaseController
     public function ticketIndex()
     {
         return $this->indexByType('ticket');
+    }
+
+    public function packageIndex()
+    {
+        return $this->indexByType('package');
     }
 
     public function visaAdd()
@@ -37,6 +44,11 @@ class CreditNoteController extends BaseController
         return $this->addByType('ticket');
     }
 
+    public function packageAdd()
+    {
+        return $this->addByType('package');
+    }
+
     public function createVisa()
     {
         return $this->createByType('visa');
@@ -45,6 +57,11 @@ class CreditNoteController extends BaseController
     public function createHotel()
     {
         return $this->createByType('hotel');
+    }
+
+    public function createPackage()
+    {
+        return $this->createByType('package');
     }
 
     public function createTicket()
@@ -60,6 +77,11 @@ class CreditNoteController extends BaseController
     public function deleteHotel()
     {
         return $this->deleteByType('hotel');
+    }
+
+    public function deletePackage()
+    {
+        return $this->deleteByType('package');
     }
 
     public function deleteTicket()
@@ -92,8 +114,11 @@ class CreditNoteController extends BaseController
 
         $db = db_connect();
         $query = $db->table('credit_notes cn')
-            ->select('cn.*, s.invoice_no AS sale_invoice_no, s.reference_no, s.pax_name, s.customer_name, a.name AS agent_name')
+            ->select('cn.*, s.invoice_no AS sale_invoice_no, s.reference_no, s.pax_name, s.customer_name, s.pilgrim_id, s.pilgrim_ids, a.name AS agent_name')
+            ->select("CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')) AS pilgrim_name", false)
+            ->select('p.passport_no AS pilgrim_passport_no')
             ->join('sales s', 's.id = cn.sale_id', 'left')
+            ->join('pilgrims p', 'p.id = s.pilgrim_id', 'left')
             ->join('agents a', 'a.id = cn.agent_id', 'left')
             ->where('cn.season_id', $seasonId)
             ->where('cn.sale_type', $saleType);
@@ -109,6 +134,11 @@ class CreditNoteController extends BaseController
         }
 
         $rows = $query->orderBy('cn.credit_note_date', 'DESC')->orderBy('cn.id', 'DESC')->get()->getResultArray();
+
+        foreach ($rows as &$row) {
+            $row['pax_display'] = $this->buildPaxDisplayForSaleRow($row, $seasonId);
+        }
+        unset($row);
 
         $totalAmount = 0.0;
         foreach ($rows as $row) {
@@ -152,8 +182,10 @@ class CreditNoteController extends BaseController
 
         if ($db->tableExists('credit_notes')) {
             $salesQuery
+                ->select('COALESCE(SUM(CASE WHEN cn.status != "voided" THEN cn.amount ELSE 0 END), 0) AS credited_amount', false)
                 ->join('credit_notes cn', 'cn.season_id = s.season_id AND cn.sale_type = s.sale_type AND cn.sale_id = s.id', 'left')
-                ->where('cn.id', null);
+                ->groupBy('s.id, s.invoice_no, s.sale_date, s.amount, s.agent_id, s.pax_name, s.customer_name, s.status, s.customer_type')
+                ->having('COALESCE(SUM(CASE WHEN cn.status != "voided" THEN cn.amount ELSE 0 END), 0) < s.amount', null, false);
         }
 
         $sales = $salesQuery
@@ -161,6 +193,31 @@ class CreditNoteController extends BaseController
             ->orderBy('s.id', 'DESC')
             ->get()
             ->getResultArray();
+
+        $normalizedSales = [];
+        foreach ($sales as $sale) {
+            $saleAmount = (float) ($sale['amount'] ?? 0);
+            $creditedAmount = (float) ($sale['credited_amount'] ?? 0);
+
+            if ($creditedAmount < 0) {
+                $creditedAmount = 0.0;
+            }
+
+            if ($creditedAmount > $saleAmount) {
+                $creditedAmount = $saleAmount;
+            }
+
+            $remainingAmount = max(0.0, $saleAmount - $creditedAmount);
+            if ($remainingAmount <= 0) {
+                continue;
+            }
+
+            $sale['credited_amount'] = $creditedAmount;
+            $sale['remaining_amount'] = $remainingAmount;
+            $normalizedSales[] = $sale;
+        }
+
+        $sales = $normalizedSales;
 
         $preselectedSaleId = 0;
         if ($requestedSaleId > 0) {
@@ -180,6 +237,7 @@ class CreditNoteController extends BaseController
             'activePage' => $saleMeta['activePage'],
             'userEmail' => (string) session('user_email'),
             'saleType' => $saleType,
+            'creditPrefix' => (string) ($saleMeta['creditPrefix'] ?? 'CN'),
             'sales' => $sales,
             'preselectedSaleId' => $preselectedSaleId,
             'success' => session()->getFlashdata('success'),
@@ -247,34 +305,34 @@ class CreditNoteController extends BaseController
                 ->with('error', 'Cannot create credit note against a voided sale.');
         }
 
-        $saleAmount = (float) ($sale['amount'] ?? 0);
-        $creditAmount = (float) $payload['amount'];
-        if ($creditAmount > $saleAmount) {
-            return redirect()->to($this->saleTypeMeta($saleType)['creditAddPath'])
-                ->withInput()
-                ->with('error', 'Credit note amount cannot exceed selected sale amount.');
-        }
-
         $db = db_connect();
 
+        $saleAmount = (float) ($sale['amount'] ?? 0);
+        $creditedAmount = 0.0;
         if ($db->tableExists('credit_notes')) {
-            $existingCreditNote = $db->table('credit_notes')
-                ->select('id, invoice_no, status')
+            $creditedRow = $db->table('credit_notes')
+                ->select('COALESCE(SUM(CASE WHEN status != "voided" THEN amount ELSE 0 END), 0) AS credited_amount', false)
                 ->where('season_id', $seasonId)
                 ->where('sale_type', $saleType)
                 ->where('sale_id', $saleId)
-                ->orderBy('id', 'DESC')
                 ->get()
                 ->getRowArray();
 
-            if (! empty($existingCreditNote)) {
-                $existingInvoiceNo = trim((string) ($existingCreditNote['invoice_no'] ?? ''));
-                $existingStatus = trim((string) ($existingCreditNote['status'] ?? 'posted'));
-                $detail = $existingInvoiceNo !== '' ? (' (' . $existingInvoiceNo . ')') : '';
-                return redirect()->to($this->saleTypeMeta($saleType)['creditAddPath'])
-                    ->withInput()
-                    ->with('error', 'Credit note already exists for this sale invoice' . $detail . '. Status: ' . ($existingStatus !== '' ? $existingStatus : 'posted') . '.');
-            }
+            $creditedAmount = (float) ($creditedRow['credited_amount'] ?? 0);
+        }
+
+        $remainingAmount = max(0.0, $saleAmount - $creditedAmount);
+        if ($remainingAmount <= 0) {
+            return redirect()->to($this->saleTypeMeta($saleType)['creditAddPath'])
+                ->withInput()
+                ->with('error', 'This sale is already fully refunded.');
+        }
+
+        $creditAmount = (float) $payload['amount'];
+        if ($creditAmount > $remainingAmount) {
+            return redirect()->to($this->saleTypeMeta($saleType)['creditAddPath'])
+                ->withInput()
+                ->with('error', 'Credit note amount cannot exceed remaining refundable amount (' . number_format($remainingAmount, 2) . ').');
         }
 
         $model = new CreditNoteModel();
@@ -282,7 +340,7 @@ class CreditNoteController extends BaseController
         try {
             $db->transStart();
 
-            $invoiceNo = $this->generateCreditNoteInvoiceNo($seasonId);
+            $invoiceNo = $this->generateCreditNoteInvoiceNo($seasonId, $saleType);
             $model->insert([
                 'season_id' => $seasonId,
                 'sale_type' => $saleType,
@@ -369,6 +427,7 @@ class CreditNoteController extends BaseController
                 'activePage' => 'hotel_sales',
                 'creditIndexPath' => '/hotel-sales/credit-notes',
                 'creditAddPath' => '/hotel-sales/credit-notes/add',
+                'creditPrefix' => 'CNH',
             ];
         }
 
@@ -378,6 +437,7 @@ class CreditNoteController extends BaseController
                 'activePage' => 'ticket_sales',
                 'creditIndexPath' => '/ticket-sales/credit-notes',
                 'creditAddPath' => '/ticket-sales/credit-notes/add',
+                'creditPrefix' => 'CNT',
             ];
         }
 
@@ -386,15 +446,18 @@ class CreditNoteController extends BaseController
             'activePage' => 'visa_sales',
             'creditIndexPath' => '/sales/credit-notes',
             'creditAddPath' => '/sales/credit-notes/add',
+            'creditPrefix' => 'CNV',
         ];
     }
 
-    private function generateCreditNoteInvoiceNo(int $seasonId): string
+    private function generateCreditNoteInvoiceNo(int $seasonId, string $saleType): string
     {
-        $prefix = 'CN-';
+        $saleMeta = $this->saleTypeMeta($saleType);
+        $prefix = (string) ($saleMeta['creditPrefix'] ?? 'CNV');
         $rows = db_connect()->table('credit_notes')
             ->select('invoice_no')
             ->where('season_id', $seasonId)
+            ->where('sale_type', $saleType)
             ->like('invoice_no', $prefix, 'after')
             ->get()
             ->getResultArray();
@@ -418,5 +481,103 @@ class CreditNoteController extends BaseController
         }
 
         return $prefix . str_pad((string) ($max + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    private function buildPaxDisplayForSaleRow(array $row, int $seasonId): string
+    {
+        $map = $this->pilgrimDisplayMap($seasonId);
+        $pilgrimIds = $this->extractPilgrimIdsFromSaleRow($row);
+
+        $items = [];
+        foreach ($pilgrimIds as $pilgrimId) {
+            if (isset($map[$pilgrimId]) && trim((string) $map[$pilgrimId]) !== '') {
+                $items[] = (string) $map[$pilgrimId];
+            }
+        }
+
+        if ($items !== []) {
+            return implode(', ', $items);
+        }
+
+        $paxName = trim((string) ($row['pax_name'] ?? ''));
+        $passportNo = trim((string) ($row['pilgrim_passport_no'] ?? ''));
+        if ($paxName !== '') {
+            return $passportNo !== '' ? ($paxName . ' (' . $passportNo . ')') : $paxName;
+        }
+
+        $pilgrimName = trim((string) ($row['pilgrim_name'] ?? ''));
+        if ($pilgrimName !== '') {
+            return $passportNo !== '' ? ($pilgrimName . ' (' . $passportNo . ')') : $pilgrimName;
+        }
+
+        $customerName = trim((string) ($row['customer_name'] ?? ''));
+
+        return $customerName !== '' ? $customerName : '-';
+    }
+
+    private function extractPilgrimIdsFromSaleRow(array $row): array
+    {
+        $ids = [];
+
+        $pilgrimIdsCsv = trim((string) ($row['pilgrim_ids'] ?? ''));
+        if ($pilgrimIdsCsv !== '') {
+            foreach (explode(',', $pilgrimIdsCsv) as $part) {
+                $id = (int) trim($part);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        $singlePilgrimId = (int) ($row['pilgrim_id'] ?? 0);
+        if ($singlePilgrimId > 0) {
+            $ids[] = $singlePilgrimId;
+        }
+
+        $ids = array_values(array_unique(array_filter($ids, static function ($id) {
+            return (int) $id > 0;
+        })));
+
+        return $ids;
+    }
+
+    private function pilgrimDisplayMap(int $seasonId): array
+    {
+        if (isset($this->pilgrimDisplayCacheBySeason[$seasonId]) && is_array($this->pilgrimDisplayCacheBySeason[$seasonId])) {
+            return $this->pilgrimDisplayCacheBySeason[$seasonId];
+        }
+
+        $db = db_connect();
+        if (! $db->tableExists('pilgrims')) {
+            $this->pilgrimDisplayCacheBySeason[$seasonId] = [];
+            return $this->pilgrimDisplayCacheBySeason[$seasonId];
+        }
+
+        $rows = $db->table('pilgrims')
+            ->select('id, first_name, last_name, passport_no')
+            ->where('season_id', $seasonId)
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $pilgrimId = (int) ($row['id'] ?? 0);
+            if ($pilgrimId < 1) {
+                continue;
+            }
+
+            $name = trim((string) ($row['first_name'] ?? '') . ' ' . (string) ($row['last_name'] ?? ''));
+            $passportNo = trim((string) ($row['passport_no'] ?? ''));
+
+            if ($name === '' && $passportNo === '') {
+                continue;
+            }
+
+            $map[$pilgrimId] = $passportNo !== '' ? (($name !== '' ? $name : 'Pax') . ' (' . $passportNo . ')') : $name;
+        }
+
+        $this->pilgrimDisplayCacheBySeason[$seasonId] = $map;
+
+        return $this->pilgrimDisplayCacheBySeason[$seasonId];
     }
 }

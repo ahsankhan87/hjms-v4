@@ -12,7 +12,7 @@
     </article>
 
     <article class="rounded-xl border border-slate-200 bg-white p-4">
-        <form method="post" action="<?= site_url('/ticket-sales/update') ?>" class="space-y-3">
+        <form method="post" action="<?= site_url('/ticket-sales/update') ?>" enctype="multipart/form-data" class="space-y-3">
             <?= csrf_field() ?>
             <input type="hidden" name="sale_id" value="<?= esc((string) $row['id']) ?>">
             <?php $customerType = old('customer_type', (string) ($row['customer_type'] ?? 'walk_in')); ?>
@@ -138,6 +138,39 @@
                     <input name="reference_no" value="<?= esc(old('reference_no', (string) ($row['reference_no'] ?? ''))) ?>" placeholder="Invoice / Voucher / Receipt No" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div></div>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 1 (Image/PDF)</label>
+                <?php if (!empty($row['attachment'])): ?>
+                    <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-600">Current: <strong><?= esc((string) $row['attachment']) ?></strong></p>
+                    </div>
+                <?php endif; ?>
+                <input type="file" name="attachment" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="text-xs text-slate-500 mt-1">Accepted: JPG, PNG, PDF, DOC, DOCX (Max 5MB)</p>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 2 (Image/PDF)</label>
+                <?php if (!empty($row['attachment2'])): ?>
+                    <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-600">Current: <strong><?= esc((string) $row['attachment2']) ?></strong></p>
+                    </div>
+                <?php endif; ?>
+                <input type="file" name="attachment2" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="text-xs text-slate-500 mt-1">Accepted: JPG, PNG, PDF, DOC, DOCX (Max 5MB)</p>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 3 (Image/PDF)</label>
+                <?php if (!empty($row['attachment3'])): ?>
+                    <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <p class="text-xs text-slate-600">Current: <strong><?= esc((string) $row['attachment3']) ?></strong></p>
+                    </div>
+                <?php endif; ?>
+                <input type="file" name="attachment3" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="text-xs text-slate-500 mt-1">Accepted: JPG, PNG, PDF, DOC, DOCX (Max 5MB)</p>
             </div>
 
             <div>

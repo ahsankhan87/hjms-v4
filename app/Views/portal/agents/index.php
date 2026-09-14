@@ -32,6 +32,7 @@
                         <tr>
                             <th>Agent</th>
                             <th>Code</th>
+                            <th>Type</th>
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Branch</th>
@@ -56,6 +57,14 @@
                                         </div>
                                     </td>
                                     <td><?= esc((string) ($row['code'] ?? '-')) ?></td>
+                                    <td>
+                                        <?php $agentType = (string) ($row['type'] ?? 'agent'); ?>
+                                        <?php if ($agentType === 'customer'): ?>
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">Customer</span>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">Agent</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= esc((string) ($row['email'] ?? '-')) ?></td>
                                     <td><?= esc((string) ($row['phone'] ?? '-')) ?></td>
                                     <td><?= esc($branchMap[(int) ($row['branch_id'] ?? 0)] ?? '-') ?></td>

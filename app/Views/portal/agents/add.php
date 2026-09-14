@@ -15,15 +15,17 @@
         <article class="rounded-xl border border-slate-200 bg-white p-4">
             <form method="post" action="<?= site_url('/agents') ?>" class="space-y-3">
                 <?= csrf_field() ?>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Code</label>
-                        <input name="code" value="<?= esc(old('code')) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Name</label>
-                        <input name="name" value="<?= esc(old('name')) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Type</label>
+                    <?php $type = (string) old('type', 'agent'); ?>
+                    <select name="type" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="agent" <?= $type === 'agent' ? 'selected' : '' ?>>Agent</option>
+                        <option value="customer" <?= $type === 'customer' ? 'selected' : '' ?>>Customer</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Name</label>
+                    <input name="name" value="<?= esc(old('name')) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>

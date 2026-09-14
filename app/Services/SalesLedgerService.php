@@ -34,7 +34,7 @@ class SalesLedgerService
         }
 
         $saleQuery = $db->table('sales s')
-            ->select('s.id, s.season_id, s.sales_category_id, s.sale_type, s.sale_date, s.customer_type, s.agent_id, s.amount, s.status, s.reference_no, s.note, sc.name AS sales_category_name')
+            ->select('s.id, s.season_id, s.sales_category_id, s.sale_type, s.sale_date, s.customer_type, s.agent_id, s.amount, s.status, s.reference_no, s.note, s.pilgrim_id, s.pilgrim_ids, s.pax_name, sc.name AS sales_category_name')
             ->join('sales_categories sc', 'sc.id = s.sales_category_id AND sc.season_id = s.season_id', 'left')
             ->where('s.id', $saleId)
             ->where('s.season_id', $seasonId)
@@ -53,7 +53,7 @@ class SalesLedgerService
             // in the agent ledger/payment flow.
             if ($status !== 'voided' && $customerType === 'agent' && $agentId > 0 && $amount > 0) {
                 $description = $this->buildSaleDescription($sale);
-                $saleNote = trim((string) ($sale['note'] ?? ''));
+                $saleNote = $this->buildLedgerNote($sale, $seasonId);
                 $txnType = trim((string) ($sale['sales_category_name'] ?? ''));
                 if ($txnType === '') {
                     $txnType = ucfirst((string) ($sale['sale_type'] ?? 'sale'));
@@ -238,5 +238,104 @@ class SalesLedgerService
         }
 
         return $base . ' | Note: ' . $saleNote;
+    }
+
+    private function buildLedgerNote(array $sale, int $seasonId): string
+    {
+        $parts = [];
+
+        $paxDisplay = $this->buildPaxDisplay($sale, $seasonId);
+        if ($paxDisplay !== '') {
+            $parts[] = 'PAX: ' . $paxDisplay;
+        }
+
+        $saleNote = trim((string) ($sale['note'] ?? ''));
+        if ($saleNote !== '') {
+            $saleNote = preg_replace('/\s+/', ' ', $saleNote) ?? $saleNote;
+            $parts[] = 'Note: ' . $saleNote;
+        }
+
+        $text = implode(' | ', $parts);
+        if (strlen($text) > 1000) {
+            $text = substr($text, 0, 997) . '...';
+        }
+
+        return $text;
+    }
+
+    private function buildPaxDisplay(array $sale, int $seasonId): string
+    {
+        $map = $this->pilgrimDisplayMap($seasonId);
+        $pilgrimIds = $this->extractPilgrimIds($sale);
+
+        $items = [];
+        foreach ($pilgrimIds as $pilgrimId) {
+            if (isset($map[$pilgrimId]) && trim((string) $map[$pilgrimId]) !== '') {
+                $items[] = (string) $map[$pilgrimId];
+            }
+        }
+
+        if ($items !== []) {
+            return implode(', ', $items);
+        }
+
+        return trim((string) ($sale['pax_name'] ?? ''));
+    }
+
+    private function extractPilgrimIds(array $sale): array
+    {
+        $ids = [];
+
+        $pilgrimIdsCsv = trim((string) ($sale['pilgrim_ids'] ?? ''));
+        if ($pilgrimIdsCsv !== '') {
+            foreach (explode(',', $pilgrimIdsCsv) as $part) {
+                $id = (int) trim($part);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        $singlePilgrimId = (int) ($sale['pilgrim_id'] ?? 0);
+        if ($singlePilgrimId > 0) {
+            $ids[] = $singlePilgrimId;
+        }
+
+        return array_values(array_unique(array_filter($ids, static function ($id) {
+            return (int) $id > 0;
+        })));
+    }
+
+    private function pilgrimDisplayMap(int $seasonId): array
+    {
+        $db = db_connect();
+        if (! $db->tableExists('pilgrims')) {
+            return [];
+        }
+
+        $rows = $db->table('pilgrims')
+            ->select('id, first_name, last_name, passport_no')
+            ->where('season_id', $seasonId)
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+
+            $name = trim((string) ($row['first_name'] ?? '') . ' ' . (string) ($row['last_name'] ?? ''));
+            $passportNo = trim((string) ($row['passport_no'] ?? ''));
+
+            if ($name === '' && $passportNo === '') {
+                continue;
+            }
+
+            $map[$id] = $passportNo !== '' ? (($name !== '' ? $name : 'Pax') . ' (' . $passportNo . ')') : $name;
+        }
+
+        return $map;
     }
 }

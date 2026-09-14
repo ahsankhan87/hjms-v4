@@ -45,7 +45,7 @@
                 <hr class="my-5 border-slate-200">
 
                 <h4 class="text-sm font-semibold text-slate-800">Post Ledger Entry</h4>
-                <form method="post" action="<?= site_url('/suppliers/ledger') ?>" class="mt-3 space-y-3">
+                <form method="post" action="<?= site_url('/suppliers/ledger') ?>" class="mt-3 space-y-3" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="supplier_id" value="<?= esc((string) $supplier['id']) ?>">
                     <input type="date" name="entry_date" value="<?= esc(old('entry_date', date('Y-m-d'))) ?>" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -54,9 +54,15 @@
                         <option value="bill" <?= $entryType === 'bill' ? 'selected' : '' ?>>Bill (Cr)</option>
                         <option value="payment" <?= $entryType === 'payment' ? 'selected' : '' ?>>Payment (Dr)</option>
                         <option value="adjustment" <?= $entryType === 'adjustment' ? 'selected' : '' ?>>Adjustment</option>
+                        <option value="refund" <?= $entryType === 'refund' ? 'selected' : '' ?>>Refund</option>
                     </select>
                     <input name="amount" value="<?= esc(old('amount')) ?>" placeholder="Amount" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <input name="description" value="<?= esc(old('description')) ?>" placeholder="Description" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Attachment (Image/PDF)</label>
+                        <input type="file" name="attachment" accept="image/*,.pdf" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <p class="text-xs text-slate-500 mt-1">Accepted: JPG, PNG, PDF (Max 5MB)</p>
+                    </div>
                     <button type="submit" class="btn btn-md btn-primary btn-block"><i class="fa-solid fa-check"></i><span>Post Entry</span></button>
                 </form>
             </article>
@@ -76,6 +82,7 @@
                             <th class="px-3 py-2 text-left">Debit</th>
                             <th class="px-3 py-2 text-left">Credit</th>
                             <th class="px-3 py-2 text-left">Balance</th>
+                            <th class="px-3 py-2 text-left">Attachment</th>
                             <th class="px-3 py-2 text-left">Action</th>
                         </tr>
                     </thead>
@@ -89,6 +96,14 @@
                                     <td class="px-3 py-2"><?= esc(number_format((float) ($row['credit_amount'] ?? 0), 2)) ?></td>
                                     <td class="px-3 py-2"><?= esc(number_format((float) ($row['running_balance'] ?? 0), 2)) ?></td>
                                     <td class="px-3 py-2">
+                                        <?php if (!empty($row['attachment'])): ?>
+                                            <a href="<?= site_url('/suppliers/attachment/download/' . esc((string) $row['attachment'])) ?>" class="btn btn-xs btn-secondary"><i class="fa-solid fa-download"></i> Download</a>
+                                        <?php else: ?>
+                                            <span class="text-slate-400">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <button type="button" class="icon-btn" onclick="editLedgerEntry(<?= (int) ($row['id'] ?? 0) ?>, <?= esc(json_encode($row)) ?>)" title="Edit Entry"><i class="fa-solid fa-pen"></i></button>
                                         <form method="post" action="<?= site_url('/suppliers/ledger/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="supplier_id" value="<?= esc((string) $supplier['id']) ?>">
@@ -111,6 +126,7 @@
                             <td class="px-3 py-2"><?= esc(number_format($totalCredit, 2)) ?></td>
                             <td class="px-3 py-2"><?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>
                             <td class="px-3 py-2"></td>
+                            <td class="px-3 py-2"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -118,4 +134,96 @@
         </div>
     </section>
 </main>
-<?php $this->endSection() ?>
+
+<!-- Edit Ledger Entry Modal -->
+<div id="editModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" style="display:none;">
+    <div class="relative w-full max-w-2xl rounded-xl bg-white shadow-xl">
+        <div class="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-slate-900">Edit Ledger Entry</h2>
+            <button type="button" class="text-slate-400 hover:text-slate-600" onclick="closeEditModal()">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+        </div>
+        <form method="post" action="<?= site_url('/suppliers/ledger/update') ?>" enctype="multipart/form-data">
+            <div class="space-y-4 px-6 py-4">
+                <?= csrf_field() ?>
+                <input type="hidden" name="supplier_id" id="editSupplierId">
+                <input type="hidden" name="entry_id" id="editEntryId">
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Entry Date</label>
+                    <input type="date" name="entry_date" id="editEntryDate" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Type</label>
+                    <select name="entry_type" id="editEntryType" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="bill">Bill (Cr)</option>
+                        <option value="payment">Payment (Dr)</option>
+                        <option value="adjustment">Adjustment</option>
+                        <option value="refund">Refund</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Amount</label>
+                    <input type="number" name="amount" id="editAmount" step="0.01" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Description</label>
+                    <input type="text" name="description" id="editDescription" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Attachment (Image/PDF)</label>
+                    <input type="file" name="attachment" id="editAttachment" accept="image/*,.pdf" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <p class="text-xs text-slate-500 mt-1">Leave blank to keep existing attachment. Accepted: JPG, PNG, PDF (Max 5MB)</p>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 px-6 py-4 flex items-center justify-end gap-2">
+                <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Update</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function editLedgerEntry(entryId, entryData) {
+            document.getElementById('editSupplierId').value = entryData.supplier_id || '<?= (int) $supplier['id'] ?>';
+            document.getElementById('editEntryId').value = entryData.id || entryId;
+            document.getElementById('editEntryDate').value = entryData.entry_date || '';
+            document.getElementById('editEntryType').value = entryData.entry_type || 'bill';
+
+            // Calculate original amount based on debit/credit
+            let originalAmount = entryData.entry_type === 'bill' || entryData.entry_type === 'refund' ?
+                (entryData.credit_amount || 0) :
+                (entryData.debit_amount || 0);
+            document.getElementById('editAmount').value = originalAmount || '';
+            document.getElementById('editDescription').value = entryData.description || '';
+
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+    </script>
+
+    <?php $this->endSection() ?>

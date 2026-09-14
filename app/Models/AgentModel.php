@@ -14,6 +14,7 @@ class AgentModel extends Model
     protected $allowedFields = [
         'branch_id',
         'code',
+        'type',
         'name',
         'email',
         'phone',

@@ -5,11 +5,13 @@ namespace App\Controllers;
 use App\Models\SalesCategoryModel;
 use App\Models\HotelModel;
 use App\Models\SalesModel;
+use App\Models\SaleHotelStayModel;
 use App\Services\SalesLedgerService;
 
 class SalesController extends BaseController
 {
     private $salesColumnExists = [];
+    private $pilgrimDisplayCacheBySeason = [];
 
     public function index()
     {
@@ -24,6 +26,11 @@ class SalesController extends BaseController
     public function ticketIndex()
     {
         return $this->listByType('ticket');
+    }
+
+    public function packageIndex()
+    {
+        return $this->listByType('package');
     }
 
     public function add()
@@ -41,6 +48,11 @@ class SalesController extends BaseController
         return $this->addByType('ticket');
     }
 
+    public function packageAdd()
+    {
+        return $this->addByType('package');
+    }
+
     public function edit(int $id)
     {
         return $this->editByType('visa', $id);
@@ -56,6 +68,11 @@ class SalesController extends BaseController
         return $this->editByType('ticket', $id);
     }
 
+    public function packageEdit(int $id)
+    {
+        return $this->editByType('package', $id);
+    }
+
     public function createSale()
     {
         return $this->createByType('visa');
@@ -64,6 +81,11 @@ class SalesController extends BaseController
     public function createHotelSale()
     {
         return $this->createByType('hotel');
+    }
+
+    public function createPackageSale()
+    {
+        return $this->createByType('package');
     }
 
     public function createTicketSale()
@@ -76,6 +98,11 @@ class SalesController extends BaseController
         return $this->updateByType('visa');
     }
 
+    public function updatePackageSale()
+    {
+        return $this->updateByType('package');
+    }
+
     public function updateHotelSale()
     {
         return $this->updateByType('hotel');
@@ -84,6 +111,11 @@ class SalesController extends BaseController
     public function updateTicketSale()
     {
         return $this->updateByType('ticket');
+    }
+
+    public function deletePackageSale()
+    {
+        return $this->deleteByType('package');
     }
 
     public function deleteSale()
@@ -95,8 +127,152 @@ class SalesController extends BaseController
     {
         return $this->deleteByType('hotel');
     }
+    public function createHotelStay()
+    {
+        $rules = [
+            'sale_id' => 'required|integer|greater_than[0]',
+            'hotel_name' => 'required|max_length[180]',
+            'check_in_date' => 'required|valid_date[Y-m-d]',
+            'check_out_date' => 'required|valid_date[Y-m-d]',
+            'room_name' => 'permit_empty|max_length[120]',
+            'room_qty' => 'permit_empty|integer|greater_than_equal_to[1]',
+        ];
 
-    public function deleteTicketSale()
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON(['success' => false, 'errors' => $this->validator->getErrors()]);
+        }
+
+        $saleId = (int) $this->request->getPost('sale_id');
+        $hotelName = trim((string) $this->request->getPost('hotel_name'));
+        $checkInDate = (string) $this->request->getPost('check_in_date');
+        $checkOutDate = (string) $this->request->getPost('check_out_date');
+        $roomName = trim((string) $this->request->getPost('room_name'));
+        $roomQty = (int) $this->request->getPost('room_qty', 1);
+
+        $checkInTime = strtotime($checkInDate);
+        $checkOutTime = strtotime($checkOutDate);
+        if ($checkInTime === false || $checkOutTime === false || $checkOutTime <= $checkInTime) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Check-out date must be after check-in date']);
+        }
+
+        try {
+            $db = db_connect();
+            $db->transStart();
+
+            (new SaleHotelStayModel())->insert([
+                'sale_id' => $saleId,
+                'hotel_name' => $hotelName,
+                'check_in_date' => $checkInDate,
+                'check_out_date' => $checkOutDate,
+                'room_name' => $roomName !== '' ? $roomName : null,
+                'room_qty' => $roomQty > 0 ? $roomQty : 1,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $this->syncSaleHotelStayWindow($saleId, $db);
+
+            $db->transComplete();
+            if (!$db->transStatus()) {
+                throw new \RuntimeException('Unable to save hotel stay.');
+            }
+
+            return $this->response->setJSON(['success' => true, 'message' => 'Hotel stay added successfully.']);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function updateHotelStay()
+    {
+        $rules = [
+            'stay_id' => 'required|integer|greater_than[0]',
+            'hotel_name' => 'required|max_length[180]',
+            'check_in_date' => 'required|valid_date[Y-m-d]',
+            'check_out_date' => 'required|valid_date[Y-m-d]',
+            'room_name' => 'permit_empty|max_length[120]',
+            'room_qty' => 'permit_empty|integer|greater_than_equal_to[1]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON(['success' => false, 'errors' => $this->validator->getErrors()]);
+        }
+
+        $stayId = (int) $this->request->getPost('stay_id');
+        $hotelName = trim((string) $this->request->getPost('hotel_name'));
+        $checkInDate = (string) $this->request->getPost('check_in_date');
+        $checkOutDate = (string) $this->request->getPost('check_out_date');
+        $roomName = trim((string) $this->request->getPost('room_name'));
+        $roomQty = (int) $this->request->getPost('room_qty', 1);
+
+        $checkInTime = strtotime($checkInDate);
+        $checkOutTime = strtotime($checkOutDate);
+        if ($checkInTime === false || $checkOutTime === false || $checkOutTime <= $checkInTime) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Check-out date must be after check-in date']);
+        }
+
+        try {
+            $db = db_connect();
+            $db->transStart();
+
+            $stayRecord = $db->table('sale_hotel_stays')->select('sale_id')->where('id', $stayId)->get()->getRowArray();
+            if (empty($stayRecord)) {
+                throw new \RuntimeException('Hotel stay not found.');
+            }
+
+            (new SaleHotelStayModel())->update($stayId, [
+                'hotel_name' => $hotelName,
+                'check_in_date' => $checkInDate,
+                'check_out_date' => $checkOutDate,
+                'room_name' => $roomName !== '' ? $roomName : null,
+                'room_qty' => $roomQty > 0 ? $roomQty : 1,
+            ]);
+
+            $this->syncSaleHotelStayWindow((int) $stayRecord['sale_id'], $db);
+
+            $db->transComplete();
+            if (!$db->transStatus()) {
+                throw new \RuntimeException('Unable to update hotel stay.');
+            }
+
+            return $this->response->setJSON(['success' => true, 'message' => 'Hotel stay updated successfully.']);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function deleteHotelStay()
+    {
+        $stayId = (int) $this->request->getPost('stay_id');
+
+        if ($stayId < 1) {
+            return $this->response->setJSON(['success' => false, 'error' => 'Valid stay ID is required.']);
+        }
+
+        try {
+            $db = db_connect();
+            $db->transStart();
+
+            $stayRecord = $db->table('sale_hotel_stays')->select('sale_id')->where('id', $stayId)->get()->getRowArray();
+            if (empty($stayRecord)) {
+                throw new \RuntimeException('Hotel stay not found.');
+            }
+
+            (new SaleHotelStayModel())->delete($stayId);
+
+            $this->syncSaleHotelStayWindow((int) $stayRecord['sale_id'], $db);
+
+            $db->transComplete();
+            if (!$db->transStatus()) {
+                throw new \RuntimeException('Unable to delete hotel stay.');
+            }
+
+            return $this->response->setJSON(['success' => true, 'message' => 'Hotel stay deleted successfully.']);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function deleteTicketSale()
     {
         return $this->deleteByType('ticket');
     }
@@ -126,9 +302,11 @@ class SalesController extends BaseController
 
         if ($this->salesHasColumn('pilgrim_id') && $db->tableExists('pilgrims')) {
             $query->select("CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')) AS pilgrim_name", false)
+                ->select('p.passport_no AS pilgrim_passport_no')
                 ->join('pilgrims p', 'p.id = s.pilgrim_id', 'left');
         } else {
             $query->select("'' AS pilgrim_name", false);
+            $query->select("'' AS pilgrim_passport_no", false);
         }
 
         if ($this->salesHasColumn('sale_type')) {
@@ -154,6 +332,11 @@ class SalesController extends BaseController
             $query->where('s.customer_type', $filters['customer_type']);
         }
         $rows = $query->orderBy('s.sale_date', 'DESC')->orderBy('s.id', 'DESC')->get()->getResultArray();
+
+        foreach ($rows as &$row) {
+            $row['pax_display'] = $this->buildPaxDisplayForSaleRow($row, $seasonId);
+        }
+        unset($row);
 
         $totalAmount = 0.0;
         foreach ($rows as $row) {
@@ -205,8 +388,9 @@ class SalesController extends BaseController
         $agents = $this->fetchAgentRows();
         $pilgrims = $this->fetchPilgrimRows($seasonId);
         $hotels = $saleType === 'hotel' ? $this->fetchHotelRows() : [];
+        $hotelStays = $saleType === 'hotel' ? $this->saleHotelStayRows($id) : [];
 
-        return view($saleMeta['viewFolder'] . '/edit', ['title' => 'HJMS ERP | Edit ' . $saleMeta['title'], 'headerTitle' => $saleMeta['title'], 'activePage' => $saleMeta['activePage'], 'userEmail' => (string) session('user_email'), 'row' => $row, 'categories' => (new SalesCategoryModel())->where('season_id', $seasonId)->orderBy('name', 'ASC')->findAll(), 'agents' => $agents, 'pilgrims' => $pilgrims, 'hotels' => $hotels, 'success' => session()->getFlashdata('success'), 'error' => session()->getFlashdata('error'), 'errors' => session()->getFlashdata('errors') ?: []]);
+        return view($saleMeta['viewFolder'] . '/edit', ['title' => 'HJMS ERP | Edit ' . $saleMeta['title'], 'headerTitle' => $saleMeta['title'], 'activePage' => $saleMeta['activePage'], 'userEmail' => (string) session('user_email'), 'row' => $row, 'categories' => (new SalesCategoryModel())->where('season_id', $seasonId)->orderBy('name', 'ASC')->findAll(), 'agents' => $agents, 'pilgrims' => $pilgrims, 'hotels' => $hotels, 'hotelStays' => $hotelStays, 'success' => session()->getFlashdata('success'), 'error' => session()->getFlashdata('error'), 'errors' => session()->getFlashdata('errors') ?: []]);
     }
 
     private function createByType(string $saleType)
@@ -230,6 +414,19 @@ class SalesController extends BaseController
 
             $model->insert($this->buildSaleData($payload, $seasonId, true, $saleType));
             $saleId = (int) $model->getInsertID();
+
+            // Create initial hotel stay for hotel sales
+            if ($saleType === 'hotel' && $this->saleHotelStayTableExists($db)) {
+                (new SaleHotelStayModel())->insert([
+                    'sale_id' => $saleId,
+                    'hotel_name' => $payload['hotel_name'] !== '' ? $payload['hotel_name'] : null,
+                    'check_in_date' => $payload['checkin_date'],
+                    'check_out_date' => $payload['checkout_date'],
+                    'room_name' => $payload['room_name'] !== '' ? $payload['room_name'] : null,
+                    'room_qty' => (int) $payload['room_qty'] > 0 ? (int) $payload['room_qty'] : 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
 
             (new SalesLedgerService())->syncSaleLedger($saleId, $seasonId);
 
@@ -278,6 +475,35 @@ class SalesController extends BaseController
             $db->transStart();
 
             $model->update($saleId, $this->buildSaleData($payload, $seasonId, false, $saleType));
+
+            // Update or create primary hotel stay for hotel sales
+            if ($saleType === 'hotel' && $this->saleHotelStayTableExists($db)) {
+                $existingStays = $this->saleHotelStayRows($saleId, $db);
+                if (!empty($existingStays)) {
+                    // Update the first stay with form data
+                    $firstStay = $existingStays[0];
+                    (new SaleHotelStayModel())->update((int) $firstStay['id'], [
+                        'hotel_name' => $payload['hotel_name'] !== '' ? $payload['hotel_name'] : null,
+                        'check_in_date' => $payload['checkin_date'],
+                        'check_out_date' => $payload['checkout_date'],
+                        'room_name' => $payload['room_name'] !== '' ? $payload['room_name'] : null,
+                        'room_qty' => (int) $payload['room_qty'] > 0 ? (int) $payload['room_qty'] : 1,
+                    ]);
+                } else {
+                    // Create initial stay if none exist
+                    (new SaleHotelStayModel())->insert([
+                        'sale_id' => $saleId,
+                        'hotel_name' => $payload['hotel_name'] !== '' ? $payload['hotel_name'] : null,
+                        'check_in_date' => $payload['checkin_date'],
+                        'check_out_date' => $payload['checkout_date'],
+                        'room_name' => $payload['room_name'] !== '' ? $payload['room_name'] : null,
+                        'room_qty' => (int) $payload['room_qty'] > 0 ? (int) $payload['room_qty'] : 1,
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+                $this->syncSaleHotelStayWindow($saleId, $db);
+            }
+
             (new SalesLedgerService())->syncSaleLedger($saleId, $seasonId);
 
             $db->transComplete();
@@ -345,7 +571,38 @@ class SalesController extends BaseController
             return $id > 0;
         })));
 
-        return ['sale_type' => $saleType, 'invoice_no' => trim((string) $this->request->getPost('invoice_no')), 'sale_date' => (string) $this->request->getPost('sale_date'), 'sales_category_id' => (string) $this->request->getPost('sales_category_id'), 'customer_type' => (string) ($this->request->getPost('customer_type') ?: 'walk_in'), 'agent_id' => (string) $this->request->getPost('agent_id'), 'pilgrim_ids' => $pilgrimIds, 'customer_name' => trim((string) $this->request->getPost('customer_name')), 'amount' => (string) $this->request->getPost('amount'), 'payment_method' => (string) ($this->request->getPost('payment_method') ?: 'cash'), 'reference_no' => trim((string) $this->request->getPost('reference_no')), 'visa_type' => trim((string) $this->request->getPost('visa_type')), 'visa_agency' => trim((string) $this->request->getPost('visa_agency')), 'hotel_name' => trim((string) $this->request->getPost('hotel_name')), 'checkin_date' => (string) $this->request->getPost('checkin_date'), 'checkout_date' => (string) $this->request->getPost('checkout_date'), 'no_of_nights' => (string) $this->request->getPost('no_of_nights'), 'room_name' => trim((string) $this->request->getPost('room_name')), 'room_qty' => (string) $this->request->getPost('room_qty'), 'pnr' => trim((string) $this->request->getPost('pnr')), 'sector' => trim((string) $this->request->getPost('sector')), 'ticket_no' => trim((string) $this->request->getPost('ticket_no')), 'note' => trim((string) $this->request->getPost('note')), 'status' => (string) ($this->request->getPost('status') ?: 'posted')];
+        $attachmentFile = '';
+        $attachmentFile2 = '';
+        $attachmentFile3 = '';
+
+        if ($this->request->getFile('attachment')) {
+            $file = $this->request->getFile('attachment');
+            if ($file->isValid() && !$file->hasMoved()) {
+                $filename = $file->getRandomName();
+                $file->move('writable/uploads', $filename);
+                $attachmentFile = $filename;
+            }
+        }
+
+        if ($this->request->getFile('attachment2')) {
+            $file = $this->request->getFile('attachment2');
+            if ($file->isValid() && !$file->hasMoved()) {
+                $filename = $file->getRandomName();
+                $file->move('writable/uploads', $filename);
+                $attachmentFile2 = $filename;
+            }
+        }
+
+        if ($this->request->getFile('attachment3')) {
+            $file = $this->request->getFile('attachment3');
+            if ($file->isValid() && !$file->hasMoved()) {
+                $filename = $file->getRandomName();
+                $file->move('writable/uploads', $filename);
+                $attachmentFile3 = $filename;
+            }
+        }
+
+        return ['sale_type' => $saleType, 'invoice_no' => trim((string) $this->request->getPost('invoice_no')), 'sale_date' => (string) $this->request->getPost('sale_date'), 'sales_category_id' => (string) $this->request->getPost('sales_category_id'), 'customer_type' => (string) ($this->request->getPost('customer_type') ?: 'walk_in'), 'agent_id' => (string) $this->request->getPost('agent_id'), 'pilgrim_ids' => $pilgrimIds, 'customer_name' => trim((string) $this->request->getPost('customer_name')), 'amount' => (string) $this->request->getPost('amount'), 'payment_method' => (string) ($this->request->getPost('payment_method') ?: 'cash'), 'reference_no' => trim((string) $this->request->getPost('reference_no')), 'visa_type' => trim((string) $this->request->getPost('visa_type')), 'visa_agency' => trim((string) $this->request->getPost('visa_agency')), 'hotel_name' => trim((string) $this->request->getPost('hotel_name')), 'checkin_date' => (string) $this->request->getPost('checkin_date'), 'checkout_date' => (string) $this->request->getPost('checkout_date'), 'no_of_nights' => (string) $this->request->getPost('no_of_nights'), 'room_name' => trim((string) $this->request->getPost('room_name')), 'room_qty' => (string) $this->request->getPost('room_qty'), 'pnr' => trim((string) $this->request->getPost('pnr')), 'sector' => trim((string) $this->request->getPost('sector')), 'ticket_no' => trim((string) $this->request->getPost('ticket_no')), 'package_name' => trim((string) $this->request->getPost('package_name')), 'package_details' => trim((string) $this->request->getPost('package_details')), 'attachment' => $attachmentFile, 'attachment2' => $attachmentFile2, 'attachment3' => $attachmentFile3, 'note' => trim((string) $this->request->getPost('note')), 'status' => (string) ($this->request->getPost('status') ?: 'posted')];
     }
 
     private function saleRules(string $saleType): array
@@ -363,6 +620,12 @@ class SalesController extends BaseController
             $rules['pnr'] = 'required|max_length[50]';
             $rules['sector'] = 'required|max_length[80]';
             $rules['ticket_no'] = 'required|max_length[80]';
+        } elseif ($saleType === 'package') {
+            $rules['package_name'] = 'required|max_length[180]';
+            $rules['package_details'] = 'permit_empty|max_length[1000]';
+            $rules['attachment'] = 'permit_empty|uploaded[attachment]|max_size[attachment,5120]|mime_in[attachment,image/jpg,image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document]';
+            $rules['attachment2'] = 'permit_empty|uploaded[attachment2]|max_size[attachment2,5120]|mime_in[attachment2,image/jpg,image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document]';
+            $rules['attachment3'] = 'permit_empty|uploaded[attachment3]|max_size[attachment3,5120]|mime_in[attachment3,image/jpg,image/jpeg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document]';
         } else {
             $rules['visa_type'] = 'permit_empty|max_length[80]';
             $rules['visa_agency'] = 'permit_empty|max_length[160]';
@@ -493,6 +756,11 @@ class SalesController extends BaseController
             'pnr' => $saleType === 'ticket' && $payload['pnr'] !== '' ? $payload['pnr'] : null,
             'sector' => $saleType === 'ticket' && $payload['sector'] !== '' ? $payload['sector'] : null,
             'ticket_no' => $saleType === 'ticket' && $payload['ticket_no'] !== '' ? $payload['ticket_no'] : null,
+            'package_name' => $saleType === 'package' && $payload['package_name'] !== '' ? $payload['package_name'] : null,
+            'package_details' => $saleType === 'package' && $payload['package_details'] !== '' ? $payload['package_details'] : null,
+            'attachment' => $payload['attachment'] !== '' ? $payload['attachment'] : null,
+            'attachment2' => $payload['attachment2'] !== '' ? $payload['attachment2'] : null,
+            'attachment3' => $payload['attachment3'] !== '' ? $payload['attachment3'] : null,
             'note' => $payload['note'] !== '' ? $payload['note'] : null,
             'status' => $payload['status'],
             'updated_at' => $now,
@@ -545,6 +813,21 @@ class SalesController extends BaseController
         }
         if (! $this->salesHasColumn('ticket_no')) {
             unset($data['ticket_no']);
+        }
+        if (! $this->salesHasColumn('package_name')) {
+            unset($data['package_name']);
+        }
+        if (! $this->salesHasColumn('package_details')) {
+            unset($data['package_details']);
+        }
+        if (! $this->salesHasColumn('attachment')) {
+            unset($data['attachment']);
+        }
+        if (! $this->salesHasColumn('attachment2')) {
+            unset($data['attachment2']);
+        }
+        if (! $this->salesHasColumn('attachment3')) {
+            unset($data['attachment3']);
         }
 
         if ($isCreate) {
@@ -681,6 +964,17 @@ class SalesController extends BaseController
             ];
         }
 
+        if ($saleType === 'package') {
+            return [
+                'title' => 'Package Sale',
+                'activePage' => 'package_sales',
+                'viewFolder' => 'portal/package_sales',
+                'indexPath' => '/package-sales',
+                'addPath' => '/package-sales/add',
+                'invoicePrefix' => 'PS-',
+            ];
+        }
+
         return [
             'title' => 'Visa Sale',
             'activePage' => 'visa_sales',
@@ -689,5 +983,164 @@ class SalesController extends BaseController
             'addPath' => '/sales/add',
             'invoicePrefix' => 'VS-',
         ];
+    }
+
+    private function buildPaxDisplayForSaleRow(array $row, int $seasonId): string
+    {
+        $map = $this->pilgrimDisplayMap($seasonId);
+        $pilgrimIds = $this->extractPilgrimIdsFromSaleRow($row);
+
+        $items = [];
+        foreach ($pilgrimIds as $pilgrimId) {
+            if (isset($map[$pilgrimId]) && trim((string) $map[$pilgrimId]) !== '') {
+                $items[] = (string) $map[$pilgrimId];
+            }
+        }
+
+        if ($items !== []) {
+            return implode(', ', $items);
+        }
+
+        $paxName = trim((string) ($row['pax_name'] ?? ''));
+        $passportNo = trim((string) ($row['pilgrim_passport_no'] ?? ''));
+        if ($paxName !== '') {
+            return $passportNo !== '' ? ($paxName . ' (' . $passportNo . ')') : $paxName;
+        }
+
+        $pilgrimName = trim((string) ($row['pilgrim_name'] ?? ''));
+        if ($pilgrimName !== '') {
+            return $passportNo !== '' ? ($pilgrimName . ' (' . $passportNo . ')') : $pilgrimName;
+        }
+
+        $customerName = trim((string) ($row['customer_name'] ?? ''));
+
+        return $customerName !== '' ? $customerName : '-';
+    }
+
+    private function extractPilgrimIdsFromSaleRow(array $row): array
+    {
+        $ids = [];
+
+        $pilgrimIdsCsv = trim((string) ($row['pilgrim_ids'] ?? ''));
+        if ($pilgrimIdsCsv !== '') {
+            foreach (explode(',', $pilgrimIdsCsv) as $part) {
+                $id = (int) trim($part);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        $singlePilgrimId = (int) ($row['pilgrim_id'] ?? 0);
+        if ($singlePilgrimId > 0) {
+            $ids[] = $singlePilgrimId;
+        }
+
+        $ids = array_values(array_unique(array_filter($ids, static function ($id) {
+            return (int) $id > 0;
+        })));
+
+        return $ids;
+    }
+
+    private function pilgrimDisplayMap(int $seasonId): array
+    {
+        if (isset($this->pilgrimDisplayCacheBySeason[$seasonId]) && is_array($this->pilgrimDisplayCacheBySeason[$seasonId])) {
+            return $this->pilgrimDisplayCacheBySeason[$seasonId];
+        }
+
+        $db = db_connect();
+        if (! $db->tableExists('pilgrims')) {
+            $this->pilgrimDisplayCacheBySeason[$seasonId] = [];
+            return $this->pilgrimDisplayCacheBySeason[$seasonId];
+        }
+
+        $rows = $db->table('pilgrims')
+            ->select('id, first_name, last_name, passport_no')
+            ->where('season_id', $seasonId)
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $pilgrimId = (int) ($row['id'] ?? 0);
+            if ($pilgrimId < 1) {
+                continue;
+            }
+
+            $name = trim((string) ($row['first_name'] ?? '') . ' ' . (string) ($row['last_name'] ?? ''));
+            $passportNo = trim((string) ($row['passport_no'] ?? ''));
+
+            if ($name === '' && $passportNo === '') {
+                continue;
+            }
+
+            $map[$pilgrimId] = $passportNo !== '' ? (($name !== '' ? $name : 'Pax') . ' (' . $passportNo . ')') : $name;
+        }
+
+        $this->pilgrimDisplayCacheBySeason[$seasonId] = $map;
+
+        return $this->pilgrimDisplayCacheBySeason[$seasonId];
+    }
+
+    private function saleHotelStayTableExists($db = null): bool
+    {
+        static $exists = null;
+        if ($exists !== null) {
+            return $exists;
+        }
+
+        $db = $db ?? db_connect();
+        $exists = $db->tableExists('sale_hotel_stays');
+        return $exists;
+    }
+
+    private function saleHotelStayRows(int $saleId, $db = null): array
+    {
+        $db = $db ?? db_connect();
+        if (!$this->saleHotelStayTableExists($db)) {
+            return [];
+        }
+
+        return $db->table('sale_hotel_stays shs')
+            ->select('shs.*')
+            ->where('shs.sale_id', $saleId)
+            ->orderBy('shs.check_in_date', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    private function syncSaleHotelStayWindow(int $saleId, $db = null): void
+    {
+        $db = $db ?? db_connect();
+        if (!$this->saleHotelStayTableExists($db)) {
+            return;
+        }
+
+        $range = $db->table('sale_hotel_stays')
+            ->select('MIN(check_in_date) AS min_check_in, MAX(check_out_date) AS max_check_out')
+            ->where('sale_id', $saleId)
+            ->get()
+            ->getRowArray();
+
+        if (empty($range)) {
+            return;
+        }
+
+        $minCheckIn = (string) ($range['min_check_in'] ?? '');
+        $maxCheckOut = (string) ($range['max_check_out'] ?? '');
+
+        if ($minCheckIn !== '' && $maxCheckOut !== '') {
+            $checkInTime = strtotime($minCheckIn);
+            $checkOutTime = strtotime($maxCheckOut);
+            if ($checkInTime !== false && $checkOutTime !== false) {
+                $nights = (int) floor(($checkOutTime - $checkInTime) / 86400);
+                (new SalesModel())->update($saleId, [
+                    'checkin_date' => $minCheckIn,
+                    'checkout_date' => $maxCheckOut,
+                    'no_of_nights' => max(1, $nights),
+                ]);
+            }
+        }
     }
 }

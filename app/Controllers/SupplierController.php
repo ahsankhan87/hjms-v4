@@ -235,7 +235,7 @@ class SupplierController extends BaseController
         if (! $this->validateData($payload, [
             'supplier_id' => 'required|integer',
             'entry_date' => 'required|valid_date[Y-m-d]',
-            'entry_type' => 'required|in_list[bill,payment,adjustment]',
+            'entry_type' => 'required|in_list[bill,payment,adjustment,refund]',
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
@@ -260,12 +260,23 @@ class SupplierController extends BaseController
                 $credit = abs($amount);
             } elseif ($payload['entry_type'] === 'payment') {
                 $debit = abs($amount);
+            } elseif ($payload['entry_type'] === 'refund') {
+                $credit = abs($amount);
             } else {
                 if ($amount >= 0) {
                     $credit = $amount;
                 } else {
                     $debit = abs($amount);
                 }
+            }
+
+            $attachment = null;
+            $files = $this->request->getFiles();
+            if (isset($files['attachment']) && $files['attachment']->isValid()) {
+                $file = $files['attachment'];
+                $newName = $file->getRandomName();
+                $file->move(WRITEPATH . 'uploads', $newName);
+                $attachment = $newName;
             }
 
             (new SupplierLedgerEntryModel())->insert([
@@ -275,12 +286,98 @@ class SupplierController extends BaseController
                 'debit_amount' => $debit,
                 'credit_amount' => $credit,
                 'description' => $payload['description'] !== '' ? $payload['description'] : null,
+                'attachment' => $attachment,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
 
             return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    public function updateLedgerEntry()
+    {
+        $entryId = (int) $this->request->getPost('entry_id');
+        $supplierId = (int) $this->request->getPost('supplier_id');
+        $payload = [
+            'entry_date' => (string) $this->request->getPost('entry_date'),
+            'entry_type' => (string) $this->request->getPost('entry_type'),
+            'amount' => (string) $this->request->getPost('amount'),
+            'description' => trim((string) $this->request->getPost('description')),
+        ];
+
+        if ($entryId < 1 || $supplierId < 1) {
+            return redirect()->to('/suppliers')->with('error', 'Valid entry and supplier IDs are required.');
+        }
+
+        if (! $this->validateData($payload, [
+            'entry_date' => 'required|valid_date[Y-m-d]',
+            'entry_type' => 'required|in_list[bill,payment,adjustment,refund]',
+            'amount' => 'required|decimal',
+            'description' => 'permit_empty|max_length[255]',
+        ])) {
+            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $entryModel = new SupplierLedgerEntryModel();
+        $entry = $entryModel->find($entryId);
+        if (empty($entry) || (int) ($entry['supplier_id'] ?? 0) !== $supplierId) {
+            return redirect()->to('/suppliers')->with('error', 'Ledger entry not found.');
+        }
+
+        $supplier = (new SupplierModel())->find($supplierId);
+        if (empty($supplier)) {
+            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+        }
+
+        try {
+            $amount = (float) $payload['amount'];
+            if (abs($amount) < 0.0000001) {
+                return redirect()->to('/suppliers/' . $supplierId . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
+            }
+
+            $debit = 0.0;
+            $credit = 0.0;
+
+            if ($payload['entry_type'] === 'bill') {
+                $credit = abs($amount);
+            } elseif ($payload['entry_type'] === 'payment') {
+                $debit = abs($amount);
+            } elseif ($payload['entry_type'] === 'refund') {
+                $credit = abs($amount);
+            } else {
+                if ($amount >= 0) {
+                    $credit = $amount;
+                } else {
+                    $debit = abs($amount);
+                }
+            }
+
+            $updateData = [
+                'entry_date' => $payload['entry_date'],
+                'entry_type' => $payload['entry_type'],
+                'debit_amount' => $debit,
+                'credit_amount' => $credit,
+                'description' => $payload['description'] !== '' ? $payload['description'] : null,
+            ];
+
+            $files = $this->request->getFiles();
+            if (isset($files['attachment']) && $files['attachment']->isValid()) {
+                if (!empty($entry['attachment'])) {
+                    @unlink(WRITEPATH . 'uploads/' . $entry['attachment']);
+                }
+                $file = $files['attachment'];
+                $newName = $file->getRandomName();
+                $file->move(WRITEPATH . 'uploads', $newName);
+                $updateData['attachment'] = $newName;
+            }
+
+            $entryModel->update($entryId, $updateData);
+
+            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('success', 'Ledger entry updated successfully.');
+        } catch (\Throwable $e) {
+            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -303,6 +400,10 @@ class SupplierController extends BaseController
             $entry = $entryModel->find($entryId);
             if (empty($entry) || (int) ($entry['supplier_id'] ?? 0) !== $supplierId) {
                 return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('error', 'Ledger entry not found for this supplier.');
+            }
+
+            if (!empty($entry['attachment'])) {
+                @unlink(WRITEPATH . 'uploads/' . $entry['attachment']);
             }
 
             $entryModel->delete($entryId);
@@ -508,5 +609,22 @@ class SupplierController extends BaseController
         }
 
         return 'SUP-' . strtoupper(substr(md5((string) microtime(true)), 0, 8));
+    }
+
+    public function downloadAttachment(string $filename = '')
+    {
+        if (empty($filename)) {
+            return redirect()->to('/suppliers')->with('error', 'No file specified.');
+        }
+
+        // Sanitize filename to prevent directory traversal
+        $filename = basename($filename);
+        $filePath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename;
+
+        if (!file_exists($filePath) || !is_file($filePath)) {
+            return redirect()->back()->with('error', 'File not found.');
+        }
+
+        return $this->response->download($filePath, null);
     }
 }

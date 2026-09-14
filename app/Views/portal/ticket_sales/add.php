@@ -13,7 +13,7 @@
 
     <article class="rounded-xl border border-slate-200 bg-white p-4">
         <?php if (empty($categories)): ?><div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">Create a sales category first before posting sales.</div><?php endif; ?>
-        <form method="post" action="<?= site_url('/ticket-sales') ?>" class="space-y-3">
+        <form method="post" action="<?= site_url('/ticket-sales') ?>" enctype="multipart/form-data" class="space-y-3">
             <?= csrf_field() ?>
             <div class="grid gap-3 md:grid-cols-2">
                 <div>
@@ -32,7 +32,7 @@
                     <select name="sales_category_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">Select Category</option>
                         <?php foreach (($categories ?? []) as $category): ?>
-                            <option value="<?= esc((string) $category['id']) ?>" <?= old('sales_category_id') === (string) $category['id'] ? 'selected' : '' ?>><?= esc((string) $category['name']) ?></option>
+                            <option value="<?= esc((string) $category['id']) ?>" <?= old('sales_category_id') === (string) $category['id'] || strtolower($category["name"]) == "ticket" ? 'selected' : '' ?>><?= esc((string) $category['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -127,6 +127,24 @@
                     <input name="reference_no" value="<?= esc(old('reference_no')) ?>" placeholder="Invoice / Voucher / Receipt No" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div></div>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 1 (Image/PDF)</label>
+                <input type="file" name="attachment" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="text-xs text-slate-500 mt-1">Accepted: JPG, PNG, PDF, DOC, DOCX (Max 5MB)</p>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 2 (Image/PDF)</label>
+                <input type="file" name="attachment2" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="text-xs text-slate-500 mt-1">Accepted: JPG, PNG, PDF, DOC, DOCX (Max 5MB)</p>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 3 (Image/PDF)</label>
+                <input type="file" name="attachment3" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <p class="text-xs text-slate-500 mt-1">Accepted: JPG, PNG, PDF, DOC, DOCX (Max 5MB)</p>
             </div>
 
             <div>

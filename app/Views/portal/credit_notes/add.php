@@ -11,11 +11,15 @@
     $isHotel = $saleType === 'hotel';
     $isTicket = $saleType === 'ticket';
     $basePath = $isHotel ? '/hotel-sales' : ($isTicket ? '/ticket-sales' : '/sales');
+    $creditPrefix = trim((string) ($creditPrefix ?? 'CNV'));
+    if ($creditPrefix === '') {
+        $creditPrefix = 'CNV';
+    }
     ?>
 
     <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
         <h3 class="text-sm font-semibold text-slate-800"><?= $isHotel ? 'Create Hotel Credit Note' : ($isTicket ? 'Create Ticket Credit Note' : 'Create Visa Credit Note') ?></h3>
-        <p class="text-xs text-slate-500">Creates CN invoice and auto-posts a credit entry in agent ledger.</p>
+        <p class="text-xs text-slate-500">Creates <?= esc($creditPrefix) ?> invoice and auto-posts a credit entry in agent ledger.</p>
     </article>
 
     <article class="rounded-xl border border-slate-200 bg-white p-4">
@@ -26,7 +30,7 @@
             <div class="grid gap-3 md:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Credit Note #</label>
-                    <input value="Auto: CN-0001" readonly class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                    <input value="Auto: <?= esc($creditPrefix) ?>0001" readonly class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500">
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Adjustment Date</label>
@@ -36,6 +40,7 @@
 
             <div>
                 <label class="mb-1 block text-xs font-medium text-slate-600">Select Sale (Agent Sales Only)</label>
+                <p class="mb-1 text-[11px] text-slate-500">Each option shows Total, Credited, and Remaining refundable balance.</p>
                 <?php $oldSaleId = (int) old('sale_id', (int) ($preselectedSaleId ?? 0)); ?>
                 <select name="sale_id" required class="js-select2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Select Sale</option>
@@ -53,7 +58,13 @@
                         if ($salePax === '') {
                             $salePax = trim((string) ($sale['customer_name'] ?? ''));
                         }
-                        $saleLabel = $saleInvoice . ' | ' . (string) ($sale['sale_date'] ?? '-') . ' | PKR ' . number_format((float) ($sale['amount'] ?? 0), 2);
+                        $saleTotalAmount = (float) ($sale['amount'] ?? 0);
+                        $saleCreditedAmount = (float) ($sale['credited_amount'] ?? 0);
+                        $saleRemainingAmount = (float) ($sale['remaining_amount'] ?? max(0, $saleTotalAmount - $saleCreditedAmount));
+                        $saleLabel = $saleInvoice . ' | ' . (string) ($sale['sale_date'] ?? '-')
+                            . ' | Total PKR ' . number_format($saleTotalAmount, 2)
+                            . ' | Credited PKR ' . number_format($saleCreditedAmount, 2)
+                            . ' | Remaining PKR ' . number_format($saleRemainingAmount, 2);
                         if ($salePax !== '') {
                             $saleLabel .= ' | ' . $salePax;
                         }

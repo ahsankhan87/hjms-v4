@@ -23,6 +23,10 @@
                             <i class="fa-solid fa-book text-[11px]"></i>
                             Ledger 1
                         </a>
+                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? '')) . '&autoprint=1') ?>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
+                            <i class="fa-solid fa-print text-[11px]"></i>
+                            Print
+                        </a>
                     </div>
                 </div>
             </div>
@@ -55,17 +59,39 @@
             <h3 class="mb-3 text-sm font-semibold text-slate-900">Summary</h3>
             <?php
             $summaryItems = [
-                ['label' => 'Opening Balance', 'value' => (float) ($summary['openingBalance'] ?? 0)],
-                ['label' => 'Closing Balance', 'value' => (float) ($summary['closingBalance'] ?? 0)],
-                ['label' => 'Ticket Sale Total', 'value' => (float) ($summary['ticketSaleTotal'] ?? 0)],
-                ['label' => 'Credit Note Total', 'value' => (float) ($summary['creditNoteTotal'] ?? 0)],
-                ['label' => 'Voucher Total', 'value' => (float) ($summary['voucherTotal'] ?? 0)],
+                [
+                    'label' => 'Opening Balance',
+                    'value' => (float) ($summary['openingBalance'] ?? 0),
+                    'tone' => 'slate',
+                    'hint' => 'B/F balance',
+                ],
+                [
+                    'label' => 'Tickets',
+                    'value' => (float) ($summary['ticketSaleTotal'] ?? 0),
+                    'tone' => 'amber',
+                    'hint' => 'Ticket receivable',
+                ],
             ];
 
             $optionalSummaryItems = [
-                ['label' => 'Hotel Sale Total', 'value' => (float) ($summary['hotelSaleTotal'] ?? 0)],
-                ['label' => 'Visa Sale Total', 'value' => (float) ($summary['visaSaleTotal'] ?? 0)],
-                ['label' => 'Booking Sale Total', 'value' => (float) ($summary['bookingSaleTotal'] ?? 0)],
+                [
+                    'label' => 'Hotels',
+                    'value' => (float) ($summary['hotelSaleTotal'] ?? 0),
+                    'tone' => 'amber',
+                    'hint' => 'Hotel receivable',
+                ],
+                [
+                    'label' => 'Visas',
+                    'value' => (float) ($summary['visaSaleTotal'] ?? 0),
+                    'tone' => 'amber',
+                    'hint' => 'Visa receivable',
+                ],
+                [
+                    'label' => 'Booking',
+                    'value' => (float) ($summary['bookingSaleTotal'] ?? 0),
+                    'tone' => 'amber',
+                    'hint' => 'Booking receivable',
+                ],
             ];
 
             foreach ($optionalSummaryItems as $item) {
@@ -73,24 +99,43 @@
                     $summaryItems[] = $item;
                 }
             }
+
+            $summaryItems[] = [
+                'label' => 'Vouchers',
+                'value' => (float) ($summary['voucherTotal'] ?? 0),
+                'tone' => 'emerald',
+                'hint' => 'Receipts',
+            ];
+            $summaryItems[] = [
+                'label' => 'Refunds',
+                'value' => (float) ($summary['creditNoteTotal'] ?? 0),
+                'tone' => 'rose',
+                'hint' => 'Credit notes',
+            ];
+            $summaryItems[] = [
+                'label' => 'Closing Balance',
+                'value' => (float) ($summary['closingBalance'] ?? 0),
+                'tone' => 'blue',
+                'hint' => 'Net balance',
+            ];
+
+            $toneClasses = [
+                'slate' => 'border-slate-200 bg-slate-50 text-slate-700',
+                'amber' => 'border-amber-200 bg-amber-50 text-amber-700',
+                'emerald' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                'rose' => 'border-rose-200 bg-rose-50 text-rose-700',
+                'blue' => 'border-sky-200 bg-sky-50 text-sky-700',
+            ];
             ?>
-            <div class="overflow-x-auto rounded-lg border border-slate-300">
-                <table class="min-w-full text-sm">
-                    <thead class="bg-slate-100 text-slate-700">
-                        <tr>
-                            <?php foreach ($summaryItems as $item): ?>
-                                <th class="px-3 py-2 text-center font-semibold"><?= esc((string) ($item['label'] ?? '')) ?></th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white text-slate-800">
-                        <tr>
-                            <?php foreach ($summaryItems as $item): ?>
-                                <td class="px-3 py-2 text-center"><?= esc(number_format((float) ($item['value'] ?? 0), 2)) ?></td>
-                            <?php endforeach; ?>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="flex gap-1.5 overflow-x-auto pb-1">
+                <?php foreach ($summaryItems as $item): ?>
+                    <?php $toneClass = (string) ($toneClasses[(string) ($item['tone'] ?? 'slate')] ?? $toneClasses['slate']); ?>
+                    <div class="min-w-[118px] flex-1 rounded-lg border px-2 py-2 shadow-sm <?= esc($toneClass) ?>">
+                        <p class="text-[9px] font-semibold uppercase tracking-wide leading-tight"><?= esc((string) ($item['label'] ?? '')) ?></p>
+                        <p class="mt-1 text-[15px] font-bold leading-none"><?= esc(number_format((float) ($item['value'] ?? 0), 2)) ?></p>
+                        <p class="mt-1 text-[9px] leading-tight opacity-80"><?= esc((string) ($item['hint'] ?? '')) ?></p>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </article>
 
@@ -131,6 +176,12 @@
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot class="bg-slate-100 text-slate-800">
+                        <tr>
+                            <td colspan="8" class="px-3 py-2 text-right font-semibold">Total</td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['ticketSales'] ?? 0), 2)) ?></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </article>
@@ -178,6 +229,12 @@
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot class="bg-slate-100 text-slate-800">
+                        <tr>
+                            <td colspan="11" class="px-3 py-2 text-right font-semibold">Total</td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['hotelSales'] ?? 0), 2)) ?></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </article>
@@ -219,6 +276,12 @@
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot class="bg-slate-100 text-slate-800">
+                        <tr>
+                            <td colspan="8" class="px-3 py-2 text-right font-semibold">Total</td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['visaSales'] ?? 0), 2)) ?></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </article>
@@ -260,6 +323,12 @@
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot class="bg-slate-100 text-slate-800">
+                        <tr>
+                            <td colspan="8" class="px-3 py-2 text-right font-semibold">Total</td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['generalSales'] ?? 0), 2)) ?></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </article>
@@ -295,6 +364,13 @@
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot class="bg-slate-100 text-slate-800">
+                        <tr>
+                            <td colspan="4" class="px-3 py-2 text-right font-semibold">Total</td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['vouchers'] ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </article>
@@ -342,6 +418,16 @@
                             </tr>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot class="bg-slate-100 text-slate-800">
+                        <tr>
+                            <td colspan="7" class="px-3 py-2 text-right font-semibold">Total</td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['creditNoteBaseFare'] ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['creditNoteTax'] ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['creditNoteDiscount'] ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['creditNotePsfWht'] ?? 0), 2)) ?></td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['creditNotes'] ?? 0), 2)) ?></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </article>

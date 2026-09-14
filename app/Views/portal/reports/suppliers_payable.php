@@ -98,7 +98,16 @@
                 <?php endforeach;
                 endif; ?>
             </tbody>
-        </table>
+            <tfoot>
+                <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
+                    <td colspan="3" class="px-3 py-2 text-right">Totals</td>
+                    <td class="px-3 py-2 text-right">PKR <?= esc(number_format((float) ($totals['opening'] ?? 0), 2)) ?></td>
+                    <td class="px-3 py-2 text-right text-rose-700">PKR <?= esc(number_format((float) ($totals['debit'] ?? 0), 2)) ?></td>
+                    <td class="px-3 py-2 text-right text-emerald-700">PKR <?= esc(number_format((float) ($totals['credit'] ?? 0), 2)) ?></td>
+                    <td class="px-3 py-2 text-right">PKR <?= esc(number_format((float) ($totals['closing'] ?? 0), 2)) ?></td>
+                    <td class="px-3 py-2 text-right text-amber-700">PKR <?= esc(number_format((float) ($totals['payable'] ?? 0), 2)) ?></td>
+                </tr>
+            </tfoot>
     </section>
 </main>
 <?php $this->endSection() ?>
