@@ -196,6 +196,12 @@ $routes->post('suppliers/ledger', 'SupplierController::createLedgerEntry', ['fil
 $routes->post('suppliers/ledger/update', 'SupplierController::updateLedgerEntry', ['filter' => 'webauth:suppliers.edit']);
 $routes->post('suppliers/ledger/delete', 'SupplierController::deleteLedgerEntry', ['filter' => 'webauth:suppliers.delete']);
 $routes->get('suppliers/attachment/download/(:any)', 'SupplierController::downloadAttachment/$1', ['filter' => 'webauth:suppliers.view']);
+$routes->get('supplier-categories', 'SupplierCategoryController::index', ['filter' => 'webauth:suppliers.view']);
+$routes->get('supplier-categories/add', 'SupplierCategoryController::add', ['filter' => 'webauth:suppliers.create']);
+$routes->get('supplier-categories/(:num)/edit', 'SupplierCategoryController::edit/$1', ['filter' => 'webauth:suppliers.edit']);
+$routes->post('supplier-categories', 'SupplierCategoryController::createSupplierCategory', ['filter' => 'webauth:suppliers.create']);
+$routes->post('supplier-categories/update', 'SupplierCategoryController::updateSupplierCategory', ['filter' => 'webauth:suppliers.edit']);
+$routes->post('supplier-categories/delete', 'SupplierCategoryController::deleteSupplierCategory', ['filter' => 'webauth:suppliers.delete']);
 $routes->get('companies', 'CompanyController::index', ['filter' => 'webauth:companies.view']);
 $routes->post('companies', 'CompanyController::createCompany', ['filter' => 'webauth:companies.create']);
 $routes->post('companies/update', 'CompanyController::updateCompany', ['filter' => 'webauth:companies.edit']);

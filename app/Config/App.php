@@ -19,6 +19,63 @@ class App extends BaseConfig
     public string $baseURL = 'http://localhost:8080/kasbook/hjms-v4/';
 
     /**
+     * --------------------------------------------------------------------------
+     * PORTABLE BASE URL
+     * --------------------------------------------------------------------------
+     *
+     * A hard-coded base URL breaks as soon as the app is deployed to a
+     * different host, port or sub-directory (for example moving from XAMPP to
+     * cPanel). When `.env` does not explicitly define `app.baseURL`, the value
+     * above is replaced at runtime with the URL the request actually arrived
+     * on, so forms and assets always point at the right place.
+     *
+     * To pin the URL for a specific environment, add this to `.env`:
+     *     app.baseURL = 'https://example.com/hjms-v4/'
+     */
+    public function __construct()
+    {
+        parent::__construct();
+
+        $envBaseURL = function_exists('env') ? env('app.baseURL') : null;
+
+        if (is_string($envBaseURL) && trim($envBaseURL) !== '') {
+            return; // Explicit configuration always wins.
+        }
+
+        $detected = $this->detectBaseURL();
+
+        if ($detected !== null) {
+            $this->baseURL = $detected;
+        }
+    }
+
+    /**
+     * Builds the base URL from the current request so the same code base works
+     * in the domain root and in any sub-directory, over HTTP or HTTPS.
+     */
+    private function detectBaseURL(): ?string
+    {
+        $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+
+        if (! is_string($host) || $host === '') {
+            return null; // CLI (spark) - keep the configured value.
+        }
+
+        $isSecure = (! empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https'
+            || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
+
+        // Directory that holds the front controller, e.g. "/hjms-v4".
+        $directory = str_replace('\\', '/', dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '/')));
+
+        if ($directory === '/' || $directory === '.' || $directory === '\\') {
+            $directory = '';
+        }
+
+        return ($isSecure ? 'https' : 'http') . '://' . $host . $directory . '/';
+    }
+
+    /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
      * If you want to accept multiple Hostnames, set this.
      *

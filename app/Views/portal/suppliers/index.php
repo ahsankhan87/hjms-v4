@@ -13,7 +13,10 @@
                     <h3 class="text-sm font-semibold text-slate-800">Suppliers</h3>
                     <p class="text-xs text-slate-500">Manage supplier records and view supplier ledgers.</p>
                 </div>
-                <a href="<?= site_url('/suppliers/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Supplier</span></a>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="<?= site_url('/supplier-categories') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-tags"></i><span>Manage Categories</span></a>
+                    <a href="<?= site_url('/suppliers/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Supplier</span></a>
+                </div>
             </div>
         </article>
 

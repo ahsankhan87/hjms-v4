@@ -213,13 +213,13 @@
             <tr>
                 <td class="label">Supplier Code:</td>
                 <td class="value"><?= esc((string) ($supplier['supplier_code'] ?? 'N/A')) ?></td>
-                <td class="label">Opening Balance:</td>
+                <td class="label">Opening Balance (PKR):</td>
                 <td class="right"><?= esc(number_format((float) ($supplier['opening_balance'] ?? 0), 2)) ?></td>
             </tr>
             <tr>
                 <td class="label">Supplier Name:</td>
                 <td class="value"><?= esc((string) ($supplier['supplier_name'] ?? 'N/A')) ?></td>
-                <td class="label">Closing Balance:</td>
+                <td class="label">Closing Balance (PKR):</td>
                 <td class="right"><?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>
             </tr>
             <tr>
@@ -234,19 +234,33 @@
                 <td class="label">Print Date:</td>
                 <td class="right"><?= esc(date('Y-m-d')) ?></td>
             </tr>
+            <tr>
+                <td class="label">Closing (PKR):</td>
+                <td class="value"><?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>
+                <td class="label">Closing (SAR):</td>
+                <td class="right"><?= esc(number_format((float) ($sarClosingBalance ?? 0), 2)) ?></td>
+            </tr>
         </table>
 
         <table class="ledger">
             <thead>
                 <tr>
-                    <th style="width: 82px;">Date</th>
-                    <th style="width: 95px;">Type</th>
-                    <th style="width: 90px;">Trans.#</th>
-                    <th>Particulars</th>
-                    <th style="width: 100px;">Inv/Ref</th>
-                    <th class="right" style="width: 95px;">Debit</th>
-                    <th class="right" style="width: 95px;">Credit</th>
-                    <th class="right" style="width: 95px;">Balance</th>
+                    <th rowspan="2" style="width: 74px;">Date</th>
+                    <th rowspan="2" style="width: 92px;">Category</th>
+                    <th rowspan="2" style="width: 56px;">Trans.#</th>
+                    <th rowspan="2">Particulars</th>
+                    <th rowspan="2" style="width: 72px;">Inv/Ref</th>
+                    <th rowspan="2" style="width: 48px;">Curr</th>
+                    <th colspan="3" class="center" style="border-left: 1px solid #334155;">PKR</th>
+                    <th colspan="3" class="center" style="border-left: 1px solid #334155;">SAR</th>
+                </tr>
+                <tr>
+                    <th class="right" style="width: 84px; border-left: 1px solid #334155;">Debit</th>
+                    <th class="right" style="width: 84px;">Credit</th>
+                    <th class="right" style="width: 88px;">Balance</th>
+                    <th class="right" style="width: 80px; border-left: 1px solid #334155;">Debit</th>
+                    <th class="right" style="width: 80px;">Credit</th>
+                    <th class="right" style="width: 84px;">Balance</th>
                 </tr>
             </thead>
             <tbody>
@@ -258,10 +272,15 @@
                         $debitAmount = (float) ($row['debit_amount'] ?? 0);
                         $creditAmount = (float) ($row['credit_amount'] ?? 0);
                         $runningBalance = (float) ($row['running_balance'] ?? 0);
+                        $sarDebitAmount = (float) ($row['sar_debit_amount'] ?? 0);
+                        $sarCreditAmount = (float) ($row['sar_credit_amount'] ?? 0);
+                        $sarRunningBalance = (float) ($row['sar_running_balance'] ?? 0);
+                        $rowCurrency = strtoupper((string) ($row['currency'] ?? 'PKR'));
+                        $rowCategory = trim((string) ($row['category_name'] ?? ''));
                         ?>
                         <tr>
                             <td><?= esc((string) ($row['entry_date'] ?? '')) ?></td>
-                            <td><?= esc(str_replace('_', ' ', $entryType)) ?></td>
+                            <td><?= $rowCategory !== '' ? esc($rowCategory) : '-' ?></td>
                             <td><?= $referenceId > 0 ? esc((string) $referenceId) : '-' ?></td>
                             <td><?= esc((string) ($row['description'] ?? '-')) ?></td>
                             <td>
@@ -273,14 +292,23 @@
                                     -
                                 <?php endif; ?>
                             </td>
+                            <td class="center">
+                                <?= esc($rowCurrency) ?>
+                                <?php if ($rowCurrency === 'SAR'): ?>
+                                    <br>@ <?= esc(number_format((float) ($row['exchange_rate'] ?? 1), 4)) ?>
+                                <?php endif; ?>
+                            </td>
                             <td class="right <?= $debitAmount > 0 ? 'text-debit' : '' ?>"><?= esc(number_format($debitAmount, 2)) ?></td>
                             <td class="right <?= $creditAmount > 0 ? 'text-credit' : '' ?>"><?= esc(number_format($creditAmount, 2)) ?></td>
                             <td class="right <?= $runningBalance < 0 ? 'text-negative' : '' ?>"><?= esc(number_format($runningBalance, 2)) ?></td>
+                            <td class="right <?= $sarDebitAmount > 0 ? 'text-debit' : '' ?>"><?= esc(number_format($sarDebitAmount, 2)) ?></td>
+                            <td class="right <?= $sarCreditAmount > 0 ? 'text-credit' : '' ?>"><?= esc(number_format($sarCreditAmount, 2)) ?></td>
+                            <td class="right <?= $sarRunningBalance < 0 ? 'text-negative' : '' ?>"><?= esc(number_format($sarRunningBalance, 2)) ?></td>
                         </tr>
                     <?php endforeach;
                 else: ?>
                     <tr>
-                        <td colspan="8" class="center" style="padding: 18px;">No ledger entries found.</td>
+                        <td colspan="12" class="center" style="padding: 18px;">No ledger entries found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -288,11 +316,18 @@
 
         <table class="totals">
             <tr>
-                <td>Total</td>
+                <td>Total (PKR)</td>
                 <td class="right">Opening: <?= esc(number_format((float) ($supplier['opening_balance'] ?? 0), 2)) ?></td>
                 <td class="right">Debit: <?= esc(number_format((float) ($totalDebit ?? 0), 2)) ?></td>
                 <td class="right">Credit: <?= esc(number_format((float) ($totalCredit ?? 0), 2)) ?></td>
                 <td class="right">Balance: <?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>
+            </tr>
+            <tr>
+                <td>Total (SAR)</td>
+                <td class="right">-</td>
+                <td class="right">Debit: <?= esc(number_format((float) ($sarTotalDebit ?? 0), 2)) ?></td>
+                <td class="right">Credit: <?= esc(number_format((float) ($sarTotalCredit ?? 0), 2)) ?></td>
+                <td class="right">Balance: <?= esc(number_format((float) ($sarClosingBalance ?? 0), 2)) ?></td>
             </tr>
         </table>
     </main>

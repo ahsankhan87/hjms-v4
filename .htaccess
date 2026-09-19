@@ -15,10 +15,14 @@ Options -Indexes
 	RewriteRule ^app/?$ dashboard [R=302,L,NC]
 	RewriteRule ^app/(.*)$ $1 [R=302,L,NC]
 
-	# If you installed CodeIgniter in a subfolder, you will need to
-	# change the following line to match the subfolder you need.
+	# NOTE: RewriteBase is intentionally NOT set here.
+	# When it is omitted, Apache uses the directory that contains this file,
+	# so these rules work whether the app is served from the domain root
+	# (https://example.com/) or from a sub-folder (https://example.com/hjms-v4/).
+	# Hard-coding it (like the old "RewriteBase /kasbook/hjms-v4/") makes every
+	# URL except the home page return 404 once deployed to another server.
 	# http://httpd.apache.org/docs/current/mod/mod_rewrite.html#rewritebase
-	RewriteBase /kasbook/hjms-v4/
+	# RewriteBase /
 
 	# Redirect Trailing Slashes...
 	RewriteCond %{REQUEST_FILENAME} !-d
@@ -47,6 +51,18 @@ Options -Indexes
 	# can be sent to index.php, and everything works as normal.
 	ErrorDocument 404 index.php
 </IfModule>
+
+# ----------------------------------------------------------------------
+# Block web access to sensitive files that live inside the web root
+# ----------------------------------------------------------------------
+<FilesMatch "(^\.env|^\.git|composer\.(json|lock)$|\.(sql|log|md|lock)$)">
+	<IfModule authz_core_module>
+		Require all denied
+	</IfModule>
+	<IfModule !authz_core_module>
+		Deny from all
+	</IfModule>
+</FilesMatch>
 
 # Disable server signature start
 ServerSignature Off

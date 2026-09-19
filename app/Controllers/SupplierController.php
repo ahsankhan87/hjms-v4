@@ -129,10 +129,14 @@ class SupplierController extends BaseController
             'userEmail' => (string) session('user_email'),
             'supplier' => $supplier,
             'rows' => $ledgerData['rows'],
+            'categories' => $this->loadSupplierCategories(),
             'entryCount' => $ledgerData['entryCount'],
             'totalDebit' => $ledgerData['totalDebit'],
             'totalCredit' => $ledgerData['totalCredit'],
+            'sarTotalDebit' => $ledgerData['sarTotalDebit'],
+            'sarTotalCredit' => $ledgerData['sarTotalCredit'],
             'closingBalance' => $ledgerData['closingBalance'],
+            'sarClosingBalance' => $ledgerData['sarClosingBalance'],
             'periodFrom' => $ledgerData['periodFrom'],
             'periodTo' => $ledgerData['periodTo'],
             'filterFrom' => $ledgerData['filterFrom'],
@@ -163,7 +167,10 @@ class SupplierController extends BaseController
             'entryCount' => $ledgerData['entryCount'],
             'totalDebit' => $ledgerData['totalDebit'],
             'totalCredit' => $ledgerData['totalCredit'],
+            'sarTotalDebit' => $ledgerData['sarTotalDebit'],
+            'sarTotalCredit' => $ledgerData['sarTotalCredit'],
             'closingBalance' => $ledgerData['closingBalance'],
+            'sarClosingBalance' => $ledgerData['sarClosingBalance'],
             'periodFrom' => $ledgerData['periodFrom'],
             'periodTo' => $ledgerData['periodTo'],
             'autoPrint' => $autoPrint,
@@ -228,14 +235,24 @@ class SupplierController extends BaseController
             'supplier_id' => (int) $this->request->getPost('supplier_id'),
             'entry_date' => (string) $this->request->getPost('entry_date'),
             'entry_type' => (string) $this->request->getPost('entry_type'),
+            'category_id' => (string) $this->request->getPost('category_id'),
+            'currency' => strtoupper(trim((string) ($this->request->getPost('currency') ?? 'PKR'))),
+            'exchange_rate' => (string) $this->request->getPost('exchange_rate'),
             'amount' => (string) $this->request->getPost('amount'),
             'description' => trim((string) $this->request->getPost('description')),
         ];
+
+        if ($payload['currency'] === '') {
+            $payload['currency'] = 'PKR';
+        }
 
         if (! $this->validateData($payload, [
             'supplier_id' => 'required|integer',
             'entry_date' => 'required|valid_date[Y-m-d]',
             'entry_type' => 'required|in_list[bill,payment,adjustment,refund]',
+            'category_id' => 'permit_empty|integer',
+            'currency' => 'required|in_list[PKR,SAR]',
+            'exchange_rate' => 'permit_empty|decimal|greater_than[0]',
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
@@ -253,22 +270,8 @@ class SupplierController extends BaseController
                 return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
             }
 
-            $debit = 0.0;
-            $credit = 0.0;
-
-            if ($payload['entry_type'] === 'bill') {
-                $credit = abs($amount);
-            } elseif ($payload['entry_type'] === 'payment') {
-                $debit = abs($amount);
-            } elseif ($payload['entry_type'] === 'refund') {
-                $credit = abs($amount);
-            } else {
-                if ($amount >= 0) {
-                    $credit = $amount;
-                } else {
-                    $debit = abs($amount);
-                }
-            }
+            $exchangeRate = $this->resolveLedgerExchangeRate($payload['currency'], (float) $payload['exchange_rate']);
+            $amounts = $this->computeLedgerAmounts($payload['entry_type'], $amount, $payload['currency'], $exchangeRate);
 
             $attachment = null;
             $files = $this->request->getFiles();
@@ -279,16 +282,32 @@ class SupplierController extends BaseController
                 $attachment = $newName;
             }
 
-            (new SupplierLedgerEntryModel())->insert([
+            $insertData = [
                 'supplier_id' => $payload['supplier_id'],
                 'entry_date' => $payload['entry_date'],
                 'entry_type' => $payload['entry_type'],
-                'debit_amount' => $debit,
-                'credit_amount' => $credit,
+                'debit_amount' => $amounts['debit_amount'],
+                'credit_amount' => $amounts['credit_amount'],
                 'description' => $payload['description'] !== '' ? $payload['description'] : null,
                 'attachment' => $attachment,
                 'created_at' => date('Y-m-d H:i:s'),
-            ]);
+            ];
+
+            if ($this->supplierLedgerHasColumn('category_id')) {
+                $insertData['category_id'] = (int) $payload['category_id'] > 0 ? (int) $payload['category_id'] : null;
+            }
+            if ($this->supplierLedgerHasColumn('currency')) {
+                $insertData['currency'] = $payload['currency'];
+                $insertData['exchange_rate'] = $exchangeRate;
+            }
+            if ($this->supplierLedgerHasColumn('sar_debit_amount')) {
+                $insertData['sar_debit_amount'] = $amounts['sar_debit_amount'];
+            }
+            if ($this->supplierLedgerHasColumn('sar_credit_amount')) {
+                $insertData['sar_credit_amount'] = $amounts['sar_credit_amount'];
+            }
+
+            (new SupplierLedgerEntryModel())->insert($insertData);
 
             return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
         } catch (\Throwable $e) {
@@ -303,6 +322,9 @@ class SupplierController extends BaseController
         $payload = [
             'entry_date' => (string) $this->request->getPost('entry_date'),
             'entry_type' => (string) $this->request->getPost('entry_type'),
+            'category_id' => (string) $this->request->getPost('category_id'),
+            'currency' => strtoupper(trim((string) ($this->request->getPost('currency') ?? ''))),
+            'exchange_rate' => (string) $this->request->getPost('exchange_rate'),
             'amount' => (string) $this->request->getPost('amount'),
             'description' => trim((string) $this->request->getPost('description')),
         ];
@@ -314,6 +336,9 @@ class SupplierController extends BaseController
         if (! $this->validateData($payload, [
             'entry_date' => 'required|valid_date[Y-m-d]',
             'entry_type' => 'required|in_list[bill,payment,adjustment,refund]',
+            'category_id' => 'permit_empty|integer',
+            'currency' => 'permit_empty|in_list[PKR,SAR]',
+            'exchange_rate' => 'permit_empty|decimal|greater_than[0]',
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
@@ -337,30 +362,35 @@ class SupplierController extends BaseController
                 return redirect()->to('/suppliers/' . $supplierId . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
             }
 
-            $debit = 0.0;
-            $credit = 0.0;
-
-            if ($payload['entry_type'] === 'bill') {
-                $credit = abs($amount);
-            } elseif ($payload['entry_type'] === 'payment') {
-                $debit = abs($amount);
-            } elseif ($payload['entry_type'] === 'refund') {
-                $credit = abs($amount);
-            } else {
-                if ($amount >= 0) {
-                    $credit = $amount;
-                } else {
-                    $debit = abs($amount);
-                }
+            $currency = $payload['currency'] !== '' ? $payload['currency'] : strtoupper((string) ($entry['currency'] ?? 'PKR'));
+            if ($currency !== 'PKR' && $currency !== 'SAR') {
+                $currency = 'PKR';
             }
+
+            $exchangeRate = $this->resolveLedgerExchangeRate($currency, (float) $payload['exchange_rate']);
+            $amounts = $this->computeLedgerAmounts($payload['entry_type'], $amount, $currency, $exchangeRate);
 
             $updateData = [
                 'entry_date' => $payload['entry_date'],
                 'entry_type' => $payload['entry_type'],
-                'debit_amount' => $debit,
-                'credit_amount' => $credit,
+                'debit_amount' => $amounts['debit_amount'],
+                'credit_amount' => $amounts['credit_amount'],
                 'description' => $payload['description'] !== '' ? $payload['description'] : null,
             ];
+
+            if ($this->supplierLedgerHasColumn('category_id')) {
+                $updateData['category_id'] = (int) $payload['category_id'] > 0 ? (int) $payload['category_id'] : null;
+            }
+            if ($this->supplierLedgerHasColumn('currency')) {
+                $updateData['currency'] = $currency;
+                $updateData['exchange_rate'] = $exchangeRate;
+            }
+            if ($this->supplierLedgerHasColumn('sar_debit_amount')) {
+                $updateData['sar_debit_amount'] = $amounts['sar_debit_amount'];
+            }
+            if ($this->supplierLedgerHasColumn('sar_credit_amount')) {
+                $updateData['sar_credit_amount'] = $amounts['sar_credit_amount'];
+            }
 
             $files = $this->request->getFiles();
             if (isset($files['attachment']) && $files['attachment']->isValid()) {
@@ -427,6 +457,110 @@ class SupplierController extends BaseController
         ];
     }
 
+    private function loadSupplierCategories(bool $activeOnly = false): array
+    {
+        try {
+            $db = db_connect();
+            if (! $db->tableExists('supplier_categories')) {
+                return [];
+            }
+
+            $builder = $db->table('supplier_categories');
+            if ($activeOnly && $db->fieldExists('is_active', 'supplier_categories')) {
+                $builder->where('is_active', 1);
+            }
+
+            return $builder->orderBy('name', 'ASC')->get()->getResultArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function supplierCategoryNameMap(): array
+    {
+        $map = [];
+        foreach ($this->loadSupplierCategories() as $category) {
+            $id = (int) ($category['id'] ?? 0);
+            if ($id > 0) {
+                $map[$id] = (string) ($category['name'] ?? '');
+            }
+        }
+
+        return $map;
+    }
+
+    private function resolveLedgerExchangeRate(string $currency, float $exchangeRate): float
+    {
+        if (strtoupper(trim($currency)) !== 'SAR') {
+            return 1.0;
+        }
+
+        return $exchangeRate > 0 ? $exchangeRate : 1.0;
+    }
+
+    /**
+     * Compute PKR (base currency) and SAR amounts for a supplier ledger entry.
+     *
+     * PKR entries store the amount directly in debit_amount/credit_amount and
+     * leave the SAR columns at zero. SAR entries store the SAR amount in
+     * sar_debit_amount/sar_credit_amount and the PKR equivalent
+     * (SAR amount x exchange rate) in debit_amount/credit_amount.
+     *
+     * @return array{debit_amount: float, credit_amount: float, sar_debit_amount: float, sar_credit_amount: float}
+     */
+    private function computeLedgerAmounts(string $entryType, float $amount, string $currency, float $exchangeRate): array
+    {
+        $debit = 0.0;
+        $credit = 0.0;
+
+        if ($entryType === 'bill') {
+            $credit = abs($amount);
+        } elseif ($entryType === 'payment') {
+            $debit = abs($amount);
+        } elseif ($entryType === 'refund') {
+            $credit = abs($amount);
+        } else {
+            if ($amount >= 0) {
+                $credit = $amount;
+            } else {
+                $debit = abs($amount);
+            }
+        }
+
+        if (strtoupper(trim($currency)) === 'SAR') {
+            return [
+                'debit_amount' => round($debit * $exchangeRate, 2),
+                'credit_amount' => round($credit * $exchangeRate, 2),
+                'sar_debit_amount' => round($debit, 2),
+                'sar_credit_amount' => round($credit, 2),
+            ];
+        }
+
+        return [
+            'debit_amount' => round($debit, 2),
+            'credit_amount' => round($credit, 2),
+            'sar_debit_amount' => 0.0,
+            'sar_credit_amount' => 0.0,
+        ];
+    }
+
+    private function supplierLedgerHasColumn(string $column): bool
+    {
+        static $columnExists = [];
+
+        if (array_key_exists($column, $columnExists)) {
+            return $columnExists[$column];
+        }
+
+        try {
+            $columnExists[$column] = db_connect()->fieldExists($column, 'supplier_ledger_entries');
+        } catch (\Throwable $e) {
+            $columnExists[$column] = false;
+        }
+
+        return $columnExists[$column];
+    }
+
     private function buildSupplierLedgerViewData(int $supplierId, string $fromDate = '', string $toDate = '', float $openingBalance = 0.0): array
     {
         $allRows = (new SupplierLedgerEntryModel())
@@ -449,8 +583,11 @@ class SupplierController extends BaseController
         }
 
         $runningBalance = $openingBalance;
+        $sarRunningBalance = 0.0;
         $totalDebit = 0.0;
         $totalCredit = 0.0;
+        $sarTotalDebit = 0.0;
+        $sarTotalCredit = 0.0;
         $periodFrom = '';
         $periodTo = '';
 
@@ -463,15 +600,30 @@ class SupplierController extends BaseController
             $periodTo = (string) $dates[count($dates) - 1];
         }
 
+        $categoryNames = $this->supplierCategoryNameMap();
+
         foreach ($filteredRows as &$item) {
+            $categoryId = (int) ($item['category_id'] ?? 0);
+            $item['category_name'] = $categoryId > 0 ? ($categoryNames[$categoryId] ?? '') : '';
+
             $debitAmount = (float) ($item['debit_amount'] ?? 0);
             $creditAmount = (float) ($item['credit_amount'] ?? 0);
+            $sarDebitAmount = (float) ($item['sar_debit_amount'] ?? 0);
+            $sarCreditAmount = (float) ($item['sar_credit_amount'] ?? 0);
+
             // Supplier payable balance: credit increases liability, debit decreases it.
             $runningBalance += $creditAmount;
             $runningBalance -= $debitAmount;
+            $sarRunningBalance += $sarCreditAmount;
+            $sarRunningBalance -= $sarDebitAmount;
+
             $item['running_balance'] = $runningBalance;
+            $item['sar_running_balance'] = $sarRunningBalance;
+
             $totalDebit += $debitAmount;
             $totalCredit += $creditAmount;
+            $sarTotalDebit += $sarDebitAmount;
+            $sarTotalCredit += $sarCreditAmount;
         }
         unset($item);
 
@@ -482,7 +634,10 @@ class SupplierController extends BaseController
             'periodTo' => $periodTo,
             'totalDebit' => $totalDebit,
             'totalCredit' => $totalCredit,
+            'sarTotalDebit' => $sarTotalDebit,
+            'sarTotalCredit' => $sarTotalCredit,
             'closingBalance' => $runningBalance,
+            'sarClosingBalance' => $sarRunningBalance,
             'filterFrom' => $fromDate,
             'filterTo' => $toDate,
         ];
