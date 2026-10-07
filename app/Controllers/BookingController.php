@@ -814,7 +814,7 @@ class BookingController extends BaseController
         $payload = [
             'first_name' => trim((string) $this->request->getPost('first_name')),
             'last_name' => trim((string) $this->request->getPost('last_name')),
-            'passport_no' => trim((string) $this->request->getPost('passport_no')),
+            'passport_no' => PilgrimModel::normalizePassportNo((string) $this->request->getPost('passport_no')),
             'mobile_no' => trim((string) $this->request->getPost('mobile_no')),
             'gender' => trim((string) $this->request->getPost('gender')),
             'city' => trim((string) $this->request->getPost('city')),
@@ -824,15 +824,26 @@ class BookingController extends BaseController
         if (! $this->validateData($payload, [
             'first_name' => 'required|min_length[2]|max_length[120]',
             'last_name' => 'permit_empty|max_length[120]',
-            'passport_no' => 'required|max_length[50]',
+            'passport_no' => 'required|min_length[5]|max_length[20]|alpha_numeric',
             'mobile_no' => 'permit_empty|max_length[30]',
             'gender' => 'permit_empty|in_list[male,female]',
             'city' => 'permit_empty|max_length[100]',
             'country' => 'permit_empty|in_list[Pakistan,Others]',
-        ])) {
+        ], \App\Controllers\PilgrimController::PASSPORT_MESSAGES)) {
             return $this->response->setStatusCode(422)->setJSON([
                 'status' => 'error',
                 'errors' => $this->validator->getErrors(),
+                'csrf' => [
+                    'tokenName' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ],
+            ]);
+        }
+
+        if ((new PilgrimModel())->passportExists($payload['passport_no'], $seasonId)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'errors' => ['passport_no' => 'Passport number ' . $payload['passport_no'] . ' already exists in the current season.'],
                 'csrf' => [
                     'tokenName' => csrf_token(),
                     'hash' => csrf_hash(),

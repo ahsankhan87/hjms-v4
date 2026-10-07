@@ -11,7 +11,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-800">Pilgrims Directory</h3>
-                    <p class="text-xs text-slate-500">Manage pilgrim records, visa status, and booking linkage.</p>
+                    <p class="text-xs text-slate-500">Manage pilgrim records and booking linkage.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <a href="<?= site_url('/pilgrims/add') ?>" class="btn btn-md btn-primary">
@@ -28,15 +28,14 @@
             <table class="list-table">
                 <thead>
                     <tr>
+                        <th>S#</th>
+                        <th>Photo</th>
                         <th>Pilgrim</th>
                         <th>DOB</th>
                         <th>Category</th>
                         <th>Passport</th>
                         <th>CNIC</th>
                         <th>Reference</th>
-                        <th>Blood Group</th>
-                        <th>Visa Type</th>
-                        <th>Visa Status</th>
                         <th>Booking</th>
                         <th>Phone</th>
                         <th>Actions</th>
@@ -45,10 +44,10 @@
                 <tbody>
                     <?php if (empty($pilgrims)): ?>
                         <tr>
-                            <td colspan="12" class="py-6 text-center text-slate-500">No pilgrims found.</td>
+                            <td colspan="11" class="py-6 text-center text-slate-500">No pilgrims found.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($pilgrims as $pilgrim): ?>
+                        <?php foreach ($pilgrims as $index => $pilgrim): ?>
                             <?php
                             $category = 'Other';
                             $ageYears = null;
@@ -80,21 +79,17 @@
                                     $dobDisplay = $dob;
                                 }
                             }
-
-                            $visaStatusLabel = (string) ($pilgrim['latest_visa_status'] ?? '-');
-                            $visaStatusKey = strtolower(trim($visaStatusLabel));
-                            $visaStatusBadgeClass = 'bg-slate-100 text-slate-700';
-                            if ($visaStatusKey === 'approved') {
-                                $visaStatusBadgeClass = 'bg-emerald-100 text-emerald-700';
-                            } elseif ($visaStatusKey === 'submitted') {
-                                $visaStatusBadgeClass = 'bg-sky-100 text-sky-700';
-                            } elseif ($visaStatusKey === 'rejected') {
-                                $visaStatusBadgeClass = 'bg-rose-100 text-rose-700';
-                            } elseif ($visaStatusKey === 'draft') {
-                                $visaStatusBadgeClass = 'bg-amber-100 text-amber-700';
-                            }
                             ?>
                             <tr>
+                                <td><?= (int) $index + 1 ?></td><!--<td><?= (int) $index + 1 ?></td>-->
+                                <td><?= esc($pilgrim['id']) ?></td>
+                                <td>
+                                    <?php if (!empty($pilgrim['pilgrim_image_path'])): ?>
+                                        <img src="<?= esc(asset_upload_url((string) $pilgrim['pilgrim_image_path'], 'pilgrims')) ?>" alt="Pilgrim Photo" class="h-10 w-10 rounded-full object-cover ring-1 ring-slate-200">
+                                    <?php else: ?>
+                                        <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-500">N/A</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id']) ?>" class="font-semibold text-slate-800 hover:text-sky-600 hover:underline"><?= esc((string) ($pilgrim['full_name'] ?? '-')) ?></a>
                                 </td>
@@ -107,13 +102,6 @@
                                 <td><?= esc($pilgrim['passport_no']) ?></td>
                                 <td><?= esc((string) ($pilgrim['cnic'] ?? '-')) ?></td>
                                 <td><?= esc((string) ($pilgrim['reference'] ?? '-') ?: '-') ?></td>
-                                <td><?= esc((string) ($pilgrim['blood_group'] ?? '-') ?: '-') ?></td>
-                                <td><?= esc((string) ($pilgrim['latest_visa_type'] ?? '-')) ?></td>
-                                <td>
-                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium <?= esc($visaStatusBadgeClass) ?>">
-                                        <?= esc($visaStatusLabel) ?>
-                                    </span>
-                                </td>
                                 <td>
                                     <?php $bookingStatus = strtolower(trim((string) ($pilgrim['booking_status'] ?? ''))); ?>
                                     <?php if ($bookingStatus === 'confirmed'): ?>

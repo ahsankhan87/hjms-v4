@@ -24,6 +24,7 @@ $routes->post('seasons/activate', 'SeasonController::activateSeason', ['filter' 
 $routes->get('pilgrims', 'PilgrimController::index', ['filter' => 'webauth:pilgrims.view']);
 $routes->post('pilgrims', 'PilgrimController::createPilgrim', ['filter' => 'webauth:pilgrims.create']);
 $routes->get('pilgrims/import', 'PilgrimController::importPage', ['filter' => 'webauth:pilgrims.create']);
+$routes->get('pilgrims/check-passport', 'PilgrimController::checkPassport', ['filter' => 'webauth:pilgrims.create']);
 $routes->post('pilgrims/import', 'PilgrimController::importMofaCsv', ['filter' => 'webauth:pilgrims.create']);
 $routes->post('pilgrims/update', 'PilgrimController::updatePilgrim', ['filter' => 'webauth:pilgrims.edit']);
 $routes->post('pilgrims/delete', 'PilgrimController::deletePilgrim', ['filter' => 'webauth:pilgrims.delete']);

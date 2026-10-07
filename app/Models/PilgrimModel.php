@@ -45,4 +45,28 @@ class PilgrimModel extends SeasonScopedModel
         'sale_released_at',
         'sale_released_by',
     ];
+
+    public static function normalizePassportNo(string $value): string
+    {
+        return strtoupper((string) preg_replace('/\s+/', '', trim($value)));
+    }
+
+    // Passport numbers are unique per season; the same passport in another season is a returning pilgrim.
+    public function passportExists(string $passportNo, int $seasonId, ?int $excludeId = null): bool
+    {
+        $passportNo = self::normalizePassportNo($passportNo);
+        if ($passportNo === '') {
+            return false;
+        }
+
+        $builder = $this->db->table($this->table)
+            ->select('id')
+            ->where('season_id', $seasonId)
+            ->where("UPPER(REPLACE(passport_no, ' ', '')) = " . $this->db->escape($passportNo), null, false);
+        if ($excludeId !== null) {
+            $builder->where('id !=', $excludeId);
+        }
+
+        return $builder->limit(1)->get()->getRowArray() !== null;
+    }
 }

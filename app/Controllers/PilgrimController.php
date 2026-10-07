@@ -36,6 +36,14 @@ class PilgrimController extends BaseController
         'O-',
     ];
 
+    const PASSPORT_MESSAGES = [
+        'passport_no' => [
+            'required'      => 'Passport number is required.',
+            'min_length'    => 'Passport number must be at least 5 characters.',
+            'max_length'    => 'Passport number must not exceed 20 characters.',
+            'alpha_numeric' => 'Passport number may contain only letters and numbers.',
+        ],
+    ];
     public function index()
     {
         $q = trim((string) $this->request->getGet('q'));
@@ -405,7 +413,7 @@ class PilgrimController extends BaseController
             'first_name'           => trim((string) $this->request->getPost('first_name')),
             'last_name'            => trim((string) $this->request->getPost('last_name')),
             'father_name'          => trim((string) $this->request->getPost('father_name')),
-            'passport_no'          => trim((string) $this->request->getPost('passport_no')),
+            'passport_no'          => $this->normalizePassportNo((string) $this->request->getPost('passport_no')),
             'cnic'                 => trim((string) $this->request->getPost('cnic')),
             'country'              => trim((string) $this->request->getPost('country')),
             'gender'               => trim((string) $this->request->getPost('gender')),
@@ -426,7 +434,7 @@ class PilgrimController extends BaseController
             'first_name'           => 'required|min_length[2]|max_length[120]',
             'last_name'            => 'permit_empty|max_length[120]',
             'father_name'          => 'permit_empty|max_length[120]',
-            'passport_no'          => 'required|max_length[50]',
+            'passport_no'          => 'required|min_length[5]|max_length[20]|alpha_numeric',
             'cnic'                 => 'permit_empty|max_length[30]',
             'country'              => 'permit_empty|in_list[Pakistan,Others]',
             'gender'               => 'permit_empty|in_list[male,female]',
@@ -441,13 +449,18 @@ class PilgrimController extends BaseController
             'email'                => 'permit_empty|valid_email',
             'reference'            => 'permit_empty|max_length[200]',
             'blood_group'          => 'permit_empty|in_list[' . implode(',', self::BLOOD_GROUP_OPTIONS) . ']',
-        ])) {
-            return redirect()->to('/pilgrims')->withInput()->with('errors', $this->validator->getErrors());
+        ], self::PASSPORT_MESSAGES)) {
+            return redirect()->to('/pilgrims/add')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $ruleErrors = $this->pilgrimRuleErrors($payload, $seasonId);
+        if ($ruleErrors !== []) {
+            return redirect()->to('/pilgrims/add')->withInput()->with('errors', $ruleErrors);
         }
 
         $imageData = $this->handlePilgrimImageUploads();
         if (isset($imageData['error'])) {
-            return redirect()->to('/pilgrims')->withInput()->with('error', (string) $imageData['error']);
+            return redirect()->to('/pilgrims/add')->withInput()->with('error', (string) $imageData['error']);
         }
 
         try {
@@ -502,7 +515,7 @@ class PilgrimController extends BaseController
             'first_name'           => trim((string) $this->request->getPost('first_name')),
             'last_name'            => trim((string) $this->request->getPost('last_name')),
             'father_name'          => trim((string) $this->request->getPost('father_name')),
-            'passport_no'          => trim((string) $this->request->getPost('passport_no')),
+            'passport_no'          => $this->normalizePassportNo((string) $this->request->getPost('passport_no')),
             'cnic'                 => trim((string) $this->request->getPost('cnic')),
             'country'              => trim((string) $this->request->getPost('country')),
             'gender'               => trim((string) $this->request->getPost('gender')),
@@ -520,6 +533,9 @@ class PilgrimController extends BaseController
             'is_active'            => (string) $this->request->getPost('is_active'),
         ];
 
+        $currentPilgrim = $pilgrimId > 0 ? (new PilgrimModel())->where('id', $pilgrimId)->where('season_id', $seasonId)->first() : null;
+        $passportChanged = $currentPilgrim === null
+            || $this->normalizePassportNo((string) ($currentPilgrim['passport_no'] ?? '')) !== $payload['passport_no'];
         if ($pilgrimId < 1) {
             return redirect()->to('/pilgrims')->withInput()->with('error', 'Valid pilgrim ID is required.');
         }
@@ -528,7 +544,7 @@ class PilgrimController extends BaseController
             'first_name'           => 'required|min_length[2]|max_length[120]',
             'last_name'            => 'permit_empty|max_length[120]',
             'father_name'          => 'permit_empty|max_length[120]',
-            'passport_no'          => 'required|max_length[50]',
+            'passport_no'          => $passportChanged ? 'required|min_length[5]|max_length[20]|alpha_numeric' : 'required|max_length[50]',
             'cnic'                 => 'permit_empty|max_length[30]',
             'country'              => 'permit_empty|in_list[Pakistan,Others]',
             'gender'               => 'permit_empty|in_list[male,female]',
@@ -544,13 +560,18 @@ class PilgrimController extends BaseController
             'reference'            => 'permit_empty|max_length[200]',
             'blood_group'          => 'permit_empty|in_list[' . implode(',', self::BLOOD_GROUP_OPTIONS) . ']',
             'is_active'            => 'permit_empty|in_list[0,1]',
-        ])) {
-            return redirect()->to('/pilgrims')->withInput()->with('errors', $this->validator->getErrors());
+        ], self::PASSPORT_MESSAGES)) {
+            return redirect()->to('/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $ruleErrors = $this->pilgrimRuleErrors($payload, $seasonId, $pilgrimId, $passportChanged);
+        if ($ruleErrors !== []) {
+            return redirect()->to('/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('errors', $ruleErrors);
         }
 
         $imageData = $this->handlePilgrimImageUploads();
         if (isset($imageData['error'])) {
-            return redirect()->to('/pilgrims')->withInput()->with('error', (string) $imageData['error']);
+            return redirect()->to('/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('error', (string) $imageData['error']);
         }
 
         try {
@@ -988,6 +1009,48 @@ class PilgrimController extends BaseController
         }
     }
 
+    private function normalizePassportNo(string $value): string
+    {
+        return PilgrimModel::normalizePassportNo($value);
+    }
+
+    // $checkPassport is false when editing a record whose passport number is unchanged,
+    // so records that already have a duplicate can still be edited.
+    private function pilgrimRuleErrors(array $payload, int $seasonId, ?int $excludeId = null, bool $checkPassport = true): array
+    {
+        $errors = [];
+        $today = date('Y-m-d');
+
+        if ($payload['date_of_birth'] !== '' && $payload['date_of_birth'] > $today) {
+            $errors['date_of_birth'] = 'Date of birth cannot be in the future.';
+        }
+
+        if ($payload['passport_issue_date'] !== '' && $payload['passport_expiry_date'] !== ''
+            && $payload['passport_expiry_date'] <= $payload['passport_issue_date']) {
+            $errors['passport_expiry_date'] = 'Passport expiry date must be after the issue date.';
+        }
+
+        if ($checkPassport && (new PilgrimModel())->passportExists((string) $payload['passport_no'], $seasonId, $excludeId)) {
+            $errors['passport_no'] = 'Passport number ' . $payload['passport_no'] . ' already exists in the current season.';
+        }
+
+        return $errors;
+    }
+
+    public function checkPassport()
+    {
+        $seasonId = $this->activeSeasonId();
+        $passportNo = $this->normalizePassportNo((string) $this->request->getGet('passport_no'));
+        $excludeId = (int) $this->request->getGet('exclude_id');
+
+        $exists = $seasonId !== null
+            && (new PilgrimModel())->passportExists($passportNo, $seasonId, $excludeId > 0 ? $excludeId : null);
+
+        return $this->response->setJSON([
+            'exists'  => $exists,
+            'message' => $exists ? 'Passport number ' . $passportNo . ' already exists in the current season.' : '',
+        ]);
+    }
     private function handlePilgrimImageUploads(): array
     {
         $result = [];
