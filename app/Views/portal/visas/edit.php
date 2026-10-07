@@ -79,7 +79,8 @@
                     <label class="mb-1 block text-xs font-medium text-slate-600">Visa File (PDF/JPG/PNG, max 5MB)</label>
                     <input type="file" name="visa_file" accept=".pdf,.jpg,.jpeg,.png" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <?php if (!empty($row['visa_file_name'])): ?>
-                        <p class="mt-1 text-xs text-slate-500">Current: <?= esc($row['visa_file_name']) ?></p>
+                        <p class="mt-1 text-xs text-slate-500">Current: <a href="<?= esc(asset_upload_url((string) ($row['visa_file_path'] ?? ''), 'visas')) ?>" target="_blank" class="text-indigo-600 hover:underline"><?= esc($row['visa_file_name']) ?></a></p>
+                        <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_visa_file" value="1" class="rounded border-slate-300"> Remove</label>
                     <?php endif; ?>
                 </div>
 

@@ -13,6 +13,57 @@
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-4">
+            <!-- Read Passport Data Section -->
+            <div class="mb-6 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-800">Read Passport Data</h4>
+                        <p class="text-xs text-slate-500">Extract data automatically from your passport image</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <p class="text-xs text-blue-700">
+                            <strong>Notes:</strong>
+                        </p>
+                        <ul class="mt-1 space-y-1 text-xs text-blue-700">
+                            <li>• Make sure the image quality is clear, so that the texts and the image of the pilgrim are clear.</li>
+                            <li>• Make sure the text is clear about the specific dimensions of the image.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-xs font-medium text-slate-600">Passport Image <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="file" id="passportImageForOCR" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">Supported formats: JPG or PNG file, max 1MB</p>
+                    </div>
+                    <div class="flex flex-col justify-end">
+                        <button type="button" id="readPassportBtn" class="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Read Passport</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading indicator -->
+                <div id="ocrLoadingIndicator" class="hidden space-y-2">
+                    <div class="flex items-center gap-2">
+                        <div class="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600"></div>
+                        <span class="text-sm text-slate-600">Processing passport image...</span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div id="ocrProgressBar" class="h-full bg-emerald-600 transition-all" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
             <form method="post" action="<?= site_url('/pilgrims') ?>" enctype="multipart/form-data" class="space-y-5">
                 <?= csrf_field() ?>
 
@@ -49,6 +100,33 @@
                             <label class="mb-1 block text-xs font-medium text-slate-600">Place of Birth</label>
                             <input name="city" value="<?= esc(old('city')) ?>" placeholder="City" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         </div>
+                    </div>
+                </div>
+
+                <!-- Photos & Notes -->
+                <div class="space-y-3 border-t border-slate-100 pt-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Photos, Attachments &amp; Notes</p>
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Pilgrim Photo</label>
+                            <input type="file" name="pilgrim_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Passport Copy</label>
+                            <input type="file" name="passport_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 1</label>
+                            <input type="file" name="attachment_1" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 2</label>
+                            <input type="file" name="attachment_2" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Notes</label>
+                        <textarea name="description" rows="3" placeholder="Additional notes or remarks…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('description')) ?></textarea>
                     </div>
                 </div>
 
@@ -94,6 +172,27 @@
                     </div>
                 </div>
 
+                <!-- Medical & Reference -->
+                <div class="space-y-3 border-t border-slate-100 pt-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Medical &amp; Reference</p>
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Reference</label>
+                            <input name="reference" value="<?= esc(old('reference')) ?>" placeholder="Reference / source" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Blood Group</label>
+                            <?php $bloodGroupValue = old('blood_group', ''); ?>
+                            <select name="blood_group" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">Please Select</option>
+                                <?php foreach (['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $bloodGroup): ?>
+                                    <option value="<?= esc($bloodGroup) ?>" <?= $bloodGroupValue === $bloodGroup ? 'selected' : '' ?>><?= esc($bloodGroup) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Contact Information -->
                 <div class="space-y-3 border-t border-slate-100 pt-4">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Contact Information</p>
@@ -113,24 +212,6 @@
                     </div>
                 </div>
 
-                <!-- Photos & Notes -->
-                <div class="space-y-3 border-t border-slate-100 pt-4">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Photos &amp; Notes</p>
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-600">Pilgrim Photo</label>
-                            <input type="file" name="pilgrim_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-600">Passport Copy</label>
-                            <input type="file" name="passport_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Notes</label>
-                        <textarea name="description" rows="3" placeholder="Additional notes or remarks…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('description')) ?></textarea>
-                    </div>
-                </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
                     <a href="<?= site_url('/pilgrims') ?>" class="btn btn-md btn-secondary">Cancel</a>

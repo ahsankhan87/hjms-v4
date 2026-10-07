@@ -245,6 +245,7 @@
         <table class="ledger">
             <thead>
                 <tr>
+                    <th rowspan="2" style="width: 38px;">S#</th>
                     <th rowspan="2" style="width: 74px;">Date</th>
                     <th rowspan="2" style="width: 92px;">Category</th>
                     <th rowspan="2" style="width: 56px;">Trans.#</th>
@@ -264,7 +265,8 @@
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($rows)): foreach ($rows as $row): ?>
+                <?php if (!empty($rows)): $sr = 1;
+                    foreach ($rows as $row): ?>
                         <?php
                         $entryType = (string) ($row['entry_type'] ?? '');
                         $referenceType = (string) ($row['reference_type'] ?? '');
@@ -279,6 +281,7 @@
                         $rowCategory = trim((string) ($row['category_name'] ?? ''));
                         ?>
                         <tr>
+                            <td class="center" style="color:#64748b;"><?= $sr++ ?></td>
                             <td><?= esc((string) ($row['entry_date'] ?? '')) ?></td>
                             <td><?= $rowCategory !== '' ? esc($rowCategory) : '-' ?></td>
                             <td><?= $referenceId > 0 ? esc((string) $referenceId) : '-' ?></td>
@@ -308,7 +311,7 @@
                     <?php endforeach;
                 else: ?>
                     <tr>
-                        <td colspan="12" class="center" style="padding: 18px;">No ledger entries found.</td>
+                        <td colspan="13" class="center" style="padding: 18px;">No ledger entries found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

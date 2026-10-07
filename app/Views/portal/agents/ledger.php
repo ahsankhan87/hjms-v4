@@ -66,6 +66,7 @@
                 <table id="agent-ledger-table" class="list-table min-w-full text-sm">
                     <thead class="sticky top-0 z-10 bg-slate-100 text-[11px] uppercase tracking-wide text-slate-600 shadow-[0_1px_0_0_rgba(148,163,184,0.45)]">
                         <tr>
+                            <th class="whitespace-nowrap px-3 py-3 text-left">S#</th>
                             <th class="whitespace-nowrap px-3 py-3 text-left">Date</th>
                             <th class="whitespace-nowrap px-3 py-3 text-left">Type</th>
                             <th class="whitespace-nowrap px-3 py-3 text-left">Trans #</th>
@@ -78,7 +79,8 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 text-slate-700">
-                        <?php if (!empty($rows)): foreach ($rows as $row): ?>
+                        <?php if (!empty($rows)): $sr = 1;
+                            foreach ($rows as $row): ?>
                                 <?php
                                 $entryType = (string) ($row['entry_type'] ?? '');
                                 $referenceType = (string) ($row['reference_type'] ?? '');
@@ -88,6 +90,7 @@
                                 $runningBalance = (float) ($row['running_balance'] ?? 0);
                                 ?>
                                 <tr class="odd:bg-white even:bg-slate-50/60">
+                                    <td class="whitespace-nowrap px-3 py-2.5 text-slate-500"><?= $sr++ ?></td>
                                     <td class="whitespace-nowrap px-3 py-2.5"><?= esc((string) ($row['entry_date'] ?? '')) ?></td>
                                     <td class="whitespace-nowrap px-3 py-2.5">
                                         <span class="rounded-full bg-slate-200 px-2 py-1 text-[10px] font-semibold uppercase text-slate-700"><?= esc(str_replace('_', ' ', $entryType)) ?></span>
@@ -119,13 +122,13 @@
                             <?php endforeach;
                         else: ?>
                             <tr>
-                                <td colspan="8" class="px-3 py-8 text-center text-slate-500">No ledger entries found for this account.</td>
+                                <td colspan="10" class="px-3 py-8 text-center text-slate-500">No ledger entries found for this account.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                     <tfoot class="bg-slate-100 text-slate-800">
                         <tr>
-                            <td colspan="5" class="px-3 py-3 text-sm font-semibold">Total</td>
+                            <td colspan="6" class="px-3 py-3 text-sm font-semibold">Total</td>
                             <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold"><?= esc(number_format((float) ($totalDebit ?? 0), 2)) ?></td>
                             <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold"><?= esc(number_format((float) ($totalCredit ?? 0), 2)) ?></td>
                             <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-bold"><?= esc(number_format((float) ($closingBalance ?? 0), 2)) ?></td>

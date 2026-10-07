@@ -172,7 +172,23 @@ class FlightController extends BaseController
             }
 
             $model = new FlightModel();
-            $model->update($flightId, $this->buildCombinedFlightData($outboundPayload, $outboundFileData, $returnPayload, $returnFileData, false));
+            $existingFlight = $model->find($flightId);
+            $updateData = $this->buildCombinedFlightData($outboundPayload, $outboundFileData, $returnPayload, $returnFileData, false);
+
+            if (! empty($existingFlight)) {
+                if (empty($outboundFileData) && (string) $this->request->getPost('remove_ticket_file') === '1') {
+                    asset_upload_remove((string) ($existingFlight['ticket_file_path'] ?? ''), 'flights');
+                    $updateData['ticket_file_name'] = null;
+                    $updateData['ticket_file_path'] = null;
+                }
+                if (empty($returnFileData) && (string) $this->request->getPost('remove_return_ticket_file') === '1') {
+                    asset_upload_remove((string) ($existingFlight['return_ticket_file_path'] ?? ''), 'flights');
+                    $updateData['return_ticket_file_name'] = null;
+                    $updateData['return_ticket_file_path'] = null;
+                }
+            }
+
+            $model->update($flightId, $updateData);
 
             return redirect()->to('/flights')->with('success', 'Flight updated successfully.');
         } catch (\Throwable $e) {
@@ -398,17 +414,14 @@ class FlightController extends BaseController
             return ['error' => 'Ticket file size must be 5MB or less.'];
         }
 
-        $uploadDir = WRITEPATH . 'uploads/flights';
-        if (! is_dir($uploadDir)) {
-            mkdir($uploadDir, 0775, true);
-        }
+        $uploadDir = asset_upload_dir('flights');
 
         $storedName = $file->getRandomName();
         $file->move($uploadDir, $storedName);
 
         return [
             'ticket_file_name' => $file->getClientName(),
-            'ticket_file_path' => 'uploads/flights/' . $storedName,
+            'ticket_file_path' => $storedName,
         ];
     }
 }

@@ -54,7 +54,10 @@
                         <div>
                             <label class="text-xs font-medium uppercase tracking-wide text-slate-600">Logo Image</label>
                             <input type="file" name="logo_file" accept=".jpg,.jpeg,.png,.webp" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <?php if (!empty($row['logo_url'])): ?><p class="mt-1 text-xs text-slate-500">A logo is currently configured.</p><?php endif; ?>
+                            <?php if (!empty($row['logo_url'])): ?>
+                                <p class="mt-1 text-xs text-slate-500">A logo is currently configured.</p>
+                                <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_logo" value="1" class="rounded border-slate-300"> Remove current logo</label>
+                            <?php endif; ?>
                         </div>
                         <div>
                             <label class="text-xs font-medium uppercase tracking-wide text-slate-600">NTN</label>

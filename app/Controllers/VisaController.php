@@ -234,6 +234,13 @@ class VisaController extends BaseController
             if (empty($existing)) {
                 return redirect()->to('/visas')->with('error', 'Visa record not found in active season.');
             }
+
+            if (! isset($fileData['visa_file_path']) && (string) $this->request->getPost('remove_visa_file') === '1') {
+                asset_upload_remove((string) ($existing['visa_file_path'] ?? ''), 'visas');
+                $updateData['visa_file_name'] = null;
+                $updateData['visa_file_path'] = null;
+            }
+
             $model->update($visaId, $updateData);
 
             return redirect()->to('/visas')->with('success', 'Visa record updated successfully.');
@@ -436,17 +443,14 @@ class VisaController extends BaseController
             return ['error' => 'Visa file size must be 5MB or less.'];
         }
 
-        $uploadDir = WRITEPATH . 'uploads/visas';
-        if (! is_dir($uploadDir)) {
-            mkdir($uploadDir, 0775, true);
-        }
+        $uploadDir = asset_upload_dir('visas');
 
         $storedName = $file->getRandomName();
         $file->move($uploadDir, $storedName);
 
         return [
             'visa_file_name' => $file->getClientName(),
-            'visa_file_path' => 'uploads/visas/' . $storedName,
+            'visa_file_path' => $storedName,
         ];
     }
 }

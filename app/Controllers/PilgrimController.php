@@ -25,6 +25,17 @@ class PilgrimController extends BaseController
         'Women Group',
     ];
 
+    const BLOOD_GROUP_OPTIONS = [
+        'A+',
+        'A-',
+        'B+',
+        'B-',
+        'AB+',
+        'AB-',
+        'O+',
+        'O-',
+    ];
+
     public function index()
     {
         $q = trim((string) $this->request->getGet('q'));
@@ -160,6 +171,228 @@ class PilgrimController extends BaseController
         ]);
     }
 
+    public function show(int $id)
+    {
+        $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
+        if ($seasonId === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+
+        $db = db_connect();
+        $row = null;
+        try {
+            $builder = $db->table('pilgrims p')
+                ->select('p.*')
+                ->where('p.id', $id)
+                ->where('p.season_id', $seasonId);
+            if ($linkedAgentId !== null) {
+                $builder->where('p.agent_id', $linkedAgentId);
+            }
+            $row = $builder->get()->getRowArray();
+        } catch (\Throwable $e) {
+            $row = null;
+        }
+
+        if (empty($row)) {
+            return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found.');
+        }
+
+        // Agent name
+        $agentName = '';
+        if (! empty($row['agent_id'])) {
+            try {
+                $agent = $db->table('agents')->select('name')->where('id', (int) $row['agent_id'])->get()->getRowArray();
+                $agentName = (string) ($agent['name'] ?? '');
+            } catch (\Throwable $e) {
+                $agentName = '';
+            }
+        }
+
+        // Latest visa record
+        $visa = null;
+        try {
+            $visa = $db->table('visas')
+                ->where('pilgrim_id', $id)
+                ->where('season_id', $seasonId)
+                ->orderBy('id', 'DESC')
+                ->get()->getRowArray();
+        } catch (\Throwable $e) {
+            $visa = null;
+        }
+
+        // Linked bookings
+        $bookings = [];
+        try {
+            $bookings = $db->table('booking_pilgrims bp')
+                ->select('b.id, b.booking_no, b.status, b.total_amount, b.total_pilgrims, b.created_at AS booking_date')
+                ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                ->where('bp.pilgrim_id', $id)
+                ->orderBy('b.id', 'DESC')
+                ->get()->getResultArray();
+        } catch (\Throwable $e) {
+            $bookings = [];
+        }
+
+        // Availability for the active season: a pilgrim is "availed" when a confirmed
+        // booking OR a non-voided sale exists for this season that was created after
+        // their last release.
+        $releasedAt = trim((string) ($row['sale_released_at'] ?? ''));
+        $isAvailed = false;
+        $availedSource = null;
+
+        try {
+            $confirmedRows = $db->table('booking_pilgrims bp')
+                ->select('b.id, b.booking_no, b.created_at')
+                ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                ->where('bp.pilgrim_id', $id)
+                ->where('b.season_id', $seasonId)
+                ->where('b.status', 'confirmed')
+                ->orderBy('b.id', 'DESC')
+                ->get()->getResultArray();
+
+            foreach ($confirmedRows as $confirmedRow) {
+                if ($releasedAt === '' || strtotime((string) ($confirmedRow['created_at'] ?? '')) > strtotime($releasedAt)) {
+                    $isAvailed = true;
+                    $availedSource = [
+                        'type'  => 'booking',
+                        'label' => (string) ($confirmedRow['booking_no'] ?? ('Booking #' . ($confirmedRow['id'] ?? ''))),
+                    ];
+                    break;
+                }
+            }
+        } catch (\Throwable $e) {
+            $isAvailed = false;
+            $availedSource = null;
+        }
+
+        if (! $isAvailed && $db->tableExists('sales')) {
+            try {
+                $saleRows = $db->query(
+                    'SELECT s.id, s.invoice_no, s.sale_type, s.created_at
+                     FROM sales s
+                     WHERE s.season_id = ' . (int) $seasonId . '
+                       AND IFNULL(s.status, "posted") != "voided"
+                       AND (s.pilgrim_id = ' . (int) $id . ' OR FIND_IN_SET(' . (int) $id . ', s.pilgrim_ids))
+                     ORDER BY s.id DESC'
+                )->getResultArray();
+
+                foreach ($saleRows as $saleRow) {
+                    if ($releasedAt === '' || strtotime((string) ($saleRow['created_at'] ?? '')) > strtotime($releasedAt)) {
+                        $isAvailed = true;
+                        $availedSource = [
+                            'type'  => 'sale',
+                            'label' => (string) ($saleRow['invoice_no'] ?? ('Sale #' . ($saleRow['id'] ?? ''))),
+                        ];
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // keep whatever the booking check produced
+            }
+        }
+
+        // Travel history across all seasons, matched by passport number.
+        $travelHistory = [];
+        $historySummary = ['trips' => 0, 'completed' => 0, 'billed' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0];
+        $passportNo = trim((string) ($row['passport_no'] ?? ''));
+        if ($passportNo !== '') {
+            try {
+                $identityIds = array_values(array_unique(array_filter(array_map('intval', array_column(
+                    $db->table('pilgrims')->select('id')->where('passport_no', $passportNo)->get()->getResultArray(),
+                    'id'
+                )))));
+
+                if ($identityIds !== []) {
+                    $travelHistory = $db->table('booking_pilgrims bp')
+                        ->select('b.id, b.booking_no, b.status, b.total_amount, b.total_pilgrims, b.created_at AS booking_date, b.season_id,
+                                  p.name AS package_name, p.code AS package_code, p.package_type, p.departure_date, p.arrival_date,
+                                  s.name AS season_name, s.year_start, s.year_end,
+                                  pl.id AS pilgrim_row_id, pl.season_id AS pilgrim_season_id')
+                        ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+                        ->join('packages p', 'p.id = b.package_id', 'left')
+                        ->join('seasons s', 's.id = b.season_id', 'left')
+                        ->join('pilgrims pl', 'pl.id = bp.pilgrim_id', 'left')
+                        ->whereIn('bp.pilgrim_id', $identityIds)
+                        ->orderBy('b.created_at', 'DESC')
+                        ->orderBy('b.id', 'DESC')
+                        ->get()->getResultArray();
+
+                    $bookingIds = array_values(array_unique(array_map(static function (array $item): int {
+                        return (int) ($item['id'] ?? 0);
+                    }, $travelHistory)));
+
+                    $paidByBooking = [];
+                    if ($bookingIds !== [] && $db->tableExists('payments')) {
+                        $paymentRows = $db->table('payments')
+                            ->select('booking_id, payment_type, amount, status')
+                            ->whereIn('booking_id', $bookingIds)
+                            ->get()->getResultArray();
+                        foreach ($paymentRows as $paymentRow) {
+                            if (strtolower(trim((string) ($paymentRow['status'] ?? 'posted'))) !== 'posted') {
+                                continue;
+                            }
+                            $amount = (float) ($paymentRow['amount'] ?? 0);
+                            if ((string) ($paymentRow['payment_type'] ?? 'payment') === 'refund') {
+                                $amount = -$amount;
+                            }
+                            $bookingKey = (int) ($paymentRow['booking_id'] ?? 0);
+                            $paidByBooking[$bookingKey] = ($paidByBooking[$bookingKey] ?? 0.0) + $amount;
+                        }
+                    }
+
+                    $visaMap = [];
+                    if ($db->tableExists('visas')) {
+                        $visaRows = $db->table('visas')->whereIn('pilgrim_id', $identityIds)->get()->getResultArray();
+                        foreach ($visaRows as $visaRow) {
+                            $visaMap[(int) ($visaRow['pilgrim_id'] ?? 0) . '-' . (int) ($visaRow['season_id'] ?? 0)] = $visaRow;
+                        }
+                    }
+
+                    foreach ($travelHistory as &$trip) {
+                        $paid = (float) ($paidByBooking[(int) ($trip['id'] ?? 0)] ?? 0.0);
+                        $billed = (float) ($trip['total_amount'] ?? 0);
+                        $trip['paid_amount'] = $paid;
+                        $trip['outstanding_amount'] = max(0, $billed - $paid);
+                        $trip['visa'] = $visaMap[(int) ($trip['pilgrim_row_id'] ?? 0) . '-' . (int) ($trip['season_id'] ?? 0)] ?? null;
+
+                        $historySummary['trips']++;
+                        if (strtolower(trim((string) ($trip['status'] ?? ''))) === 'confirmed') {
+                            $historySummary['completed']++;
+                        }
+                        $historySummary['billed'] += $billed;
+                        $historySummary['paid'] += $paid;
+                    }
+                    unset($trip);
+
+                    $historySummary['outstanding'] = max(0, $historySummary['billed'] - $historySummary['paid']);
+                }
+            } catch (\Throwable $e) {
+                $travelHistory = [];
+            }
+        }
+
+        $row['full_name'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+
+        return view('portal/pilgrims/show', [
+            'title'       => 'HJMS ERP | ' . $row['full_name'],
+            'headerTitle' => 'Pilgrim Management',
+            'activePage'  => 'pilgrims',
+            'userEmail'   => (string) session('user_email'),
+            'row'         => $row,
+            'agentName'   => $agentName,
+            'visa'        => $visa,
+            'bookings'    => $bookings,
+            'isAvailed'      => $isAvailed,
+            'availedSource'  => $availedSource,
+            'travelHistory'  => $travelHistory,
+            'historySummary' => $historySummary,
+            'success'     => session()->getFlashdata('success'),
+            'error'       => session()->getFlashdata('error'),
+            'errors'      => session()->getFlashdata('errors') ?: [],
+        ]);
+    }
+
     public function createPilgrim()
     {
         $seasonId = $this->activeSeasonId();
@@ -185,6 +418,8 @@ class PilgrimController extends BaseController
             'description'          => trim((string) $this->request->getPost('description')),
             'phone'                => trim((string) $this->request->getPost('phone')),
             'email'                => trim((string) $this->request->getPost('email')),
+            'reference'            => trim((string) $this->request->getPost('reference')),
+            'blood_group'          => trim((string) $this->request->getPost('blood_group')),
         ];
 
         if (! $this->validateData($payload, [
@@ -204,6 +439,8 @@ class PilgrimController extends BaseController
             'description'          => 'permit_empty|max_length[1000]',
             'phone'                => 'permit_empty|max_length[30]',
             'email'                => 'permit_empty|valid_email',
+            'reference'            => 'permit_empty|max_length[200]',
+            'blood_group'          => 'permit_empty|in_list[' . implode(',', self::BLOOD_GROUP_OPTIONS) . ']',
         ])) {
             return redirect()->to('/pilgrims')->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -233,6 +470,8 @@ class PilgrimController extends BaseController
                 'description'          => $payload['description'] !== '' ? $payload['description'] : null,
                 'phone'                => $payload['phone'] !== '' ? $payload['phone'] : null,
                 'email'                => $payload['email'] !== '' ? $payload['email'] : null,
+                'reference'            => $payload['reference'] !== '' ? $payload['reference'] : null,
+                'blood_group'          => $payload['blood_group'] !== '' ? $payload['blood_group'] : null,
                 'is_active'            => 1,
                 'created_at'           => date('Y-m-d H:i:s'),
                 'updated_at'           => date('Y-m-d H:i:s'),
@@ -276,6 +515,8 @@ class PilgrimController extends BaseController
             'description'          => trim((string) $this->request->getPost('description')),
             'phone'                => trim((string) $this->request->getPost('phone')),
             'email'                => trim((string) $this->request->getPost('email')),
+            'reference'            => trim((string) $this->request->getPost('reference')),
+            'blood_group'          => trim((string) $this->request->getPost('blood_group')),
             'is_active'            => (string) $this->request->getPost('is_active'),
         ];
 
@@ -300,6 +541,8 @@ class PilgrimController extends BaseController
             'description'          => 'permit_empty|max_length[1000]',
             'phone'                => 'permit_empty|max_length[30]',
             'email'                => 'permit_empty|valid_email',
+            'reference'            => 'permit_empty|max_length[200]',
+            'blood_group'          => 'permit_empty|in_list[' . implode(',', self::BLOOD_GROUP_OPTIONS) . ']',
             'is_active'            => 'permit_empty|in_list[0,1]',
         ])) {
             return redirect()->to('/pilgrims')->withInput()->with('errors', $this->validator->getErrors());
@@ -321,6 +564,27 @@ class PilgrimController extends BaseController
                 return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found in active season.');
             }
 
+            $removable = [
+                'remove_pilgrim_image'  => ['path' => 'pilgrim_image_path', 'name' => 'pilgrim_image_name'],
+                'remove_passport_image' => ['path' => 'passport_image_path', 'name' => 'passport_image_name'],
+                'remove_attachment_1'   => ['path' => 'attachment_1'],
+                'remove_attachment_2'   => ['path' => 'attachment_2'],
+            ];
+            $removeData = [];
+            foreach ($removable as $flag => $cols) {
+                if ((string) $this->request->getPost($flag) !== '1') {
+                    continue;
+                }
+                if (isset($imageData[$cols['path']])) {
+                    continue;
+                }
+                asset_upload_remove((string) ($existing[$cols['path']] ?? ''), 'pilgrims');
+                $removeData[$cols['path']] = null;
+                if (isset($cols['name'])) {
+                    $removeData[$cols['name']] = null;
+                }
+            }
+
             $model->update($pilgrimId, [
                 'first_name'           => $payload['first_name'],
                 'last_name'            => $payload['last_name'] !== '' ? $payload['last_name'] : '-',
@@ -338,9 +602,11 @@ class PilgrimController extends BaseController
                 'description'          => $payload['description'] !== '' ? $payload['description'] : null,
                 'phone'                => $payload['phone'] !== '' ? $payload['phone'] : null,
                 'email'                => $payload['email'] !== '' ? $payload['email'] : null,
+                'reference'            => $payload['reference'] !== '' ? $payload['reference'] : null,
+                'blood_group'          => $payload['blood_group'] !== '' ? $payload['blood_group'] : null,
                 'is_active'            => $payload['is_active'] !== '' ? (int) $payload['is_active'] : 1,
                 'updated_at'           => date('Y-m-d H:i:s'),
-            ]);
+            ] + $imageData + $removeData);
 
             return redirect()->to('/pilgrims')->with('success', 'Pilgrim updated successfully.');
         } catch (\Throwable $e) {
@@ -381,6 +647,49 @@ class PilgrimController extends BaseController
             return redirect()->to('/pilgrims')->with('success', 'Pilgrim deleted successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/pilgrims')->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Release a pilgrim so a returning pilgrim can be sold/booked again for a new trip.
+     *
+     * Past trips stay in the travel history; any confirmed booking created after this
+     * release will mark the pilgrim as availed again.
+     */
+    public function releasePilgrim()
+    {
+        $pilgrimId = (int) $this->request->getPost('pilgrim_id');
+        $seasonId = $this->activeSeasonId();
+        $linkedAgentId = $this->linkedAgentId();
+
+        if ($seasonId === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+
+        if ($pilgrimId < 1) {
+            return redirect()->to('/pilgrims')->with('error', 'Valid pilgrim ID is required.');
+        }
+
+        try {
+            $model = new PilgrimModel();
+            $query = $model->where('id', $pilgrimId)->where('season_id', $seasonId);
+            if ($linkedAgentId !== null) {
+                $query->where('agent_id', $linkedAgentId);
+            }
+            $existing = $query->first();
+            if (empty($existing)) {
+                return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found in active season.');
+            }
+
+            $model->update($pilgrimId, [
+                'sale_released_at' => date('Y-m-d H:i:s'),
+                'sale_released_by' => session('user_id') ? (int) session('user_id') : null,
+                'updated_at'       => date('Y-m-d H:i:s'),
+            ]);
+
+            return redirect()->to('/pilgrims/' . $pilgrimId)->with('success', 'Pilgrim made available again. They can now be sold/booked for a new trip.');
+        } catch (\Throwable $e) {
+            return redirect()->to('/pilgrims/' . $pilgrimId)->with('error', $e->getMessage());
         }
     }
 
@@ -682,41 +991,63 @@ class PilgrimController extends BaseController
     private function handlePilgrimImageUploads(): array
     {
         $result = [];
-        $imageFields = [
-            'pilgrim_image' => ['name' => 'pilgrim_image_name', 'path' => 'pilgrim_image_path'],
-            'passport_image' => ['name' => 'passport_image_name', 'path' => 'passport_image_path'],
+        $fileFields = [
+            'pilgrim_image' => [
+                'path'       => 'pilgrim_image_path',
+                'name'       => 'pilgrim_image_name',
+                'label'      => 'Pilgrim Photo',
+                'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
+                'max_size'   => 5 * 1024 * 1024,
+            ],
+            'passport_image' => [
+                'path'       => 'passport_image_path',
+                'name'       => 'passport_image_name',
+                'label'      => 'Passport Copy',
+                'extensions' => ['jpg', 'jpeg', 'png', 'webp'],
+                'max_size'   => 5 * 1024 * 1024,
+            ],
+            'attachment_1' => [
+                'path'       => 'attachment_1',
+                'label'      => 'Attachment 1',
+                'extensions' => ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'],
+                'max_size'   => 10 * 1024 * 1024,
+            ],
+            'attachment_2' => [
+                'path'       => 'attachment_2',
+                'label'      => 'Attachment 2',
+                'extensions' => ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'],
+                'max_size'   => 10 * 1024 * 1024,
+            ],
         ];
 
-        foreach ($imageFields as $input => $mapping) {
+        foreach ($fileFields as $input => $mapping) {
             $file = $this->request->getFile($input);
             if ($file === null || $file->getError() === UPLOAD_ERR_NO_FILE) {
                 continue;
             }
 
             if (! $file->isValid() || $file->hasMoved()) {
-                return ['error' => 'Uploaded file for ' . $input . ' is invalid.'];
+                return ['error' => $mapping['label'] . ' upload is invalid.'];
             }
 
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
             $extension = strtolower((string) $file->getExtension());
-            if (! in_array($extension, $allowedExtensions, true)) {
-                return ['error' => ucfirst(str_replace('_', ' ', $input)) . ' must be JPG, JPEG, PNG, or WEBP.'];
+            if (! in_array($extension, $mapping['extensions'], true)) {
+                return ['error' => $mapping['label'] . ' must be one of: ' . implode(', ', array_map('strtoupper', $mapping['extensions'])) . '.'];
             }
 
-            if ($file->getSize() > 5 * 1024 * 1024) {
-                return ['error' => ucfirst(str_replace('_', ' ', $input)) . ' size must be 5MB or less.'];
+            if ($file->getSize() > $mapping['max_size']) {
+                return ['error' => $mapping['label'] . ' size must be ' . (int) ($mapping['max_size'] / 1024 / 1024) . 'MB or less.'];
             }
 
-            $uploadDir = WRITEPATH . 'uploads/pilgrims';
-            if (! is_dir($uploadDir)) {
-                mkdir($uploadDir, 0775, true);
-            }
+            $uploadDir = asset_upload_dir('pilgrims');
 
             $storedName = $file->getRandomName();
             $file->move($uploadDir, $storedName);
 
-            $result[$mapping['name']] = $file->getClientName();
-            $result[$mapping['path']] = 'uploads/pilgrims/' . $storedName;
+            if (isset($mapping['name'])) {
+                $result[$mapping['name']] = $file->getClientName();
+            }
+            $result[$mapping['path']] = $storedName;
         }
 
         return $result;

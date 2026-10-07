@@ -278,7 +278,7 @@ class SupplierController extends BaseController
             if (isset($files['attachment']) && $files['attachment']->isValid()) {
                 $file = $files['attachment'];
                 $newName = $file->getRandomName();
-                $file->move(WRITEPATH . 'uploads', $newName);
+                $file->move(asset_upload_dir('suppliers'), $newName);
                 $attachment = $newName;
             }
 
@@ -395,12 +395,18 @@ class SupplierController extends BaseController
             $files = $this->request->getFiles();
             if (isset($files['attachment']) && $files['attachment']->isValid()) {
                 if (!empty($entry['attachment'])) {
-                    @unlink(WRITEPATH . 'uploads/' . $entry['attachment']);
+                    $oldFile = asset_upload_file($entry['attachment'], 'suppliers');
+                    if ($oldFile !== '' && is_file($oldFile)) {
+                        @unlink($oldFile);
+                    }
                 }
                 $file = $files['attachment'];
                 $newName = $file->getRandomName();
-                $file->move(WRITEPATH . 'uploads', $newName);
+                $file->move(asset_upload_dir('suppliers'), $newName);
                 $updateData['attachment'] = $newName;
+            } elseif ((string) $this->request->getPost('remove_attachment') === '1' && ! empty($entry['attachment'])) {
+                asset_upload_remove((string) $entry['attachment'], 'suppliers');
+                $updateData['attachment'] = null;
             }
 
             $entryModel->update($entryId, $updateData);
@@ -433,7 +439,10 @@ class SupplierController extends BaseController
             }
 
             if (!empty($entry['attachment'])) {
-                @unlink(WRITEPATH . 'uploads/' . $entry['attachment']);
+                $oldFile = asset_upload_file($entry['attachment'], 'suppliers');
+                if ($oldFile !== '' && is_file($oldFile)) {
+                    @unlink($oldFile);
+                }
             }
 
             $entryModel->delete($entryId);
@@ -774,9 +783,9 @@ class SupplierController extends BaseController
 
         // Sanitize filename to prevent directory traversal
         $filename = basename($filename);
-        $filePath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . $filename;
+        $filePath = asset_upload_file($filename, 'suppliers');
 
-        if (!file_exists($filePath) || !is_file($filePath)) {
+        if ($filePath === '' || ! is_file($filePath)) {
             return redirect()->back()->with('error', 'File not found.');
         }
 

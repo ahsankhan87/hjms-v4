@@ -33,6 +33,8 @@
                         <th>Category</th>
                         <th>Passport</th>
                         <th>CNIC</th>
+                        <th>Reference</th>
+                        <th>Blood Group</th>
                         <th>Visa Type</th>
                         <th>Visa Status</th>
                         <th>Booking</th>
@@ -43,7 +45,7 @@
                 <tbody>
                     <?php if (empty($pilgrims)): ?>
                         <tr>
-                            <td colspan="10" class="py-6 text-center text-slate-500">No pilgrims found.</td>
+                            <td colspan="12" class="py-6 text-center text-slate-500">No pilgrims found.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($pilgrims as $pilgrim): ?>
@@ -94,7 +96,7 @@
                             ?>
                             <tr>
                                 <td>
-                                    <p class="font-semibold text-slate-800"><?= esc((string) ($pilgrim['full_name'] ?? '-')) ?></p>
+                                    <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id']) ?>" class="font-semibold text-slate-800 hover:text-sky-600 hover:underline"><?= esc((string) ($pilgrim['full_name'] ?? '-')) ?></a>
                                 </td>
                                 <td><?= esc($dobDisplay) ?></td>
                                 <td>
@@ -104,6 +106,8 @@
                                 </td>
                                 <td><?= esc($pilgrim['passport_no']) ?></td>
                                 <td><?= esc((string) ($pilgrim['cnic'] ?? '-')) ?></td>
+                                <td><?= esc((string) ($pilgrim['reference'] ?? '-') ?: '-') ?></td>
+                                <td><?= esc((string) ($pilgrim['blood_group'] ?? '-') ?: '-') ?></td>
                                 <td><?= esc((string) ($pilgrim['latest_visa_type'] ?? '-')) ?></td>
                                 <td>
                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium <?= esc($visaStatusBadgeClass) ?>">
@@ -129,7 +133,10 @@
                                 <td><?= esc($pilgrim['phone'] ?? '-') ?></td>
                                 <td>
                                     <div class="flex items-center gap-1">
-                                        <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id'] . '/edit') ?>" class="icon-btn" title="View / Edit">
+                                        <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id']) ?>" class="icon-btn" title="View">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id'] . '/edit') ?>" class="icon-btn" title="Edit">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
                                         <form method="post" action="<?= site_url('/pilgrims/delete') ?>" class="inline">

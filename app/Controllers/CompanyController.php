@@ -133,10 +133,12 @@ class CompanyController extends BaseController
             $data[$field] = $value;
         }
 
+        $removeLogo = (string) $this->request->getPost('remove_logo') === '1';
+
         if ($data === []) {
             $logoFile = $this->request->getFile('logo_file');
             $hasLogoUpload = $logoFile !== null && $logoFile->getError() !== UPLOAD_ERR_NO_FILE;
-            if (! $hasLogoUpload) {
+            if (! $hasLogoUpload && ! $removeLogo) {
                 return redirect()->to('/companies')->withInput()->with('error', 'Provide at least one field to update for company.');
             }
         }
@@ -157,6 +159,9 @@ class CompanyController extends BaseController
 
             if ($logoPath !== null) {
                 $data['logo_url'] = $logoPath;
+            } elseif ($removeLogo && ! empty($existing['logo_url'])) {
+                asset_upload_remove((string) $existing['logo_url'], 'logos');
+                $data['logo_url'] = null;
             }
 
             $db->transStart();

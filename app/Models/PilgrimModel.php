@@ -38,5 +38,11 @@ class PilgrimModel extends SeasonScopedModel
         'is_active',
         'created_at',
         'updated_at',
+        'reference',
+        'blood_group',
+        'attachment_1',
+        'attachment_2',
+        'sale_released_at',
+        'sale_released_by',
     ];
 }

@@ -154,6 +154,89 @@
             margin-bottom: 0.35rem;
         }
 
+        /* ── Sidebar collapse animation ───────────────────── */
+        #sidebar {
+            width: 16rem;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+        }
+
+        #sidebar.collapsed {
+            width: 5.5rem;
+        }
+
+        /* Hide all text inside the sidebar when collapsed */
+        #sidebar.collapsed .sidebar-text,
+        #sidebar.collapsed .sidebar-label,
+        #sidebar.collapsed .sidebar-item span {
+            display: none;
+        }
+
+        #sidebar.collapsed .sidebar-section {
+            display: none;
+        }
+
+        /* Center the icons and remove horizontal padding when collapsed */
+        #sidebar.collapsed .sidebar-item {
+            justify-content: center;
+            gap: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        #sidebar.collapsed .sidebar-item i {
+            width: 1.5rem;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        /* Stack the company card and the toggle button vertically when collapsed */
+        #sidebar.collapsed .sidebar-header {
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #sidebar.collapsed .company-card {
+            width: 100%;
+            padding: 0.375rem;
+        }
+
+        #sidebar.collapsed .company-inner {
+            justify-content: center;
+            gap: 0;
+        }
+
+        #sidebar.collapsed .collapse-btn i {
+            transform: rotate(180deg);
+        }
+
+        .collapse-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 0.5rem;
+            color: #6b7280;
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .collapse-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .collapse-btn i {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.75rem;
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -354,6 +437,37 @@
             margin-bottom: 0.4rem;
         }
 
+        .dataTables_wrapper .dt-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dataTables_wrapper .dt-top .dt-buttons,
+        .dataTables_wrapper .dt-top .dataTables_length {
+            margin: 0;
+        }
+
+        .dataTables_wrapper .dt-top .dataTables_filter {
+            margin: 0 0 0 auto;
+        }
+
+        .dataTables_wrapper .dt-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .dataTables_wrapper .dt-bottom .dataTables_info,
+        .dataTables_wrapper .dt-bottom .dataTables_paginate {
+            margin: 0;
+        }
+
         .list-card .dataTables_wrapper {
             padding: 0.55rem 0.65rem 0.65rem;
         }
@@ -532,24 +646,29 @@
                 $mainCompanyLogo = trim((string) ($mainCompanyProfile['logo_url'] ?? ''));
                 ?>
                 <div class="p-3 border-b border-gray-100">
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-                        <div class="flex items-center gap-3 min-w-0 overflow-hidden">
-                            <?php if ($mainCompanyLogo !== ''): ?>
-                                <img src="<?= esc($mainCompanyLogo) ?>" alt="Main Company Logo" class="w-10 h-10 shrink-0 rounded-lg object-contain border border-slate-200 bg-white p-1">
-                            <?php else: ?>
-                                <div class="w-10 h-10 shrink-0 gradient-bg rounded-lg flex items-center justify-center text-white">
-                                    <i class="fa-solid fa-kaaba"></i>
+                    <div class="sidebar-header flex items-center gap-2 justify-between">
+                        <div class="company-card rounded-xl border border-slate-200 bg-slate-50 p-2.5 flex-1 min-w-0 overflow-hidden">
+                            <div class="company-inner flex items-center gap-3 min-w-0 overflow-hidden">
+                                <?php if ($mainCompanyLogo !== ''): ?>
+                                    <img src="<?= esc($mainCompanyLogo) ?>" alt="Main Company Logo" class="w-10 h-10 shrink-0 rounded-lg object-contain border border-slate-200 bg-white p-1">
+                                <?php else: ?>
+                                    <div class="w-10 h-10 shrink-0 gradient-bg rounded-lg flex items-center justify-center text-white">
+                                        <i class="fa-solid fa-kaaba"></i>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="min-w-0 flex-1 overflow-hidden sidebar-text">
+                                    <h1 class="text-[13px] font-bold text-gray-800 leading-tight truncate" title="<?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>">
+                                        <?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>
+                                    </h1>
+                                    <p class="mt-0.5 text-[11px] text-gray-500 leading-tight truncate" title="<?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>">
+                                        <?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>
+                                    </p>
                                 </div>
-                            <?php endif; ?>
-                            <div class="min-w-0 flex-1 overflow-hidden">
-                                <h1 class="text-[13px] font-bold text-gray-800 leading-tight truncate" title="<?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>">
-                                    <?= esc($mainCompanyName !== '' ? $mainCompanyName : 'Karwane Taif') ?>
-                                </h1>
-                                <p class="mt-0.5 text-[11px] text-gray-500 leading-tight truncate" title="<?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>">
-                                    <?= esc($mainCompanyTagline !== '' ? $mainCompanyTagline : 'Hajj & Umrah Management') ?>
-                                </p>
                             </div>
                         </div>
+                        <button id="sidebarCollapseBtn" class="collapse-btn" type="button" title="Toggle sidebar" aria-label="Toggle sidebar">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -580,8 +699,8 @@
                     $canReports = auth_can('reports.view');
                     $canAudit = auth_can('audit.view');
                     ?>
-                    <div class="px-4 mb-2">
-                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Main Menu</p>
+                    <div class="sidebar-section px-4 mb-2">
+                        <p class="sidebar-label text-xs font-semibold text-gray-400 uppercase tracking-wider">Main Menu</p>
                     </div>
                     <?php if ($canDashboard): ?>
                         <a href="<?= site_url('/dashboard') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
@@ -620,8 +739,8 @@
                     <?php endif; ?>
 
                     <?php if ($canPayments || $canSuppliers || $canExpenses || $canSales): ?>
-                        <div class="px-4 mt-6 mb-2">
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
+                        <div class="sidebar-section px-4 mt-6 mb-2">
+                            <p class="sidebar-label text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
                         </div>
                         <?php if ($canPayments): ?>
                             <a href="<?= site_url('/payments') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'payments' ? 'active' : '' ?>">
@@ -655,8 +774,8 @@
                     <?php endif; ?>
 
                     <?php if ($canBookings || $canBranches || $canAgents || $canReports): ?>
-                        <div class="px-4 mt-6 mb-2">
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Operations</p>
+                        <div class="sidebar-section px-4 mt-6 mb-2">
+                            <p class="sidebar-label text-xs font-semibold text-gray-400 uppercase tracking-wider">Operations</p>
                         </div>
                     <?php endif; ?>
                     <?php if ($canBookings): ?>
@@ -796,9 +915,28 @@
             var menuToggle = document.getElementById('menuToggle');
             var sidebar = document.getElementById('sidebar');
             var sidebarBackdrop = document.getElementById('sidebarBackdrop');
+            var sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
 
             function isMobileViewport() {
                 return window.matchMedia('(max-width: 767px)').matches;
+            }
+
+            function initializeSidebarCollapse() {
+                if (!sidebar) return;
+                // Check localStorage for collapsed state
+                var isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                }
+            }
+
+            function toggleSidebarCollapse() {
+                if (!sidebar || isMobileViewport()) {
+                    return;
+                }
+                sidebar.classList.toggle('collapsed');
+                var isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
             }
 
             function openSidebar() {
@@ -839,10 +977,21 @@
                 }
             }
 
+            // Initialize collapse state on page load
+            initializeSidebarCollapse();
+
             if (menuToggle && sidebar) {
                 menuToggle.addEventListener('click', function(event) {
                     event.preventDefault();
                     toggleSidebar();
+                });
+            }
+
+            // Collapse button for desktop
+            if (sidebarCollapseBtn && sidebar) {
+                sidebarCollapseBtn.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    toggleSidebarCollapse();
                 });
             }
 
@@ -946,11 +1095,14 @@
                 }
 
                 $(table).DataTable({
-                    pageLength: 10,
-                    lengthMenu: [10, 25, 50, 100],
+                    pageLength: 50,
+                    lengthMenu: [
+                        [10, 25, 50, 100, -1],
+                        [10, 25, 50, 100, 'All']
+                    ],
                     order: [],
                     autoWidth: false,
-                    dom: 'Bfrtip',
+                    dom: '<"dt-top"Blf>rt<"dt-bottom"ip>',
                     buttons: ['csvHtml5', 'excelHtml5', 'print', 'colvis'],
                     language: {
                         search: 'Search:',

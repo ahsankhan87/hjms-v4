@@ -70,7 +70,8 @@
                         <label class="mb-1 block text-xs font-medium text-slate-600">Outbound Ticket Upload (replace)</label>
                         <input type="file" name="outbound_ticket_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <?php if (!empty($row['ticket_file_name'])): ?>
-                            <p class="mt-1 text-xs text-slate-500">Current: <?= esc($row['ticket_file_name']) ?></p>
+                            <p class="mt-1 text-xs text-slate-500">Current: <a href="<?= esc(asset_upload_url((string) ($row['ticket_file_path'] ?? ''), 'flights')) ?>" target="_blank" class="text-indigo-600 hover:underline"><?= esc($row['ticket_file_name']) ?></a></p>
+                            <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_ticket_file" value="1" class="rounded border-slate-300"> Remove</label>
                         <?php endif; ?>
                     </div>
                 </section>
@@ -133,7 +134,8 @@
                         <label class="mb-1 block text-xs font-medium text-slate-600">Return Ticket Upload (replace)</label>
                         <input type="file" name="return_ticket_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <?php if (!empty($row['return_ticket_file_name'])): ?>
-                            <p class="mt-1 text-xs text-slate-500">Current: <?= esc($row['return_ticket_file_name']) ?></p>
+                            <p class="mt-1 text-xs text-slate-500">Current: <a href="<?= esc(asset_upload_url((string) ($row['return_ticket_file_path'] ?? ''), 'flights')) ?>" target="_blank" class="text-indigo-600 hover:underline"><?= esc($row['return_ticket_file_name']) ?></a></p>
+                            <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_return_ticket_file" value="1" class="rounded border-slate-300"> Remove</label>
                         <?php endif; ?>
                     </div>
                 </section>

@@ -414,6 +414,10 @@ class PaymentController extends BaseController
             if ($receiptAttachment !== []) {
                 $data['receipt_attachment_path'] = $receiptAttachment['receipt_attachment_path'] ?? null;
                 $data['receipt_attachment_name'] = $receiptAttachment['receipt_attachment_name'] ?? null;
+            } elseif ((string) $this->request->getPost('remove_receipt_attachment') === '1' && ! empty($existing['receipt_attachment_path'])) {
+                asset_upload_remove((string) $existing['receipt_attachment_path'], 'payments');
+                $data['receipt_attachment_path'] = null;
+                $data['receipt_attachment_name'] = null;
             }
 
             if (isset($data['payment_date'])) {
@@ -846,9 +850,8 @@ class PaymentController extends BaseController
             return redirect()->to('/payments/' . $paymentId . '/view')->with('error', 'No receipt attachment found for this payment.');
         }
 
-        $normalizedRelative = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
-        $absolutePath = rtrim((string) WRITEPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($normalizedRelative, DIRECTORY_SEPARATOR);
-        if (! is_file($absolutePath)) {
+        $absolutePath = asset_upload_file($relativePath, 'payments');
+        if ($absolutePath === '' || ! is_file($absolutePath)) {
             return redirect()->to('/payments/' . $paymentId . '/view')->with('error', 'Receipt attachment file is missing from storage.');
         }
 
@@ -919,9 +922,7 @@ class PaymentController extends BaseController
             throw new \RuntimeException('Receipt attachment must be 5MB or smaller.');
         }
 
-        $uploadDir = rtrim((string) WRITEPATH, DIRECTORY_SEPARATOR)
-            . DIRECTORY_SEPARATOR . 'uploads'
-            . DIRECTORY_SEPARATOR . 'payments';
+        $uploadDir = asset_upload_dir('payments');
         if (! is_dir($uploadDir) && ! @mkdir($uploadDir, 0775, true) && ! is_dir($uploadDir)) {
             throw new \RuntimeException('Could not create payment receipt upload directory.');
         }
@@ -930,7 +931,7 @@ class PaymentController extends BaseController
         $file->move($uploadDir, $storedName, true);
 
         return [
-            'receipt_attachment_path' => 'uploads/payments/' . $storedName,
+            'receipt_attachment_path' => $storedName,
             'receipt_attachment_name' => (string) $file->getClientName(),
         ];
     }

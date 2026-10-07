@@ -51,6 +51,7 @@
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Logo Image (optional)</label>
                     <input type="file" name="logo_file" accept=".jpg,.jpeg,.png,.webp" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_logo" value="1" class="rounded border-slate-300"> Remove current logo</label>
                 </div>
                 <input name="ntn" placeholder="NTN (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="strn" placeholder="STRN (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

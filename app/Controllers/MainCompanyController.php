@@ -78,6 +78,9 @@ class MainCompanyController extends BaseController
 
             if ($logoPath !== null) {
                 $data['logo_url'] = $logoPath;
+            } elseif ((string) $this->request->getPost('remove_logo') === '1' && ! empty($existing['logo_url'])) {
+                asset_upload_remove((string) $existing['logo_url'], 'logos');
+                $data['logo_url'] = null;
             }
 
             $db->transStart();

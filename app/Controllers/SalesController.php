@@ -386,7 +386,13 @@ class SalesController extends BaseController
         }
 
         $agents = $this->fetchAgentRows();
-        $pilgrims = $this->fetchPilgrimRows($seasonId);
+        $selectedPilgrimIds = array_values(array_filter(array_map('intval', array_merge(
+            [(int) ($row['pilgrim_id'] ?? 0)],
+            explode(',', (string) ($row['pilgrim_ids'] ?? ''))
+        )), static function (int $id): bool {
+            return $id > 0;
+        }));
+        $pilgrims = $this->fetchPilgrimRows($seasonId, $selectedPilgrimIds);
         $hotels = $saleType === 'hotel' ? $this->fetchHotelRows() : [];
         $hotelStays = $saleType === 'hotel' ? $this->saleHotelStayRows($id) : [];
 
@@ -474,7 +480,22 @@ class SalesController extends BaseController
         try {
             $db->transStart();
 
-            $model->update($saleId, $this->buildSaleData($payload, $seasonId, false, $saleType));
+            $data = $this->buildSaleData($payload, $seasonId, false, $saleType);
+
+            foreach (['attachment', 'attachment2', 'attachment3'] as $field) {
+                if (($payload[$field] ?? '') !== '') {
+                    continue;
+                }
+                $existingValue = $row[$field] ?? null;
+                if ((string) $this->request->getPost('remove_' . $field) === '1') {
+                    asset_upload_remove((string) ($existingValue ?? ''), 'sales');
+                    $data[$field] = null;
+                } else {
+                    $data[$field] = $existingValue;
+                }
+            }
+
+            $model->update($saleId, $data);
 
             // Update or create primary hotel stay for hotel sales
             if ($saleType === 'hotel' && $this->saleHotelStayTableExists($db)) {
@@ -579,7 +600,7 @@ class SalesController extends BaseController
             $file = $this->request->getFile('attachment');
             if ($file->isValid() && !$file->hasMoved()) {
                 $filename = $file->getRandomName();
-                $file->move('writable/uploads', $filename);
+                $file->move(asset_upload_dir('sales'), $filename);
                 $attachmentFile = $filename;
             }
         }
@@ -588,7 +609,7 @@ class SalesController extends BaseController
             $file = $this->request->getFile('attachment2');
             if ($file->isValid() && !$file->hasMoved()) {
                 $filename = $file->getRandomName();
-                $file->move('writable/uploads', $filename);
+                $file->move(asset_upload_dir('sales'), $filename);
                 $attachmentFile2 = $filename;
             }
         }
@@ -597,7 +618,7 @@ class SalesController extends BaseController
             $file = $this->request->getFile('attachment3');
             if ($file->isValid() && !$file->hasMoved()) {
                 $filename = $file->getRandomName();
-                $file->move('writable/uploads', $filename);
+                $file->move(asset_upload_dir('sales'), $filename);
                 $attachmentFile3 = $filename;
             }
         }
@@ -854,25 +875,61 @@ class SalesController extends BaseController
         return $query->getResultArray();
     }
 
-    private function fetchPilgrimRows(int $seasonId): array
+    /**
+     * Pilgrims selectable on a sale form.
+     *
+     * A pilgrim is hidden once they have "availed" — either they belong to a confirmed
+     * booking, or they already appear on a non-voided sale for the active season. They
+     * become selectable again only after being released on the pilgrim view page.
+     * Pass $includePilgrimIds to keep the pilgrims already attached to the sale being edited.
+     */
+    private function fetchPilgrimRows(int $seasonId, array $includePilgrimIds = []): array
     {
         $db = db_connect();
         if (! $db->tableExists('pilgrims')) {
             return [];
         }
 
+        $includePilgrimIds = array_values(array_filter(array_map('intval', $includePilgrimIds), static function (int $id): bool {
+            return $id > 0;
+        }));
+
         $query = $db->table('pilgrims')
             ->select('id, first_name, last_name, passport_no')
-            ->where('season_id', $seasonId)
-            ->orderBy('first_name', 'ASC')
-            ->orderBy('last_name', 'ASC')
-            ->get();
+            ->where('season_id', $seasonId);
 
-        if (! is_object($query)) {
+        $hasBookingTables = $db->tableExists('bookings') && $db->tableExists('booking_pilgrims');
+        $hasSalesTable = $db->tableExists('sales') && $this->salesHasColumn('pilgrim_id');
+
+        if ($hasBookingTables || $hasSalesTable) {
+            $availedCondition = pilgrim_availed_sql(
+                (string) (int) $seasonId,
+                'pilgrims.id',
+                'pilgrims.sale_released_at',
+                '',
+                $hasBookingTables,
+                $hasSalesTable,
+                $hasSalesTable && $this->salesHasColumn('pilgrim_ids')
+            );
+
+            if ($includePilgrimIds !== []) {
+                $query->groupStart()
+                    ->where($availedCondition, null, false)
+                    ->orWhereIn('id', $includePilgrimIds)
+                    ->groupEnd();
+            } else {
+                $query->where($availedCondition, null, false);
+            }
+        }
+
+        $query->orderBy('first_name', 'ASC')->orderBy('last_name', 'ASC');
+        $result = $query->get();
+
+        if (! is_object($result)) {
             return [];
         }
 
-        return $query->getResultArray();
+        return $result->getResultArray();
     }
 
     private function fetchHotelRows(): array

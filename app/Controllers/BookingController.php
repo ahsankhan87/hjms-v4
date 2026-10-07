@@ -990,18 +990,28 @@ class BookingController extends BaseController
             }
         }
 
-        $excludeConfirmedCondition = 'NOT EXISTS (
-            SELECT 1
-            FROM booking_pilgrims bp
-            INNER JOIN bookings b ON b.id = bp.booking_id
-            WHERE bp.pilgrim_id = pilgrims.id
-              AND b.season_id = ' . (int) $seasonId . '
-              AND b.status = "confirmed"';
+        $hasSalesTable = $db->tableExists('sales') && $db->fieldExists('pilgrim_id', 'sales');
+        $salesHasPilgrimIds = $hasSalesTable && $db->fieldExists('pilgrim_ids', 'sales');
+
+        $excludeConfirmedCondition = pilgrim_availed_sql(
+            (string) (int) $seasonId,
+            'pilgrims.id',
+            'pilgrims.sale_released_at',
+            ($editingBookingId !== null && $editingBookingId > 0) ? 'AND b_av.id != ' . (int) $editingBookingId : '',
+            true,
+            $hasSalesTable,
+            $salesHasPilgrimIds
+        );
+
+        // Keep the pilgrims already on the booking being edited selectable even if they
+        // are now availed through a sale, so the edit form does not drop them.
+        $editingPilgrimIds = [];
         if ($editingBookingId !== null && $editingBookingId > 0) {
-            $excludeConfirmedCondition .= ' AND b.id != ' . (int) $editingBookingId;
+            $editingPilgrimIds = array_values(array_filter(array_map('intval', array_column(
+                $db->table('booking_pilgrims')->select('pilgrim_id')->where('booking_id', (int) $editingBookingId)->get()->getResultArray(),
+                'pilgrim_id'
+            ))));
         }
-        $excludeConfirmedCondition .= '
-        )';
 
         return [
             'packages'               => $packages,
@@ -1022,7 +1032,7 @@ class BookingController extends BaseController
             'companies' => company_table_ready()
                 ? $db->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
                 : [],
-            'pilgrims'  => (function () use ($db, $seasonId, $excludeConfirmedCondition, $linkedAgentId) {
+            'pilgrims'  => (function () use ($db, $seasonId, $excludeConfirmedCondition, $linkedAgentId, $editingPilgrimIds) {
                 $query = $db->table('pilgrims')
                     ->select('id, first_name, last_name, passport_no')
                     ->where('season_id', $seasonId);
@@ -1031,8 +1041,16 @@ class BookingController extends BaseController
                     $query->where('agent_id', $linkedAgentId);
                 }
 
+                $query->groupStart()
+                    ->where($excludeConfirmedCondition, null, false);
+
+                if ($editingPilgrimIds !== []) {
+                    $query->orWhereIn('id', $editingPilgrimIds);
+                }
+
+                $query->groupEnd();
+
                 return $query
-                    ->where($excludeConfirmedCondition, null, false)
                     ->orderBy('id', 'DESC')
                     ->get()
                     ->getResultArray();

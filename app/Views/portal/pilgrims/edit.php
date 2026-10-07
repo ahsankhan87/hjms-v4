@@ -54,6 +54,57 @@
                     </div>
                 </div>
 
+                <!-- Photos, Status & Notes -->
+                <div class="space-y-3 border-t border-slate-100 pt-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Photos, Attachments, Status &amp; Notes</p>
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Pilgrim Photo</label>
+                            <input type="file" name="pilgrim_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <?php if (!empty($row['pilgrim_image_path'])): ?>
+                                <p class="mt-1 text-xs text-slate-400">Current: <?= esc((string) $row['pilgrim_image_name']) ?></p>
+                                <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_pilgrim_image" value="1" class="rounded border-slate-300"> Remove</label>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Passport Copy</label>
+                            <input type="file" name="passport_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <?php if (!empty($row['passport_image_path'])): ?>
+                                <p class="mt-1 text-xs text-slate-400">Current: <?= esc((string) $row['passport_image_name']) ?></p>
+                                <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_passport_image" value="1" class="rounded border-slate-300"> Remove</label>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 1</label>
+                            <input type="file" name="attachment_1" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <?php if (!empty($row['attachment_1'])): ?>
+                                <p class="mt-1 text-xs text-slate-400">Current: <a href="<?= esc(asset_upload_url((string) $row['attachment_1'], 'pilgrims')) ?>" target="_blank" class="text-indigo-600 hover:underline"><?= esc(basename((string) $row['attachment_1'])) ?></a></p>
+                                <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_attachment_1" value="1" class="rounded border-slate-300"> Remove</label>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 2</label>
+                            <input type="file" name="attachment_2" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <?php if (!empty($row['attachment_2'])): ?>
+                                <p class="mt-1 text-xs text-slate-400">Current: <a href="<?= esc(asset_upload_url((string) $row['attachment_2'], 'pilgrims')) ?>" target="_blank" class="text-indigo-600 hover:underline"><?= esc(basename((string) $row['attachment_2'])) ?></a></p>
+                                <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_attachment_2" value="1" class="rounded border-slate-300"> Remove</label>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Status</label>
+                        <?php $statusValue = old('is_active', (string) ($row['is_active'] ?? '1')); ?>
+                        <select name="is_active" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <option value="1" <?= $statusValue === '1' ? 'selected' : '' ?>>Active</option>
+                            <option value="0" <?= $statusValue === '0' ? 'selected' : '' ?>>Inactive</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Notes</label>
+                        <textarea name="description" rows="3" placeholder="Additional notes or remarks…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('description', (string) ($row['description'] ?? ''))) ?></textarea>
+                    </div>
+                </div>
+
                 <!-- Document & Identity -->
                 <div class="space-y-3 border-t border-slate-100 pt-4">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Document &amp; Identity</p>
@@ -97,6 +148,27 @@
                     </div>
                 </div>
 
+                <!-- Medical & Reference -->
+                <div class="space-y-3 border-t border-slate-100 pt-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Medical &amp; Reference</p>
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Reference</label>
+                            <input name="reference" value="<?= esc(old('reference', (string) ($row['reference'] ?? ''))) ?>" placeholder="Reference / source" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Blood Group</label>
+                            <?php $bloodGroupValue = old('blood_group', (string) ($row['blood_group'] ?? '')); ?>
+                            <select name="blood_group" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                <option value="">Please Select</option>
+                                <?php foreach (['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $bloodGroup): ?>
+                                    <option value="<?= esc($bloodGroup) ?>" <?= $bloodGroupValue === $bloodGroup ? 'selected' : '' ?>><?= esc($bloodGroup) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Contact Information -->
                 <div class="space-y-3 border-t border-slate-100 pt-4">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Contact Information</p>
@@ -113,35 +185,6 @@
                             <label class="mb-1 block text-xs font-medium text-slate-600">Email</label>
                             <input type="email" name="email" value="<?= esc(old('email', (string) ($row['email'] ?? ''))) ?>" placeholder="name@example.com" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         </div>
-                    </div>
-                </div>
-
-                <!-- Photos, Status & Notes -->
-                <div class="space-y-3 border-t border-slate-100 pt-4">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Photos, Status &amp; Notes</p>
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-600">Pilgrim Photo</label>
-                            <input type="file" name="pilgrim_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <?php if (!empty($row['pilgrim_image_path'])): ?><p class="mt-1 text-xs text-slate-400">Current: <?= esc((string) $row['pilgrim_image_name']) ?></p><?php endif; ?>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-slate-600">Passport Copy</label>
-                            <input type="file" name="passport_image" accept="image/*" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <?php if (!empty($row['passport_image_path'])): ?><p class="mt-1 text-xs text-slate-400">Current: <?= esc((string) $row['passport_image_name']) ?></p><?php endif; ?>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Status</label>
-                        <?php $statusValue = old('is_active', (string) ($row['is_active'] ?? '1')); ?>
-                        <select name="is_active" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <option value="1" <?= $statusValue === '1' ? 'selected' : '' ?>>Active</option>
-                            <option value="0" <?= $statusValue === '0' ? 'selected' : '' ?>>Inactive</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-slate-600">Notes</label>
-                        <textarea name="description" rows="3" placeholder="Additional notes or remarks…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('description', (string) ($row['description'] ?? ''))) ?></textarea>
                     </div>
                 </div>
 

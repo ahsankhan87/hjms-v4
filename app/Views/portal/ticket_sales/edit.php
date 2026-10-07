@@ -144,7 +144,8 @@
                 <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 1 (Image/PDF)</label>
                 <?php if (!empty($row['attachment'])): ?>
                     <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <p class="text-xs text-slate-600">Current: <strong><?= esc((string) $row['attachment']) ?></strong></p>
+                        <p class="text-xs text-slate-600">Current: <a href="<?= esc(asset_upload_url((string) $row['attachment'], 'sales')) ?>" target="_blank" class="font-semibold text-indigo-600 hover:underline"><?= esc(basename((string) $row['attachment'])) ?></a></p>
+                        <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_attachment" value="1" class="rounded border-slate-300"> Remove</label>
                     </div>
                 <?php endif; ?>
                 <input type="file" name="attachment" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -155,7 +156,8 @@
                 <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 2 (Image/PDF)</label>
                 <?php if (!empty($row['attachment2'])): ?>
                     <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <p class="text-xs text-slate-600">Current: <strong><?= esc((string) $row['attachment2']) ?></strong></p>
+                        <p class="text-xs text-slate-600">Current: <a href="<?= esc(asset_upload_url((string) $row['attachment2'], 'sales')) ?>" target="_blank" class="font-semibold text-indigo-600 hover:underline"><?= esc(basename((string) $row['attachment2'])) ?></a></p>
+                        <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_attachment2" value="1" class="rounded border-slate-300"> Remove</label>
                     </div>
                 <?php endif; ?>
                 <input type="file" name="attachment2" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -166,7 +168,8 @@
                 <label class="mb-1 block text-xs font-medium text-slate-600">Attachment 3 (Image/PDF)</label>
                 <?php if (!empty($row['attachment3'])): ?>
                     <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <p class="text-xs text-slate-600">Current: <strong><?= esc((string) $row['attachment3']) ?></strong></p>
+                        <p class="text-xs text-slate-600">Current: <a href="<?= esc(asset_upload_url((string) $row['attachment3'], 'sales')) ?>" target="_blank" class="font-semibold text-indigo-600 hover:underline"><?= esc(basename((string) $row['attachment3'])) ?></a></p>
+                        <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_attachment3" value="1" class="rounded border-slate-300"> Remove</label>
                     </div>
                 <?php endif; ?>
                 <input type="file" name="attachment3" accept="image/*,.pdf,.doc,.docx" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

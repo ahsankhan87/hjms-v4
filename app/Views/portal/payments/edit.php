@@ -179,6 +179,7 @@ $isVoided = $status === 'voided';
                                     <?= esc((string) ($payment['receipt_attachment_name'] ?? 'View Attachment')) ?>
                                 </a>
                             </p>
+                            <label class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600"><input type="checkbox" name="remove_receipt_attachment" value="1" class="rounded border-slate-300"> Remove</label>
                         <?php endif; ?>
                     </div>
 

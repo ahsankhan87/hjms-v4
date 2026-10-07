@@ -116,7 +116,7 @@
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <p class="mt-2 text-xs text-slate-400"><i class="fa-solid fa-circle-info mr-1"></i>Only pilgrims not in a confirmed booking are shown.</p>
+                <p class="mt-2 text-xs text-slate-400"><i class="fa-solid fa-circle-info mr-1"></i>Only pilgrims who have not yet availed a booking or sale are shown. Release a pilgrim from their profile to make them available again.</p>
             </div>
         </div>
 

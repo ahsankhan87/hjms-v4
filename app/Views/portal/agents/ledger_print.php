@@ -233,6 +233,7 @@
         <table class="ledger">
             <thead>
                 <tr>
+                    <th style="width: 42px;">S#</th>
                     <th style="width: 82px;">Date</th>
                     <th style="width: 85px;">Type</th>
                     <th style="width: 90px;">Trans.#</th>
@@ -244,7 +245,8 @@
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($rows)): foreach ($rows as $row): ?>
+                <?php if (!empty($rows)): $sr = 1;
+                    foreach ($rows as $row): ?>
                         <?php
                         $entryType = (string) ($row['entry_type'] ?? '');
                         $referenceType = (string) ($row['reference_type'] ?? '');
@@ -254,6 +256,7 @@
                         $runningBalance = (float) ($row['running_balance'] ?? 0);
                         ?>
                         <tr>
+                            <td class="center" style="color:#64748b;"><?= $sr++ ?></td>
                             <td><?= esc((string) ($row['entry_date'] ?? '')) ?></td>
                             <td><?= esc(str_replace('_', ' ', $entryType)) ?></td>
                             <td><?= $referenceId > 0 ? esc((string) $referenceId) : '-' ?></td>
@@ -276,7 +279,7 @@
                     <?php endforeach;
                 else: ?>
                     <tr>
-                        <td colspan="8" class="center" style="padding: 18px;">No ledger entries found.</td>
+                        <td colspan="9" class="center" style="padding: 18px;">No ledger entries found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

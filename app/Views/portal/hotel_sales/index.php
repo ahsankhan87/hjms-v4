@@ -115,19 +115,19 @@
                             <td class="px-3 py-2 text-slate-600">
                                 <div class="flex flex-wrap gap-2">
                                     <?php if (!empty($row['attachment'])): ?>
-                                        <a href="<?= site_url('/writable/uploads/' . esc((string) $row['attachment'])) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 1">
+                                        <a href="<?= esc(asset_upload_url((string) $row['attachment'], 'sales')) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 1">
                                             <i class="fa-solid fa-file"></i>
                                             <span>A1</span>
                                         </a>
                                     <?php endif; ?>
                                     <?php if (!empty($row['attachment2'])): ?>
-                                        <a href="<?= site_url('/writable/uploads/' . esc((string) $row['attachment2'])) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 2">
+                                        <a href="<?= esc(asset_upload_url((string) $row['attachment2'], 'sales')) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 2">
                                             <i class="fa-solid fa-file"></i>
                                             <span>A2</span>
                                         </a>
                                     <?php endif; ?>
                                     <?php if (!empty($row['attachment3'])): ?>
-                                        <a href="<?= site_url('/writable/uploads/' . esc((string) $row['attachment3'])) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 3">
+                                        <a href="<?= esc(asset_upload_url((string) $row['attachment3'], 'sales')) ?>" target="_blank" class="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" title="Attachment 3">
                                             <i class="fa-solid fa-file"></i>
                                             <span>A3</span>
                                         </a>
