@@ -28,7 +28,7 @@
             <table class="list-table">
                 <thead>
                     <tr>
-                        <th>S#</th>
+                        <th>Sr#</th>
                         <th>Photo</th>
                         <th>Pilgrim</th>
                         <th>DOB</th>
@@ -47,11 +47,14 @@
                             <td colspan="11" class="py-6 text-center text-slate-500">No pilgrims found.</td>
                         </tr>
                     <?php else: ?>
+                        <?php $totalPilgrims = count($pilgrims); ?>
                         <?php foreach ($pilgrims as $index => $pilgrim): ?>
+                            <?php $totalPilgrims = count($pilgrims); ?>
                             <?php
                             $category = 'Other';
                             $ageYears = null;
                             $dob = trim((string) ($pilgrim['date_of_birth'] ?? ''));
+                            $srNo = $totalPilgrims - (int) $index;
                             if ($dob !== '') {
                                 try {
                                     $dobDate = new DateTimeImmutable($dob);
@@ -81,8 +84,7 @@
                             }
                             ?>
                             <tr>
-                                <td><?= (int) $index + 1 ?></td><!--<td><?= (int) $index + 1 ?></td>-->
-                                <td><?= esc($pilgrim['id']) ?></td>
+                                <td><?= $srNo ?></td>
                                 <td>
                                     <?php if (!empty($pilgrim['pilgrim_image_path'])): ?>
                                         <img src="<?= esc(asset_upload_url((string) $pilgrim['pilgrim_image_path'], 'pilgrims')) ?>" alt="Pilgrim Photo" class="h-10 w-10 rounded-full object-cover ring-1 ring-slate-200">

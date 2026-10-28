@@ -43,7 +43,18 @@ $companyName = trim((string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD
                 </div>
                 <div>
                     <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
-                    <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                    <div style="position:relative;margin-top:0.25rem;">
+                        <input type="password" id="password" name="password" required class="block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200" style="box-sizing:border-box;padding-right:3rem;">
+                        <button type="button" id="toggle-password" style="position:absolute;top:0;right:0;height:100%;width:2.75rem;display:flex;align-items:center;justify-content:center;border:0;background:transparent;color:#64748b;cursor:pointer;z-index:2;" aria-label="Show password" aria-pressed="false">
+                            <svg id="password-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12 18.25 18.25 12 18.25 2.25 12 2.25 12Z" />
+                                <circle cx="12" cy="12" r="2.75" />
+                            </svg>
+                            <svg id="password-eye-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" aria-hidden="true" style="display:none;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.9A10.8 10.8 0 0 1 12 5.75c6.25 0 9.75 6.25 9.75 6.25a16 16 0 0 1-3.1 3.85M6.2 6.2C3.7 7.85 2.25 12 2.25 12s3.5 6.25 9.75 6.25c1.25 0 2.4-.28 3.45-.74" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Sign In</button>
             </form>
@@ -56,4 +67,23 @@ $companyName = trim((string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD
         </div>
     </div>
 </main>
+<script>
+    (function () {
+        var password = document.getElementById('password');
+        var toggle = document.getElementById('toggle-password');
+        var eye = document.getElementById('password-eye');
+        var eyeOff = document.getElementById('password-eye-off');
+
+        if (!password || !toggle || !eye || !eyeOff) return;
+
+        toggle.addEventListener('click', function () {
+            var showing = password.type === 'password';
+            password.type = showing ? 'text' : 'password';
+            toggle.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+            toggle.setAttribute('aria-pressed', showing ? 'true' : 'false');
+            eye.style.display = showing ? 'none' : 'block';
+            eyeOff.style.display = showing ? 'block' : 'none';
+        });
+    })();
+</script>
 <?php $this->endSection() ?>

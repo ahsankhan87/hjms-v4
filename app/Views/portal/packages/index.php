@@ -314,6 +314,13 @@
                                 <i class="fa-solid fa-download"></i>
                             </button>
 
+                            <?php if (function_exists('auth_can') && auth_can('bookings.create')): ?>
+                                <a href="<?= site_url('/bookings/add?package_id=' . (int) $card['id']) ?>" class="btn btn-md btn-secondary inline-flex flex-1 items-center justify-center gap-2 text-center">
+                                    <i class="fa-solid fa-file-circle-plus"></i>
+                                    <span>Create Booking</span>
+                                </a>
+                            <?php endif; ?>
+
                             <?php if (!empty($canManagePackage)): ?>
                                 <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="btn btn-md btn-primary inline-flex flex-1 items-center justify-center gap-2 text-center">
                                     <i class="fa-solid fa-gear"></i>

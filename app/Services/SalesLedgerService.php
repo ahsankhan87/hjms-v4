@@ -37,15 +37,24 @@ class SalesLedgerService
             ->select('s.id, s.season_id, s.sales_category_id, s.sale_type, s.sale_date, s.customer_type, s.agent_id, s.amount, s.status, s.reference_no, s.note, s.pilgrim_id, s.pilgrim_ids, s.pax_name, sc.name AS sales_category_name')
             ->join('sales_categories sc', 'sc.id = s.sales_category_id AND sc.season_id = s.season_id', 'left')
             ->where('s.id', $saleId)
-            ->where('s.season_id', $seasonId)
-            ->get();
+            ->where('s.season_id', $seasonId);
 
-        $sale = is_object($saleQuery) ? $saleQuery->getRowArray() : [];
+        if ($this->salesHasColumn('amount_pkr')) {
+            $saleQuery->select('s.amount_pkr');
+        }
+
+        $saleResult = $saleQuery->get();
+        $sale = is_object($saleResult) ? $saleResult->getRowArray() : [];
 
         if (! empty($sale)) {
             $status = (string) ($sale['status'] ?? 'posted');
             $customerType = (string) ($sale['customer_type'] ?? 'walk_in');
+
+            // Agent ledger balances are kept in PKR, so use the converted amount when present.
             $amount = (float) ($sale['amount'] ?? 0);
+            if ((float) ($sale['amount_pkr'] ?? 0) > 0) {
+                $amount = (float) $sale['amount_pkr'];
+            }
             $agentId = (int) ($sale['agent_id'] ?? 0);
 
             // Sale receivable must remain tied to the sale itself. Payment recovery should
@@ -209,6 +218,23 @@ class SalesLedgerService
         }
     }
 
+    private function salesHasColumn(string $column): bool
+    {
+        static $cache = [];
+
+        if (array_key_exists($column, $cache)) {
+            return $cache[$column];
+        }
+
+        try {
+            $cache[$column] = db_connect()->fieldExists($column, 'sales');
+        } catch (\Throwable $e) {
+            $cache[$column] = false;
+        }
+
+        return $cache[$column];
+    }
+
     private function buildSaleDescription(array $sale): string
     {
         $saleType = (string) ($sale['sale_type'] ?? '');
@@ -220,6 +246,10 @@ class SalesLedgerService
             $base = 'Hotel sale receivable';
         } elseif ($saleType === 'ticket') {
             $base = 'Ticket sale receivable';
+        } elseif ($saleType === 'transport') {
+            $base = 'Transport sale receivable';
+        } elseif ($saleType === 'package') {
+            $base = 'Package sale receivable';
         }
 
         $referenceNo = trim((string) ($sale['reference_no'] ?? ''));

@@ -30,6 +30,7 @@
                 <table class="list-table">
                     <thead>
                         <tr>
+                            <th>Sr#</th>
                             <th>Agent</th>
                             <th>Code</th>
                             <th>Type</th>
@@ -45,12 +46,14 @@
                     <tbody>
                         <?php if (empty($rows)): ?>
                             <tr>
-                                <td colspan="9" class="text-center text-slate-500">No agents found.</td>
+                                <td colspan="11" class="text-center text-slate-500">No agents found.</td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($rows as $row): ?>
+                            <?php $totalRows = count($rows); ?>
+                            <?php foreach ($rows as $index => $row): ?>
                                 <?php $statusActive = (int) ($row['is_active'] ?? 0) === 1; ?>
                                 <tr>
+                                    <td><?= $totalRows - (int) $index ?></td>
                                     <td>
                                         <div>
                                             <p class="font-semibold text-gray-800"><?= esc((string) ($row['name'] ?? '-')) ?></p>
@@ -113,7 +116,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="border-t-2 border-slate-300 bg-slate-100 text-sm font-semibold text-slate-800">
-                            <td colspan="6" class="px-3 py-2 text-right">Total Balance</td>
+                            <td colspan="8" class="px-3 py-2 text-right">Total Balance</td>
                             <td id="agents-total-balance" class="px-3 py-2">0.00</td>
                             <td colspan="2" class="px-3 py-2"></td>
                         </tr>

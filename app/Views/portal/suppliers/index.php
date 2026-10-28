@@ -25,7 +25,7 @@
             <table class="list-table">
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>
-                        <th class="px-3 py-2 text-left">ID</th>
+                        <th class="px-3 py-2 text-left">Sr#</th>
                         <th class="px-3 py-2 text-left">Name</th>
                         <th class="px-3 py-2 text-left">Type</th>
                         <th class="px-3 py-2 text-left">Contact</th>
@@ -36,13 +36,14 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <?php $totalRows = count($rows); ?>
                     <?php if (empty($rows)): ?>
                         <tr>
                             <td colspan="8" class="px-3 py-6 text-center text-slate-500">No suppliers found.</td>
                         </tr>
-                        <?php else: foreach ($rows as $row): ?>
+                        <?php else: foreach ($rows as $index => $row): ?>
                             <tr class="border-t border-slate-100">
-                                <td class="px-3 py-2">#<?= esc((string) $row['id']) ?></td>
+                                <td class="px-3 py-2"><?= esc((string) ($totalRows - (int) $index)) ?></td>
                                 <td class="px-3 py-2 font-medium"><?= esc((string) $row['supplier_name']) ?></td>
                                 <td class="px-3 py-2"><?= esc(ucfirst((string) $row['supplier_type'])) ?></td>
                                 <td class="px-3 py-2"><?= esc((string) ($row['contact_person'] ?? '-')) ?></td>

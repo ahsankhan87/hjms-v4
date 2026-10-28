@@ -936,6 +936,208 @@ class ReportController extends BaseController
         ]);
     }
 
+    /**
+     * How many visas, tickets, hotel stays, transport legs and packages were sold.
+     */
+    public function saleComponents(): string
+    {
+        $componentTypes = ['visa' => 'Visa', 'ticket' => 'Ticket', 'hotel' => 'Hotel', 'transport' => 'Transport', 'package' => 'Package'];
+
+        $filters = [
+            'from_date' => (string) $this->request->getGet('from_date'),
+            'to_date'   => (string) $this->request->getGet('to_date'),
+            'component' => (string) $this->request->getGet('component'),
+        ];
+
+        $filterErrors = [];
+        if (! $this->validateData($filters, [
+            'from_date' => 'permit_empty|valid_date[Y-m-d]',
+            'to_date'   => 'permit_empty|valid_date[Y-m-d]',
+            'component' => 'permit_empty|in_list[visa,ticket,hotel,transport,package]',
+        ])) {
+            $filterErrors = $this->validator->getErrors();
+            $filters = ['from_date' => '', 'to_date' => '', 'component' => ''];
+        }
+
+        $db = db_connect();
+        $seasonId = $this->activeSeasonId();
+        $hasItems = $db->tableExists('sale_items');
+        $itemsHavePkr = $hasItems && $this->tableHasColumn($db, 'sale_items', 'amount_pkr');
+        $salesHavePkr = $this->tableHasColumn($db, 'sales', 'amount_pkr');
+        $itemAmountPkr = $itemsHavePkr ? 'si.amount_pkr' : 'si.amount';
+        $saleAmountPkr = $salesHavePkr ? 'COALESCE(NULLIF(s.amount_pkr, 0), s.amount)' : 's.amount';
+
+        $applySaleFilters = static function ($query) use ($filters, $seasonId): void {
+            $query->where('s.status !=', 'voided');
+            if ($seasonId !== null) {
+                $query->where('s.season_id', $seasonId);
+            }
+            if ($filters['from_date'] !== '') {
+                $query->where('DATE(s.sale_date) >=', $filters['from_date']);
+            }
+            if ($filters['to_date'] !== '') {
+                $query->where('DATE(s.sale_date) <=', $filters['to_date']);
+            }
+        };
+
+        $summary = [];
+        foreach ($componentTypes as $type => $label) {
+            $summary[$type] = ['label' => $label, 'count' => 0, 'total_pkr' => 0.0, 'currencies' => []];
+        }
+
+        if ($hasItems) {
+            $itemsQuery = $db->table('sale_items si')
+                ->select('si.item_type, si.currency, COUNT(*) AS item_count, COALESCE(SUM(' . $itemAmountPkr . '), 0) AS total_pkr', false)
+                ->join('sales s', 's.id = si.sale_id', 'inner')
+                ->groupBy('si.item_type, si.currency');
+            $applySaleFilters($itemsQuery);
+            if ($filters['component'] !== '') {
+                $itemsQuery->where('si.item_type', $filters['component']);
+            }
+
+            foreach ($itemsQuery->get()->getResultArray() as $row) {
+                $type = (string) ($row['item_type'] ?? '');
+                if (! isset($summary[$type])) {
+                    continue;
+                }
+                $currency = strtoupper((string) ($row['currency'] ?? 'PKR'));
+                $summary[$type]['count'] += (int) ($row['item_count'] ?? 0);
+                $summary[$type]['total_pkr'] += (float) ($row['total_pkr'] ?? 0);
+                $summary[$type]['currencies'][$currency] = ($summary[$type]['currencies'][$currency] ?? 0) + (int) ($row['item_count'] ?? 0);
+            }
+        }
+
+        // Sales created before component rows existed only carry the flat sale_type columns.
+        $legacyQuery = $db->table('sales s')
+            ->select('s.sale_type, s.currency, COUNT(*) AS item_count, COALESCE(SUM(' . $saleAmountPkr . '), 0) AS total_pkr', false)
+            ->groupBy('s.sale_type, s.currency');
+        $applySaleFilters($legacyQuery);
+        if ($hasItems) {
+            $legacyQuery->where('s.id NOT IN (SELECT DISTINCT sale_id FROM sale_items)', null, false);
+        }
+        if ($filters['component'] !== '') {
+            $legacyQuery->where('s.sale_type', $filters['component']);
+        }
+
+        foreach ($legacyQuery->get()->getResultArray() as $row) {
+            $type = (string) ($row['sale_type'] ?? '');
+            if (! isset($summary[$type])) {
+                continue;
+            }
+            $currency = strtoupper((string) ($row['currency'] ?? 'PKR'));
+            $summary[$type]['count'] += (int) ($row['item_count'] ?? 0);
+            $summary[$type]['total_pkr'] += (float) ($row['total_pkr'] ?? 0);
+            $summary[$type]['currencies'][$currency] = ($summary[$type]['currencies'][$currency] ?? 0) + (int) ($row['item_count'] ?? 0);
+        }
+
+        $totalComponents = 0;
+        $totalPkr = 0.0;
+        foreach ($summary as $row) {
+            $totalComponents += $row['count'];
+            $totalPkr += $row['total_pkr'];
+        }
+
+        $detailLabel = static function (array $row): string {
+            $type = (string) ($row['item_type'] ?? '');
+
+            if ($type === 'visa') {
+                $parts = array_filter([(string) ($row['visa_type'] ?? ''), (string) ($row['visa_no'] ?? '')]);
+            } elseif ($type === 'ticket') {
+                $parts = array_filter([(string) ($row['pnr'] ?? ''), (string) ($row['sector'] ?? ''), (string) ($row['ticket_no'] ?? '')]);
+            } elseif ($type === 'hotel') {
+                $nights = (int) ($row['no_of_nights'] ?? 0);
+                $parts = array_filter([
+                    (string) ($row['hotel_name'] ?? ''),
+                    trim((string) ($row['check_in_date'] ?? '') . ' → ' . (string) ($row['check_out_date'] ?? ''), ' →'),
+                    $nights > 0 ? $nights . ' night' . ($nights > 1 ? 's' : '') : '',
+                    (string) ($row['room_type'] ?? ''),
+                ]);
+            } elseif ($type === 'transport') {
+                $parts = array_filter([
+                    (string) ($row['transport_type'] ?? ''),
+                    (string) ($row['route'] ?? ''),
+                    (int) ($row['is_ziarat'] ?? 0) === 1 ? 'Ziarat' : '',
+                ]);
+            } else {
+                $parts = array_filter([(string) ($row['package_name'] ?? '')]);
+            }
+
+            return $parts === [] ? '-' : implode(' · ', $parts);
+        };
+
+        $detailRows = [];
+        if ($hasItems) {
+            $detailQuery = $db->table('sale_items si')
+                ->select('s.id AS sale_id, s.invoice_no, s.sale_date, s.pax_name, si.item_type, si.amount, si.currency, si.amount_pkr, si.visa_type, si.visa_no, si.pnr, si.sector, si.ticket_no, si.hotel_name, si.check_in_date, si.check_out_date, si.no_of_nights, si.room_type, si.transport_type, si.route, si.is_ziarat, si.package_name')
+                ->join('sales s', 's.id = si.sale_id', 'inner')
+                ->orderBy('s.sale_date', 'DESC')
+                ->orderBy('s.id', 'DESC');
+            $applySaleFilters($detailQuery);
+            if ($filters['component'] !== '') {
+                $detailQuery->where('si.item_type', $filters['component']);
+            }
+
+            foreach ($detailQuery->limit(300)->get()->getResultArray() as $row) {
+                $detailRows[] = [
+                    'sale_id' => (int) ($row['sale_id'] ?? 0),
+                    'invoice_no' => (string) ($row['invoice_no'] ?? ''),
+                    'sale_date' => (string) ($row['sale_date'] ?? ''),
+                    'pax_name' => (string) ($row['pax_name'] ?? ''),
+                    'item_type' => (string) ($row['item_type'] ?? ''),
+                    'detail' => $detailLabel($row),
+                    'currency' => strtoupper((string) ($row['currency'] ?? 'PKR')),
+                    'amount' => (float) ($row['amount'] ?? 0),
+                    'amount_pkr' => (float) ($row['amount_pkr'] ?? $row['amount'] ?? 0),
+                ];
+            }
+        }
+
+        $legacyDetailQuery = $db->table('sales s')
+            ->select('s.id AS sale_id, s.invoice_no, s.sale_date, s.pax_name, s.sale_type AS item_type, s.currency, ' . $saleAmountPkr . ' AS amount_pkr, s.visa_type, s.pnr, s.sector, s.ticket_no, s.hotel_name, s.checkin_date AS check_in_date, s.checkout_date AS check_out_date, s.no_of_nights, s.room_name AS room_type, s.package_name', false)
+            ->orderBy('s.sale_date', 'DESC')
+            ->orderBy('s.id', 'DESC');
+        $applySaleFilters($legacyDetailQuery);
+        if ($hasItems) {
+            $legacyDetailQuery->where('s.id NOT IN (SELECT DISTINCT sale_id FROM sale_items)', null, false);
+        }
+        if ($filters['component'] !== '') {
+            $legacyDetailQuery->where('s.sale_type', $filters['component']);
+        }
+
+        foreach ($legacyDetailQuery->limit(300)->get()->getResultArray() as $row) {
+            $detailRows[] = [
+                'sale_id' => (int) ($row['sale_id'] ?? 0),
+                'invoice_no' => (string) ($row['invoice_no'] ?? ''),
+                'sale_date' => (string) ($row['sale_date'] ?? ''),
+                'pax_name' => (string) ($row['pax_name'] ?? ''),
+                'item_type' => (string) ($row['item_type'] ?? ''),
+                'detail' => $detailLabel($row),
+                'currency' => 'PKR',
+                'amount' => (float) ($row['amount_pkr'] ?? 0),
+                'amount_pkr' => (float) ($row['amount_pkr'] ?? 0),
+            ];
+        }
+
+        usort($detailRows, static function (array $a, array $b): int {
+            return [$b['sale_date'], $b['sale_id']] <=> [$a['sale_date'], $a['sale_id']];
+        });
+        $detailRows = array_slice($detailRows, 0, 300);
+
+        return view('portal/reports/sale_components', [
+            'title' => 'HJMS ERP | Sales Components Report',
+            'headerTitle' => 'Business Reports',
+            'activePage' => 'reports',
+            'userEmail' => (string) session('user_email'),
+            'filters' => $filters,
+            'filterErrors' => $filterErrors,
+            'componentTypes' => $componentTypes,
+            'summary' => $summary,
+            'totalComponents' => $totalComponents,
+            'totalPkr' => $totalPkr,
+            'detailRows' => $detailRows,
+        ]);
+    }
+
     private function isDateYmd(string $value): bool
     {
         if ($value === '' || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {

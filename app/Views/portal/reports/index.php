@@ -31,6 +31,10 @@
                     <i class="fa-solid fa-scale-balanced text-[10px]"></i>
                     Profit &amp; Loss
                 </a>
+                <a href="<?= site_url('/reports/sale-components') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-chart-simple text-[10px]"></i>
+                    Sales Components
+                </a>
                 <a href="<?= site_url('/reports/expenses-by-category') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
                     <i class="fa-solid fa-chart-pie text-[10px]"></i>
                     Expenses by Category

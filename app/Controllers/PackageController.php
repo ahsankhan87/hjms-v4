@@ -522,17 +522,11 @@ class PackageController extends BaseController
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
-        return view('portal/packages/add', [
+        return view('portal/packages/add', $this->packageFormViewData(null) + [
             'title'       => 'HJMS ERP | Add Package',
             'headerTitle' => 'Add Package',
             'activePage'  => 'packages',
             'userEmail'   => (string) session('user_email'),
-            'companies'   => company_table_ready()
-                ? db_connect()->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
-                : [],
-            'success'     => session()->getFlashdata('success'),
-            'error'       => session()->getFlashdata('error'),
-            'errors'      => session()->getFlashdata('errors') ?: [],
         ]);
     }
 
@@ -542,144 +536,802 @@ class PackageController extends BaseController
             return $this->denyPackageManagement();
         }
 
-        $model = new PackageModel();
-        $row = $model->where('id', $id)->where('season_id', $this->activeSeasonId())->first();
+        $row = (new PackageModel())
+            ->where('id', $id)
+            ->where('season_id', $this->activeSeasonId())
+            ->first();
 
         if (empty($row)) {
             return redirect()->to('/packages')->with('error', 'Package not found.');
         }
 
-        $db = db_connect();
-
-        $latestCostSheet = null;
-        $costSheetItems = [];
-        $costSheetLines = [];
-        if ($db->tableExists('package_cost_sheets')) {
-            $latestCostSheet = $db->table('package_cost_sheets')
-                ->where('package_id', $id)
-                ->orderBy('version_no', 'DESC')
-                ->orderBy('id', 'DESC')
-                ->get()
-                ->getRowArray();
-
-            if (! empty($latestCostSheet)) {
-                $costSheetItems = $db->table('package_cost_sheet_items psi')
-                    ->select('psi.*, s.supplier_name')
-                    ->join('suppliers s', 's.id = psi.supplier_id', 'left')
-                    ->where('psi.cost_sheet_id', (int) $latestCostSheet['id'])
-                    ->orderBy('psi.id', 'ASC')
-                    ->get()
-                    ->getResultArray();
-
-                $costSheetLines = $db->table('package_price_lines')
-                    ->where('cost_sheet_id', (int) $latestCostSheet['id'])
-                    ->orderBy('id', 'ASC')
-                    ->get()
-                    ->getResultArray();
-            }
-        }
-
-        $stayWindow = $this->packageStayWindow($row);
-        $packageStayStart = (string) ($stayWindow['start'] ?? date('Y-m-d'));
-        $packageStayEnd = (string) ($stayWindow['end'] ?? date('Y-m-d', strtotime('+1 day')));
-        $stayDistributionValue = trim((string) old('stay_distribution', ''));
-
-        $stayCheckIn = $this->lastPackageStayCheckout($id, $db);
-        if ($stayCheckIn === '') {
-            $stayCheckIn = $packageStayStart;
-        }
-
-        $stayStartTs = strtotime($stayCheckIn);
-        $stayEndTs = strtotime($packageStayEnd);
-        if ($stayStartTs !== false && $stayEndTs !== false && $stayStartTs < $stayEndTs) {
-            $stayCheckOut = date('Y-m-d', strtotime('+1 day', $stayStartTs));
-            if (strtotime($stayCheckOut) > $stayEndTs) {
-                $stayCheckOut = $packageStayEnd;
-            }
-        } else {
-            $stayCheckOut = date('Y-m-d', strtotime('+1 day', $stayStartTs ?: time()));
-        }
-
-        $hotelPricingRows = $db->table('package_hotels ph')
-            ->select('ph.*, h.name AS hotel_master_name, h.city AS hotel_city')
-            ->join('hotels h', 'h.id = ph.hotel_id', 'left')
-            ->where('ph.package_id', $id)
-            ->orderBy('ph.id', 'ASC')
-            ->get()
-            ->getResultArray();
-
-        $hotelStayRows = $this->packageHotelStayRows($id, $db);
-        $existingHotelPricing = [];
-        foreach ($hotelPricingRows as $hotelPricingRow) {
-            $hotelId = (int) ($hotelPricingRow['hotel_id'] ?? 0);
-            if ($hotelId < 1 || isset($existingHotelPricing[$hotelId])) {
-                continue;
-            }
-
-            $existingHotelPricing[$hotelId] = [
-                'sharing_cost' => (float) ($hotelPricingRow['sharing_cost'] ?? 0),
-                'quad_cost' => (float) ($hotelPricingRow['quad_cost'] ?? 0),
-                'triple_cost' => (float) ($hotelPricingRow['triple_cost'] ?? 0),
-                'double_cost' => (float) ($hotelPricingRow['double_cost'] ?? 0),
-                'total_seats' => (int) ($hotelPricingRow['total_seats'] ?? 0),
-                'hotel_name' => (string) ($hotelPricingRow['hotel_name'] ?: ($hotelPricingRow['hotel_master_name'] ?? '')),
-                'hotel_city' => (string) ($hotelPricingRow['hotel_city'] ?? ''),
-            ];
-        }
-
-        $pricingSummary = (new PackagePricingService($db))->summarizePackage($id);
-
-        return view('portal/packages/edit', [
+        return view('portal/packages/edit', $this->packageFormViewData($row) + [
             'title'       => 'HJMS ERP | Edit Package',
             'headerTitle' => 'Edit Package',
             'activePage'  => 'packages',
             'userEmail'   => (string) session('user_email'),
-            'row'         => $row,
-            'companies'   => company_table_ready()
-                ? $db->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
-                : [],
-            'hotelOptions' => (new HotelModel())->orderBy('name', 'ASC')->findAll(),
-            'flightOptions' => (new FlightModel())->orderBy('departure_at', 'DESC')->findAll(),
-            'transportOptions' => (new TransportModel())->orderBy('provider_name', 'ASC')->findAll(),
-            'costRows' => $db->table('package_costs')
-                ->where('package_id', $id)
-                ->orderBy('id', 'DESC')
+        ]);
+    }
+
+    /**
+     * Creates or updates a complete package (flights, hotels, transport and pricing)
+     * from the single unified package form.
+     */
+    public function savePackage($packageId = null)
+    {
+        if ($this->isAgentPackageReadOnlyUser()) {
+            return $this->denyPackageManagement();
+        }
+
+        $seasonId = $this->activeSeasonId();
+        if ($seasonId === null) {
+            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+        }
+
+        $packageId = $packageId !== null ? (int) $packageId : (int) $this->request->getPost('package_id');
+        $isEdit = $packageId > 0;
+        $redirectBack = $isEdit ? '/packages/' . $packageId . '/edit' : '/packages/add';
+
+        $post = function (string $key): string {
+            return trim((string) ($this->request->getPost($key) ?? ''));
+        };
+
+        $normalizeDateTime = static function (string $value): string {
+            if ($value === '') {
+                return '';
+            }
+
+            $timestamp = strtotime(str_replace('T', ' ', $value));
+
+            return $timestamp === false ? '' : date('Y-m-d H:i:s', $timestamp);
+        };
+
+        $outboundDeparture = $normalizeDateTime($post('outbound_departure_at'));
+        $returnArrival = $normalizeDateTime($post('return_arrival_at'));
+
+        $payload = [
+            'code'                      => $post('code'),
+            'name'                      => $post('name'),
+            'package_type'              => $post('package_type'),
+            'purchase_price_visa'       => $post('purchase_price_visa'),
+            'outbound_departure_at'     => $outboundDeparture,
+            'return_arrival_at'         => $returnArrival,
+            'default_shirka_company_id' => $post('default_shirka_company_id'),
+            'voucher_instructions_ur'   => $post('voucher_instructions_ur'),
+            'voucher_instructions_en'   => $post('voucher_instructions_en'),
+            'makkah_contact'            => $post('makkah_contact'),
+            'makkah_contact_en'         => $post('makkah_contact_en'),
+            'madina_contact'            => $post('madina_contact'),
+            'madina_contact_en'         => $post('madina_contact_en'),
+            'transport_contact'         => $post('transport_contact'),
+            'transport_contact_en'      => $post('transport_contact_en'),
+            'notes'                     => (string) ($this->request->getPost('notes') ?? ''),
+        ];
+
+        if (! $this->validateData($payload, [
+            'code'                      => 'required|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'name'                      => 'required|min_length[3]|max_length[180]',
+            'package_type'              => 'required|in_list[hajj,umrah]',
+            'purchase_price_visa'       => 'permit_empty|decimal',
+            'outbound_departure_at'     => 'required',
+            'return_arrival_at'         => 'required',
+            'default_shirka_company_id' => 'permit_empty|integer',
+            'voucher_instructions_ur'   => 'permit_empty|max_length[12000]',
+            'voucher_instructions_en'   => 'permit_empty|max_length[12000]',
+            'makkah_contact'            => 'permit_empty|max_length[255]',
+            'makkah_contact_en'         => 'permit_empty|max_length[255]',
+            'madina_contact'            => 'permit_empty|max_length[255]',
+            'madina_contact_en'         => 'permit_empty|max_length[255]',
+            'transport_contact'         => 'permit_empty|max_length[255]',
+            'transport_contact_en'      => 'permit_empty|max_length[255]',
+            'notes'                     => 'permit_empty',
+        ], [
+            'outbound_departure_at' => ['required' => 'Outbound departure date & time is required: it sets the first hotel check-in.'],
+            'return_arrival_at'     => ['required' => 'Return arrival date & time is required: it sets the last hotel check-out.'],
+        ])) {
+            return redirect()->to($redirectBack)->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $tripStartDate = date('Y-m-d', strtotime($outboundDeparture));
+        $tripEndDate = date('Y-m-d', strtotime($returnArrival));
+
+        if (strtotime($tripEndDate) <= strtotime($tripStartDate)) {
+            return redirect()->to($redirectBack)->withInput()
+                ->with('error', 'Return arrival must be after the outbound departure date.');
+        }
+
+        $durationDays = (int) round((strtotime($tripEndDate) - strtotime($tripStartDate)) / 86400);
+
+        $includeHotel = $post('include_hotel') === '1' ? 1 : 0;
+        $includeTicket = $post('include_ticket') === '1' ? 1 : 0;
+        $includeTransport = $post('include_transport') === '1' ? 1 : 0;
+
+        $hotelRows = $this->postedHotelStayRows();
+        $transportRows = $this->postedTransportRows();
+
+        if ($includeHotel === 1 && $this->planHotelStays($hotelRows, $tripStartDate, $tripEndDate) === []) {
+            return redirect()->to($redirectBack)->withInput()
+                ->with('error', 'Add at least one hotel stay with nights so the itinerary covers the trip dates.');
+        }
+
+        $defaultShirkaCompanyId = null;
+        if ($payload['default_shirka_company_id'] !== '') {
+            if (! company_table_ready()) {
+                return redirect()->to($redirectBack)->withInput()->with('error', 'Shirka company table is not available.');
+            }
+
+            $companyRow = db_connect()->table('companies')->select('id')
+                ->where('id', (int) $payload['default_shirka_company_id'])
                 ->get()
-                ->getResultArray(),
-            'hotelRows' => $hotelStayRows,
-            'hotelPricingRows' => $hotelPricingRows,
-            'existingHotelPricing' => $existingHotelPricing,
-            'currentHotelStayCount' => count($hotelStayRows),
-            'stayDistributionValue' => $stayDistributionValue,
-            'stayCheckIn' => $stayCheckIn,
-            'stayCheckOut' => $stayCheckOut,
-            'packageStayStart' => $packageStayStart,
-            'packageStayEnd' => $packageStayEnd,
-            'flightRows' => $db->table('package_flights pf')
+                ->getRowArray();
+
+            if (empty($companyRow)) {
+                return redirect()->to($redirectBack)->withInput()->with('error', 'Selected default shirka company was not found.');
+            }
+
+            $defaultShirkaCompanyId = (int) $payload['default_shirka_company_id'];
+        }
+
+        $seatTotal = 0;
+        foreach ($hotelRows as $hotelRow) {
+            $seatTotal = max($seatTotal, (int) ($hotelRow['total_seats'] ?? 0));
+        }
+
+        $packageData = [
+            'code'                       => $payload['code'],
+            'name'                       => $payload['name'],
+            'package_type'               => $payload['package_type'],
+            'purchase_price_visa'        => $payload['purchase_price_visa'] !== '' ? (float) $payload['purchase_price_visa'] : null,
+            'duration_days'              => $durationDays,
+            'departure_date'             => $outboundDeparture,
+            'arrival_date'               => $returnArrival,
+            'total_seats'                => $seatTotal,
+            'include_hotel'              => $includeHotel,
+            'include_ticket'             => $includeTicket,
+            'include_transport'          => $includeTransport,
+            'default_shirka_company_id'  => $defaultShirkaCompanyId,
+            'voucher_instructions_ur'    => $payload['voucher_instructions_ur'] !== '' ? $payload['voucher_instructions_ur'] : null,
+            'voucher_instructions_en'    => $payload['voucher_instructions_en'] !== '' ? $payload['voucher_instructions_en'] : null,
+            'makkah_contact'             => $payload['makkah_contact'] !== '' ? $payload['makkah_contact'] : null,
+            'makkah_contact_en'          => $payload['makkah_contact_en'] !== '' ? $payload['makkah_contact_en'] : null,
+            'madina_contact'             => $payload['madina_contact'] !== '' ? $payload['madina_contact'] : null,
+            'madina_contact_en'          => $payload['madina_contact_en'] !== '' ? $payload['madina_contact_en'] : null,
+            'transport_contact'          => $payload['transport_contact'] !== '' ? $payload['transport_contact'] : null,
+            'transport_contact_en'       => $payload['transport_contact_en'] !== '' ? $payload['transport_contact_en'] : null,
+            'notes'                      => $payload['notes'] !== '' ? $payload['notes'] : null,
+            'is_active'                  => $post('is_active') === '0' ? 0 : 1,
+            'updated_at'                 => date('Y-m-d H:i:s'),
+        ];
+
+        $flightData = [
+            'flight_id'                 => (int) $post('flight_id'),
+            'flight_source'             => $post('flight_source'),
+            'airline'                   => $post('airline'),
+            'flight_no'                 => $post('flight_no'),
+            'pnr'                       => $post('pnr'),
+            'departure_airport'         => $post('departure_airport'),
+            'arrival_airport'           => $post('arrival_airport'),
+            'departure_at'              => $outboundDeparture,
+            'arrival_at'                => $normalizeDateTime($post('outbound_arrival_at')),
+            'return_airline'            => $post('return_airline'),
+            'return_flight_no'          => $post('return_flight_no'),
+            'return_pnr'                => $post('return_pnr'),
+            'return_departure_airport'  => $post('return_departure_airport'),
+            'return_arrival_airport'    => $post('return_arrival_airport'),
+            'return_departure_at'       => $normalizeDateTime($post('return_departure_at')),
+            'return_arrival_at'         => $returnArrival,
+            'cost_amount'               => $post('ticket_cost'),
+        ];
+
+        $db = db_connect();
+        $db->transBegin();
+
+        try {
+            $packageModel = new PackageModel();
+
+            if ($isEdit) {
+                $existing = $packageModel->where('id', $packageId)->where('season_id', $seasonId)->first();
+                if (empty($existing)) {
+                    throw new \RuntimeException('Package not found in the active season.');
+                }
+
+                $packageModel->update($packageId, $packageData);
+            } else {
+                $packageModel->insert($packageData + [
+                    'season_id'  => $seasonId,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+                $packageId = (int) $packageModel->getInsertID();
+            }
+
+            if ($packageId < 1) {
+                throw new \RuntimeException('Unable to save the package.');
+            }
+
+            $this->syncPackageFlight($packageId, $flightData);
+            $this->syncPackageHotelStays(
+                $packageId,
+                $includeHotel === 1 ? $hotelRows : [],
+                $tripStartDate,
+                $tripEndDate
+            );
+            $this->syncPackageTransports($packageId, $includeTransport === 1 ? $transportRows : []);
+
+            if ($db->transStatus() === false) {
+                throw new \RuntimeException('Unable to save package details.');
+            }
+
+            $db->transCommit();
+        } catch (\Throwable $e) {
+            $db->transRollback();
+
+            return redirect()->to($redirectBack)->withInput()->with('error', $e->getMessage());
+        }
+
+        (new PackagePricingService($db))->recalculatePackage($packageId);
+
+        return redirect()->to('/packages')->with(
+            'success',
+            $isEdit ? 'Package updated successfully.' : 'Package created successfully.'
+        );
+    }
+
+    /**
+     * Shared view data for the unified package form (add + edit).
+     */
+    private function packageFormViewData(?array $row = null): array
+    {
+        $db = db_connect();
+        $packageId = (int) ($row['id'] ?? 0);
+        $isEdit = $packageId > 0;
+
+        if (! $isEdit) {
+            $row = [
+                'id'                        => 0,
+                'code'                      => '',
+                'name'                      => '',
+                'package_type'              => 'umrah',
+                'duration_days'             => '',
+                'purchase_price_visa'       => '',
+                'departure_date'            => '',
+                'arrival_date'              => '',
+                'include_hotel'             => 1,
+                'include_ticket'            => 1,
+                'include_transport'         => 1,
+                'is_active'                 => 1,
+                'default_shirka_company_id' => '',
+                'voucher_instructions_ur'   => '',
+                'voucher_instructions_en'   => '',
+                'makkah_contact'            => '',
+                'makkah_contact_en'         => '',
+                'madina_contact'            => '',
+                'madina_contact_en'         => '',
+                'transport_contact'         => '',
+                'transport_contact_en'      => '',
+                'notes'                     => '',
+            ];
+        }
+
+        $flightRow = [];
+        $hotelStays = [];
+        $transportRows = [];
+        $pricingSummary = null;
+
+        if ($isEdit) {
+            $flightRow = $db->table('package_flights pf')
                 ->select('pf.*, f.pnr, f.departure_airport, f.arrival_airport, f.return_airline, f.return_flight_no, f.return_pnr, f.return_departure_airport, f.return_arrival_airport, f.return_departure_at, f.return_arrival_at')
                 ->join('flights f', 'f.id = pf.flight_id', 'left')
-                ->where('pf.package_id', $id)
+                ->where('pf.package_id', $packageId)
                 ->orderBy('pf.id', 'ASC')
                 ->get()
-                ->getResultArray(),
-            'transportRows' => $db->table('package_transports pt')
+                ->getRowArray() ?? [];
+
+            foreach ($this->packageHotelStayRows($packageId, $db) as $stayRow) {
+                $checkIn = (string) ($stayRow['check_in_date'] ?? '');
+                $checkOut = (string) ($stayRow['check_out_date'] ?? '');
+                $nights = 0;
+                if ($checkIn !== '' && $checkOut !== '' && strtotime($checkOut) > strtotime($checkIn)) {
+                    $nights = (int) round((strtotime($checkOut) - strtotime($checkIn)) / 86400);
+                }
+
+                $hotelStays[] = [
+                    'stay_id'       => (int) ($stayRow['id'] ?? 0),
+                    'city'          => (string) (($stayRow['hotel_city'] ?? '') !== '' ? $stayRow['hotel_city'] : 'Makkah'),
+                    'hotel_id'      => (int) ($stayRow['hotel_id'] ?? 0),
+                    'hotel_name'    => (string) (($stayRow['hotel_name'] ?? '') !== '' ? $stayRow['hotel_name'] : ($stayRow['hotel_master_name'] ?? '')),
+                    'nights'        => $nights,
+                    'check_in_date' => $checkIn,
+                    'check_out_date' => $checkOut,
+                    'sharing_cost'  => (float) ($stayRow['sharing_cost'] ?? 0),
+                    'quad_cost'     => (float) ($stayRow['quad_cost'] ?? 0),
+                    'triple_cost'   => (float) ($stayRow['triple_cost'] ?? 0),
+                    'double_cost'   => (float) ($stayRow['double_cost'] ?? 0),
+                    'total_seats'   => (int) ($stayRow['total_seats'] ?? 0),
+                    'auto'          => '',
+                ];
+            }
+
+            foreach ($db->table('package_transports pt')
                 ->select('pt.*, t.transport_name AS master_transport_name')
                 ->join('transports t', 't.id = pt.transport_id', 'left')
-                ->where('pt.package_id', $id)
-                ->orderBy('pt.id', 'DESC')
+                ->where('pt.package_id', $packageId)
+                ->orderBy('pt.id', 'ASC')
                 ->get()
-                ->getResultArray(),
-            'pricingSummary' => $pricingSummary,
-            'supplierRows' => $db->tableExists('suppliers')
-                ? $db->table('suppliers')->where('is_active', 1)->orderBy('supplier_name', 'ASC')->get()->getResultArray()
+                ->getResultArray() as $transportRow) {
+                $transportRows[] = [
+                    'transport_id'   => (int) ($transportRow['transport_id'] ?? 0),
+                    'transport_name' => (string) (($transportRow['master_transport_name'] ?? '') !== '' ? $transportRow['master_transport_name'] : ''),
+                    'seat_capacity'  => (int) ($transportRow['seat_capacity'] ?? 0),
+                    'cost_amount'    => (float) ($transportRow['cost_amount'] ?? 0),
+                ];
+            }
+
+            $pricingSummary = (new PackagePricingService($db))->summarizePackage($packageId);
+        }
+
+        if ($hotelStays === []) {
+            $hotelStays = [
+                $this->defaultHotelStayRow('Makkah', '8'),
+                $this->defaultHotelStayRow('Madina', '3'),
+                $this->defaultHotelStayRow('Makkah', '', 'rest'),
+            ];
+        }
+
+        if ($transportRows === []) {
+            $transportRows = [[
+                'transport_id'   => 0,
+                'transport_name' => '',
+                'seat_capacity'  => '',
+                'cost_amount'    => '',
+            ]];
+        }
+
+        $toDateTimeLocal = static function ($value): string {
+            $value = trim((string) ($value ?? ''));
+
+            return $value === '' ? '' : date('Y-m-d\TH:i', strtotime($value));
+        };
+
+        $flight = [
+            'flight_id'                => (int) ($flightRow['flight_id'] ?? 0),
+            'airline'                  => (string) ($flightRow['airline'] ?? ''),
+            'flight_no'                => (string) ($flightRow['flight_no'] ?? ''),
+            'pnr'                      => (string) ($flightRow['pnr'] ?? ''),
+            'departure_airport'        => (string) ($flightRow['departure_airport'] ?? ''),
+            'arrival_airport'          => (string) ($flightRow['arrival_airport'] ?? ''),
+            'departure_at'             => $toDateTimeLocal($flightRow['departure_at'] ?? ''),
+            'arrival_at'               => $toDateTimeLocal($flightRow['arrival_at'] ?? ''),
+            'return_airline'           => (string) ($flightRow['return_airline'] ?? ''),
+            'return_flight_no'         => (string) ($flightRow['return_flight_no'] ?? ''),
+            'return_pnr'               => (string) ($flightRow['return_pnr'] ?? ''),
+            'return_departure_airport' => (string) ($flightRow['return_departure_airport'] ?? ''),
+            'return_arrival_airport'   => (string) ($flightRow['return_arrival_airport'] ?? ''),
+            'return_departure_at'      => $toDateTimeLocal($flightRow['return_departure_at'] ?? ''),
+            'return_arrival_at'        => $toDateTimeLocal($flightRow['return_arrival_at'] ?? ''),
+            'cost_amount'              => (float) ($flightRow['cost_amount'] ?? 0),
+        ];
+
+        if ($flight['departure_at'] === '') {
+            $flight['departure_at'] = $toDateTimeLocal($row['departure_date'] ?? '');
+        }
+        if ($flight['return_arrival_at'] === '') {
+            $flight['return_arrival_at'] = $toDateTimeLocal($row['arrival_date'] ?? '');
+        }
+
+        return [
+            'row'             => $row,
+            'isEdit'          => $isEdit,
+            'formAction'      => $isEdit ? site_url('packages/save/' . $packageId) : site_url('packages/save'),
+            'companies'       => company_table_ready()
+                ? $db->table('companies')->orderBy('name', 'ASC')->get()->getResultArray()
                 : [],
-            'latestCostSheet' => $latestCostSheet,
-            'costSheetItems' => $costSheetItems,
-            'costSheetLines' => $costSheetLines,
-            'success'     => session()->getFlashdata('success'),
-            'error'       => session()->getFlashdata('error'),
-            'errors'      => session()->getFlashdata('errors') ?: [],
+            'hotelOptions'    => (new HotelModel())->orderBy('name', 'ASC')->findAll(),
+            'flightTemplates' => $db->table('flights')->orderBy('departure_at', 'DESC')->get()->getResultArray(),
+            'transportOptions' => (new TransportModel())->orderBy('provider_name', 'ASC')->findAll(),
+            'flight'          => $flight,
+            'hotelStays'      => $hotelStays,
+            'transportRows'   => $transportRows,
+            'pricingSummary'  => $pricingSummary,
+            'success'         => session()->getFlashdata('success'),
+            'error'           => session()->getFlashdata('error'),
+            'errors'          => session()->getFlashdata('errors') ?: [],
+        ];
+    }
+
+    private function defaultHotelStayRow(string $city, string $nights, ?string $auto = null): array
+    {
+        return [
+            'stay_id'        => 0,
+            'city'           => $city,
+            'hotel_id'       => 0,
+            'hotel_name'     => '',
+            'nights'         => $nights,
+            'check_in_date'  => '',
+            'check_out_date' => '',
+            'sharing_cost'   => '',
+            'quad_cost'      => '',
+            'triple_cost'    => '',
+            'double_cost'    => '',
+            'total_seats'    => '',
+            'auto'           => $auto ?? $nights,
+        ];
+    }
+
+    private function postedHotelStayRows(): array
+    {
+        $rawRows = $this->request->getPost('hotel_stay');
+        if (! is_array($rawRows)) {
+            return [];
+        }
+
+        $toAmount = static function ($value): float {
+            $value = trim((string) ($value ?? ''));
+
+            return $value === '' ? 0.0 : max(0.0, (float) $value);
+        };
+
+        $rows = [];
+        foreach ($rawRows as $rawRow) {
+            if (! is_array($rawRow)) {
+                continue;
+            }
+
+            $rows[] = [
+                'city'         => trim((string) ($rawRow['city'] ?? '')),
+                'hotel_id'     => (int) ($rawRow['hotel_id'] ?? 0),
+                'hotel_name'   => trim((string) ($rawRow['hotel_name'] ?? '')),
+                'nights'       => max(0, (int) ($rawRow['nights'] ?? 0)),
+                'sharing_cost' => $toAmount($rawRow['sharing_cost'] ?? ''),
+                'quad_cost'    => $toAmount($rawRow['quad_cost'] ?? ''),
+                'triple_cost'  => $toAmount($rawRow['triple_cost'] ?? ''),
+                'double_cost'  => $toAmount($rawRow['double_cost'] ?? ''),
+                'total_seats'  => max(0, (int) ($rawRow['total_seats'] ?? 0)),
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function postedTransportRows(): array
+    {
+        $rawRows = $this->request->getPost('transport_row');
+        if (! is_array($rawRows)) {
+            return [];
+        }
+
+        $rows = [];
+        foreach ($rawRows as $rawRow) {
+            if (! is_array($rawRow)) {
+                continue;
+            }
+
+            $transportId = (int) ($rawRow['transport_id'] ?? 0);
+            $transportName = trim((string) ($rawRow['transport_name'] ?? ''));
+            $cost = trim((string) ($rawRow['cost_amount'] ?? ''));
+
+            if ($transportId < 1 && $transportName === '') {
+                continue;
+            }
+
+            $rows[] = [
+                'transport_id'   => $transportId,
+                'transport_name' => $transportName,
+                'seat_capacity'  => trim((string) ($rawRow['seat_capacity'] ?? '')),
+                'cost_amount'    => $cost === '' ? 0.0 : max(0.0, (float) $cost),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Chains the stay nights from the trip start date and always covers the full trip window.
+     */
+    private function planHotelStays(array $rows, string $tripStart, string $tripEnd): array
+    {
+        $startTs = strtotime($tripStart);
+        $endTs = strtotime($tripEnd);
+
+        if ($startTs === false || $endTs === false || $endTs <= $startTs) {
+            return [];
+        }
+
+        $plan = [];
+        $cursorTs = $startTs;
+
+        foreach ($rows as $row) {
+            $nights = max(0, (int) ($row['nights'] ?? 0));
+            $hotelId = (int) ($row['hotel_id'] ?? 0);
+            $hotelName = trim((string) ($row['hotel_name'] ?? ''));
+
+            if ($nights < 1 || ($hotelId < 1 && $hotelName === '')) {
+                continue;
+            }
+
+            $checkInTs = $cursorTs;
+            $checkOutTs = strtotime('+' . $nights . ' day', $checkInTs);
+            if ($checkOutTs === false || $checkOutTs > $endTs) {
+                $checkOutTs = $endTs;
+            }
+
+            if ($checkOutTs <= $checkInTs) {
+                break;
+            }
+
+            $plan[] = [
+                'hotel_id'       => $hotelId,
+                'hotel_name'     => $hotelName,
+                'city'           => (string) ($row['city'] ?? ''),
+                'check_in_date'  => date('Y-m-d', $checkInTs),
+                'check_out_date' => date('Y-m-d', $checkOutTs),
+                'sharing_cost'   => (float) ($row['sharing_cost'] ?? 0),
+                'quad_cost'      => (float) ($row['quad_cost'] ?? 0),
+                'triple_cost'    => (float) ($row['triple_cost'] ?? 0),
+                'double_cost'    => (float) ($row['double_cost'] ?? 0),
+                'total_seats'    => (int) ($row['total_seats'] ?? 0),
+            ];
+
+            $cursorTs = $checkOutTs;
+        }
+
+        if ($plan === []) {
+            return [];
+        }
+
+        if ($cursorTs < $endTs) {
+            $lastIndex = count($plan) - 1;
+            $plan[$lastIndex]['check_out_date'] = date('Y-m-d', $endTs);
+        }
+
+        return $plan;
+    }
+
+    private function resolveHotelMaster(int $hotelId, string $hotelName, string $city): array
+    {
+        $db = db_connect();
+
+        if ($hotelId > 0) {
+            $existing = $db->table('hotels')->select('id, name')->where('id', $hotelId)->get()->getRowArray();
+            if (! empty($existing)) {
+                return ['id' => (int) $existing['id'], 'name' => (string) $existing['name']];
+            }
+        }
+
+        $hotelName = trim($hotelName);
+        if ($hotelName === '') {
+            return ['id' => 0, 'name' => ''];
+        }
+
+        $existing = $db->query('SELECT id, name FROM hotels WHERE LOWER(name) = ? LIMIT 1', [mb_strtolower($hotelName)])->getRowArray();
+        if (! empty($existing)) {
+            return ['id' => (int) $existing['id'], 'name' => (string) $existing['name']];
+        }
+
+        $db->table('hotels')->insert([
+            'name'        => $hotelName,
+            'city'        => $city !== '' ? $city : null,
+            'star_rating' => 3,
+            'created_at'  => date('Y-m-d H:i:s'),
+            'updated_at'  => date('Y-m-d H:i:s'),
         ]);
+
+        return ['id' => (int) $db->insertID(), 'name' => $hotelName];
+    }
+
+    private function syncPackageFlight(int $packageId, array $flight): void
+    {
+        $db = db_connect();
+        $db->table('package_flights')->where('package_id', $packageId)->delete();
+
+        $hasDetails = $flight['airline'] !== ''
+            || $flight['flight_no'] !== ''
+            || $flight['pnr'] !== ''
+            || $flight['departure_airport'] !== ''
+            || $flight['arrival_airport'] !== ''
+            || $flight['return_airline'] !== ''
+            || $flight['return_flight_no'] !== '';
+
+        if (! $hasDetails) {
+            return;
+        }
+
+        $masterId = 0;
+        if ((int) $flight['flight_id'] > 0 && $flight['flight_source'] === 'existing') {
+            $existing = $db->table('flights')->select('id')->where('id', (int) $flight['flight_id'])->get()->getRowArray();
+            $masterId = (int) ($existing['id'] ?? 0);
+        }
+
+        if ($masterId < 1) {
+            $db->table('flights')->insert([
+                'airline'                  => $flight['airline'] !== '' ? $flight['airline'] : 'Unknown',
+                'flight_no'                => $flight['flight_no'] !== '' ? $flight['flight_no'] : '-',
+                'pnr'                      => $flight['pnr'] !== '' ? $flight['pnr'] : null,
+                'departure_airport'        => $flight['departure_airport'] !== '' ? $flight['departure_airport'] : null,
+                'arrival_airport'          => $flight['arrival_airport'] !== '' ? $flight['arrival_airport'] : null,
+                'departure_at'             => $flight['departure_at'] !== '' ? $flight['departure_at'] : null,
+                'arrival_at'               => $flight['arrival_at'] !== '' ? $flight['arrival_at'] : null,
+                'return_airline'           => $flight['return_airline'] !== '' ? $flight['return_airline'] : null,
+                'return_flight_no'         => $flight['return_flight_no'] !== '' ? $flight['return_flight_no'] : null,
+                'return_pnr'               => $flight['return_pnr'] !== '' ? $flight['return_pnr'] : null,
+                'return_departure_airport' => $flight['return_departure_airport'] !== '' ? $flight['return_departure_airport'] : null,
+                'return_arrival_airport'   => $flight['return_arrival_airport'] !== '' ? $flight['return_arrival_airport'] : null,
+                'return_departure_at'      => $flight['return_departure_at'] !== '' ? $flight['return_departure_at'] : null,
+                'return_arrival_at'        => $flight['return_arrival_at'] !== '' ? $flight['return_arrival_at'] : null,
+                'created_at'               => date('Y-m-d H:i:s'),
+                'updated_at'               => date('Y-m-d H:i:s'),
+            ]);
+
+            $masterId = (int) $db->insertID();
+        }
+
+        $db->table('package_flights')->insert([
+            'package_id'   => $packageId,
+            'flight_id'    => $masterId > 0 ? $masterId : null,
+            'airline'      => $flight['airline'],
+            'flight_no'    => $flight['flight_no'],
+            'departure_at' => $flight['departure_at'] !== '' ? $flight['departure_at'] : null,
+            'arrival_at'   => $flight['arrival_at'] !== '' ? $flight['arrival_at'] : null,
+            'cost_amount'  => (float) $flight['cost_amount'],
+            'created_at'   => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    private function syncPackageHotelStays(int $packageId, array $rows, string $tripStart, string $tripEnd): void
+    {
+        $db = db_connect();
+
+        $db->table('package_hotel_stays')->where('package_id', $packageId)->delete();
+        $db->table('package_hotels')->where('package_id', $packageId)->delete();
+
+        if ($tripStart === '' || $tripEnd === '') {
+            return;
+        }
+
+        $plan = $this->planHotelStays($rows, $tripStart, $tripEnd);
+        if ($plan === []) {
+            return;
+        }
+
+        $resolved = [];
+        foreach ($plan as $stay) {
+            $hotel = $this->resolveHotelMaster((int) $stay['hotel_id'], (string) $stay['hotel_name'], (string) $stay['city']);
+            if ($hotel['id'] < 1) {
+                continue;
+            }
+
+            $stay['hotel_id'] = $hotel['id'];
+            $stay['hotel_name'] = $hotel['name'];
+            $resolved[] = $stay;
+        }
+
+        if ($resolved === []) {
+            return;
+        }
+
+        $costByHotel = [];
+        foreach ($resolved as $stay) {
+            $hotelId = (int) $stay['hotel_id'];
+            $hasCost = ((float) $stay['sharing_cost'] + (float) $stay['quad_cost'] + (float) $stay['triple_cost'] + (float) $stay['double_cost']) > 0;
+
+            if (! isset($costByHotel[$hotelId]) || ($hasCost && ((float) $costByHotel[$hotelId]['sharing_cost'] + (float) $costByHotel[$hotelId]['quad_cost'] + (float) $costByHotel[$hotelId]['triple_cost'] + (float) $costByHotel[$hotelId]['double_cost']) <= 0)) {
+                $costByHotel[$hotelId] = [
+                    'sharing_cost' => (float) $stay['sharing_cost'],
+                    'quad_cost'    => (float) $stay['quad_cost'],
+                    'triple_cost'  => (float) $stay['triple_cost'],
+                    'double_cost'  => (float) $stay['double_cost'],
+                    'total_seats'  => (int) $stay['total_seats'],
+                ];
+            }
+        }
+
+        $profileIds = [];
+        foreach ($resolved as $stay) {
+            $hotelId = (int) $stay['hotel_id'];
+
+            if (! isset($profileIds[$hotelId])) {
+                $cost = $costByHotel[$hotelId] ?? [
+                    'sharing_cost' => 0.0,
+                    'quad_cost'    => 0.0,
+                    'triple_cost'  => 0.0,
+                    'double_cost'  => 0.0,
+                    'total_seats'  => 0,
+                ];
+
+                $db->table('package_hotels')->insert([
+                    'package_id'     => $packageId,
+                    'hotel_id'       => $hotelId,
+                    'hotel_name'     => $stay['hotel_name'],
+                    'check_in_date'  => $stay['check_in_date'],
+                    'check_out_date' => $stay['check_out_date'],
+                    'room_type'      => null,
+                    'cost_amount'    => 0,
+                    'sharing_cost'   => $cost['sharing_cost'],
+                    'quad_cost'      => $cost['quad_cost'],
+                    'triple_cost'    => $cost['triple_cost'],
+                    'double_cost'    => $cost['double_cost'],
+                    'total_seats'    => $cost['total_seats'],
+                    'created_at'     => date('Y-m-d H:i:s'),
+                ]);
+
+                $profileIds[$hotelId] = (int) $db->insertID();
+            }
+
+            $db->table('package_hotel_stays')->insert([
+                'package_id'        => $packageId,
+                'package_hotel_id'  => $profileIds[$hotelId],
+                'check_in_date'     => $stay['check_in_date'],
+                'check_out_date'    => $stay['check_out_date'],
+                'created_at'        => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        foreach ($profileIds as $profileId) {
+            $range = $db->table('package_hotel_stays')
+                ->select('MIN(check_in_date) AS min_check_in, MAX(check_out_date) AS max_check_out')
+                ->where('package_hotel_id', $profileId)
+                ->get()
+                ->getRowArray();
+
+            $db->table('package_hotels')->where('id', $profileId)->update([
+                'check_in_date'  => (string) ($range['min_check_in'] ?? ''),
+                'check_out_date' => (string) ($range['max_check_out'] ?? ''),
+            ]);
+        }
+    }
+
+    private function syncPackageTransports(int $packageId, array $rows): void
+    {
+        $db = db_connect();
+        $db->table('package_transports')->where('package_id', $packageId)->delete();
+
+        if ($rows === []) {
+            return;
+        }
+
+        foreach ($rows as $row) {
+            $transportId = (int) ($row['transport_id'] ?? 0);
+            $transportName = trim((string) ($row['transport_name'] ?? ''));
+
+            $master = [];
+            if ($transportId > 0) {
+                $master = (new TransportModel())->find($transportId) ?? [];
+                if ($master === []) {
+                    $transportId = 0;
+                }
+            }
+
+            if ($master === [] && $transportName !== '') {
+                $db->table('transports')->insert([
+                    'transport_name' => $transportName,
+                    'provider_name'  => $transportName,
+                    'vehicle_type'   => null,
+                    'seat_capacity'  => (int) ($row['seat_capacity'] ?? 0),
+                    'created_at'     => date('Y-m-d H:i:s'),
+                    'updated_at'     => date('Y-m-d H:i:s'),
+                ]);
+
+                $transportId = (int) $db->insertID();
+                $master = ['provider_name' => $transportName, 'vehicle_type' => null, 'seat_capacity' => (int) ($row['seat_capacity'] ?? 0)];
+            }
+
+            if ($transportId < 1) {
+                continue;
+            }
+
+            $seatCapacity = (string) ($row['seat_capacity'] ?? '') !== ''
+                ? (int) $row['seat_capacity']
+                : (int) ($master['seat_capacity'] ?? 0);
+
+            $db->table('package_transports')->insert([
+                'package_id'    => $packageId,
+                'transport_id'  => $transportId,
+                'provider_name' => (string) ($master['provider_name'] ?? $transportName),
+                'vehicle_type'  => (string) ($master['vehicle_type'] ?? ''),
+                'seat_capacity' => $seatCapacity,
+                'cost_amount'   => (float) ($row['cost_amount'] ?? 0),
+                'created_at'    => date('Y-m-d H:i:s'),
+            ]);
+        }
     }
 
     public function createPackage()
@@ -693,7 +1345,7 @@ class PackageController extends BaseController
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
-        // Normalize datetime-local (Y-m-dTH:i) → Y-m-d H:i:s for DB
+        // Normalize datetime-local (Y-m-dTH:i) â†’ Y-m-d H:i:s for DB
         $normDatetime = static function (string $v): string {
             if ($v === '') return '';
             return date('Y-m-d H:i:s', strtotime(str_replace('T', ' ', $v)));
@@ -803,7 +1455,7 @@ class PackageController extends BaseController
         if ($seasonId === null) {
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
-        // Normalize datetime-local (Y-m-dTH:i) → Y-m-d H:i:s for DB
+        // Normalize datetime-local (Y-m-dTH:i) â†’ Y-m-d H:i:s for DB
         $normDatetime = static function (string $v): string {
             if ($v === '') return '';
             return date('Y-m-d H:i:s', strtotime(str_replace('T', ' ', $v)));
@@ -2280,7 +2932,7 @@ class PackageController extends BaseController
         $durationDays = (int) ($package['duration_days'] ?? 0);
         $rawEnd = (string) ($package['arrival_date'] ?? '');
 
-        // Normalize to date-only (Y-m-d) — departure/arrival may be stored as DATETIME
+        // Normalize to date-only (Y-m-d) â€” departure/arrival may be stored as DATETIME
         $toDate = static function (string $v): string {
             if ($v === '') return '';
             $ts = strtotime($v);
