@@ -37,6 +37,8 @@ class PackageModel extends SeasonScopedModel
         'include_hotel',
         'include_ticket',
         'include_transport',
+        'include_ziarat',
+        'ziarat_cost',
         'default_shirka_company_id',
         'voucher_instructions_ur',
         'voucher_instructions_en',
@@ -50,5 +52,6 @@ class PackageModel extends SeasonScopedModel
         'created_at',
         'updated_at',
         'purchase_price_visa',
+        'exchange_rate',
     ];
 }

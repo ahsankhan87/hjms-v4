@@ -129,6 +129,7 @@ $routes->post('users/update', 'UserController::updateUser', ['filter' => 'webaut
 $routes->post('users/delete', 'UserController::deleteUser', ['filter' => 'webauth:users.delete']);
 $routes->get('packages', 'PackageController::index', ['filter' => 'webauth:packages.view']);
 $routes->get('packages/inactive', 'PackageController::inactive', ['filter' => 'webauth:packages.view']);
+$routes->get('packages/print', 'PackageController::printList', ['filter' => 'webauth:packages.view']);
 $routes->post('packages', 'PackageController::createPackage', ['filter' => 'webauth:packages.create']);
 $routes->get('packages/add', 'PackageController::add', ['filter' => 'webauth:packages.create']);
 $routes->get('packages/(:num)/edit', 'PackageController::edit/$1', ['filter' => 'webauth:packages.edit']);
@@ -204,6 +205,7 @@ $routes->post('main-company/update', 'MainCompanyController::update', ['filter' 
 $routes->get('hotels', 'HotelController::index', ['filter' => 'webauth:hotels.view']);
 $routes->get('hotels/add', 'HotelController::add', ['filter' => 'webauth:hotels.create']);
 $routes->get('hotels/rooming-list', 'HotelController::roomingList', ['filter' => 'webauth:hotels.view']);
+$routes->get('hotels/rooming-list/print', 'HotelController::roomingListPrint', ['filter' => 'webauth:hotels.view']);
 $routes->get('hotels/(:num)', 'HotelController::details/$1', ['filter' => 'webauth:hotels.view']);
 $routes->get('hotels/(:num)/edit', 'HotelController::edit/$1', ['filter' => 'webauth:hotels.edit']);
 $routes->post('hotels', 'HotelController::createHotel', ['filter' => 'webauth:hotels.create']);

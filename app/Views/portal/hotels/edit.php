@@ -87,6 +87,10 @@
                     </div>
                 </div>
 
+                <div class="border-t border-slate-100 pt-3">
+                    <?= view('portal/hotels/_rates', ['rates' => old('rates') ?: ($hotelRates ?? [])]) ?>
+                </div>
+
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
                     <a href="<?= site_url('/hotels') ?>" class="btn btn-md btn-secondary">Back</a>
                     <button type="submit" class="btn btn-md btn-primary">
@@ -116,17 +120,24 @@
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2 overflow-auto">
             <h3 class="text-sm font-semibold text-slate-800">Room Types & Allocation</h3>
 
-            <form method="post" action="<?= site_url('/hotels/rooms') ?>" class="mt-4 grid gap-3 md:grid-cols-4">
+            <form method="post" action="<?= site_url('/hotels/rooms') ?>" class="mt-4 grid gap-3 md:grid-cols-6">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Room Type</label>
-                    <input name="room_type" list="room-type-options" required placeholder="Double / Triple / Custom" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    <datalist id="room-type-options">
-                        <?php foreach (($defaultRoomTypes ?? []) as $defaultRoomType): ?>
-                            <option value="<?= esc((string) $defaultRoomType) ?>"></option>
+                    <select name="room_type" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <?php foreach (($tierOptions ?? []) as $tierKey => $tierLabelText): ?>
+                            <option value="<?= esc($tierKey) ?>"><?= esc($tierLabelText) ?></option>
                         <?php endforeach; ?>
-                    </datalist>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Rate (SAR)</label>
+                    <input type="number" step="0.01" min="0" name="room_cost" placeholder="Per person / night" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Beds / Room</label>
+                    <input type="number" name="beds" min="0" placeholder="Auto" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Total Rooms</label>
@@ -134,68 +145,65 @@
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Allocated Rooms</label>
-                    <input type="number" name="allocated_rooms" min="0" value="0" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <input type="number" name="allocated_rooms" min="0" value="0" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" title="Recalculated automatically from confirmed bookings">
                 </div>
                 <div class="flex items-end">
                     <button type="submit" class="btn btn-md btn-primary w-full">Add Room Type</button>
                 </div>
             </form>
 
-            <div class="mt-5 overflow-auto">
-                <table class="list-table">
-                    <thead class="bg-slate-50 text-slate-600">
-                        <tr>
-                            <th class="px-3 py-2 text-left">Type</th>
-                            <th class="px-3 py-2 text-left">Total</th>
-                            <th class="px-3 py-2 text-left">Allocated</th>
-                            <th class="px-3 py-2 text-left">Available</th>
-                            <th class="px-3 py-2 text-left">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($rooms)): ?>
-                            <tr>
-                                <td colspan="5" class="px-3 py-5 text-center text-slate-500">No room types added.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($rooms as $room): ?>
-                                <?php $available = max(0, (int) $room['total_rooms'] - (int) $room['allocated_rooms']); ?>
-                                <tr class="border-t border-slate-100">
-                                    <td class="px-3 py-2">
-                                        <form method="post" action="<?= site_url('/hotels/rooms/update') ?>" class="grid gap-2 md:grid-cols-5 items-center">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
-                                            <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">
-                                            <input name="room_type" value="<?= esc($room['room_type']) ?>" required class="rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <input type="number" name="total_rooms" min="0" value="<?= esc($room['total_rooms']) ?>" required class="w-24 rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <input type="number" name="allocated_rooms" min="0" value="<?= esc($room['allocated_rooms']) ?>" required class="w-24 rounded-lg border border-slate-300 px-2 py-1 text-sm">
-                                    </td>
-                                    <td class="px-3 py-2"><?= esc($available) ?></td>
-                                    <td class="px-3 py-2">
-                                        <div class="flex items-center space-x-2">
-                                            <button type="submit" class="icon-btn" title="Update Room Allocation">
-                                                <i class="fa-solid fa-floppy-disk"></i>
-                                            </button>
-                                            </form>
-                                            <form method="post" action="<?= site_url('/hotels/rooms/delete') ?>" class="inline">
-                                                <?= csrf_field() ?>
-                                                <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
-                                                <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">
-                                                <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this room type?')" title="Delete Room Type">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+            <div class="mt-5 space-y-2">
+                <?php if (empty($rooms)): ?>
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm text-slate-500">No room types added yet.</div>
+                <?php else: ?>
+                    <?php foreach ($rooms as $room): ?>
+                        <?php $available = max(0, (int) $room['total_rooms'] - (int) $room['allocated_rooms']); ?>
+                        <div class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-2">
+                            <form method="post" action="<?= site_url('/hotels/rooms/update') ?>" class="grid flex-1 gap-2 md:grid-cols-12 md:items-end">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
+                                <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">
+                                <div class="md:col-span-4">
+                                    <label class="mb-1 block text-[11px] font-medium text-slate-500">Room Type</label>
+                                    <input name="room_type" value="<?= esc($room['room_type']) ?>" required class="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="mb-1 block text-[11px] font-medium text-slate-500">Rate (SAR / person / night)</label>
+                                    <input type="number" step="0.01" min="0" name="room_cost" value="<?= esc((string) ((float) ($room['room_cost'] ?? 0) > 0 ? (float) $room['room_cost'] : '')) ?>" placeholder="0.00" class="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm">
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label class="mb-1 block text-[11px] font-medium text-slate-500">Beds</label>
+                                    <input type="number" name="beds" min="0" value="<?= esc((string) (int) ($room['beds'] ?? 0)) ?>" class="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm">
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label class="mb-1 block text-[11px] font-medium text-slate-500">Total</label>
+                                    <input type="number" name="total_rooms" min="0" value="<?= esc($room['total_rooms']) ?>" required class="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm">
+                                </div>
+                                <div class="md:col-span-1">
+                                    <label class="mb-1 block text-[11px] font-medium text-slate-500">Allocated</label>
+                                    <input type="number" name="allocated_rooms" min="0" value="<?= esc($room['allocated_rooms']) ?>" required class="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm bg-slate-50" title="Recalculated automatically from confirmed bookings">
+                                </div>
+                                <div class="md:col-span-1 text-xs text-slate-600">
+                                    <div class="text-[11px] font-medium text-slate-500">Available</div>
+                                    <div class="py-1 font-semibold"><?= esc($available) ?></div>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <button type="submit" class="btn btn-sm btn-primary w-full inline-flex items-center justify-center gap-1 px-2 py-1 text-xs">
+                                        <i class="fa-solid fa-floppy-disk"></i><span>Save</span>
+                                    </button>
+                                </div>
+                            </form>
+                            <form method="post" action="<?= site_url('/hotels/rooms/delete') ?>" class="pb-0.5">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
+                                <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">
+                                <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this room type?')" title="Delete Room Type">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </article>
     </section>

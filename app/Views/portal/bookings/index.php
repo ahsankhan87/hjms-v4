@@ -10,6 +10,7 @@ $statusMap = [
 ];
 $tierMap = [
     'sharing' => ['bg' => 'bg-violet-100', 'text' => 'text-violet-700'],
+    'quint'   => ['bg' => 'bg-teal-100',   'text' => 'text-teal-700'],
     'quad'    => ['bg' => 'bg-sky-100',    'text' => 'text-sky-700'],
     'triple'  => ['bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
     'double'  => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],
@@ -44,9 +45,14 @@ $pricingModeMap = [
                 <h2 class="text-base font-semibold text-slate-900">Bookings</h2>
                 <p class="mt-0.5 text-xs text-slate-500"><?= count($rows) ?> booking<?= count($rows) !== 1 ? 's' : '' ?> in active season</p>
             </div>
-            <a href="<?= site_url('/bookings/add') ?>" class="btn btn-sm btn-primary">
-                <i class="fa-solid fa-plus mr-1"></i>Add Booking
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="<?= site_url('/hotels/rooming-list') ?>" class="btn btn-sm btn-secondary">
+                    <i class="fa-solid fa-bed mr-1"></i>Rooming List
+                </a>
+                <a href="<?= site_url('/bookings/add') ?>" class="btn btn-sm btn-primary">
+                    <i class="fa-solid fa-plus mr-1"></i>Add Booking
+                </a>
+            </div>
         </div>
 
         <!-- Table -->

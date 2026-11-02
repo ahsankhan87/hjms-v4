@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\HotelModel;
 use App\Models\HotelRoomModel;
+use App\Services\HotelRateService;
+use App\Services\RoomAllocationService;
 
 class HotelController extends BaseController
 {
@@ -67,6 +69,8 @@ class HotelController extends BaseController
             'rooms'       => $rooms,
             'galleryImages' => $this->parseHotelGallery($row['image_gallery'] ?? null),
             'defaultRoomTypes' => $this->defaultRoomTypes(),
+            'tierOptions' => HotelRateService::TIER_LABELS,
+            'hotelRates'  => (new HotelRateService())->ratesForHotel($id),
             'success'     => session()->getFlashdata('success'),
             'error'       => session()->getFlashdata('error'),
             'errors'      => session()->getFlashdata('errors') ?: [],
@@ -99,22 +103,67 @@ class HotelController extends BaseController
         ]);
     }
 
+    public function roomingListPrint()
+    {
+        $seasonId = $this->activeSeasonId();
+        $db = db_connect();
+
+        $packageId = (int) ($this->request->getGet('package_id') ?? 0);
+        $city = trim((string) ($this->request->getGet('city') ?? ''));
+
+        $rooming = (new RoomAllocationService($db))->roomingListForPackage($packageId, $city);
+
+        if (empty($rooming['package'])) {
+            $fallback = $db->table('packages')
+                ->select('id')
+                ->where('season_id', $seasonId)
+                ->orderBy('departure_date', 'DESC')
+                ->orderBy('id', 'DESC')
+                ->get()
+                ->getRowArray();
+
+            $packageId = (int) ($fallback['id'] ?? 0);
+            $rooming = (new RoomAllocationService($db))->roomingListForPackage($packageId, $city);
+        }
+
+        return view('portal/hotels/rooming_print', [
+            'rooming'   => $rooming,
+            'city'      => $city,
+            'packageId' => $packageId,
+            'company'   => main_company(),
+            'autoPrint' => (string) ($this->request->getGet('auto') ?? '') === '1',
+        ]);
+    }
+
     public function roomingList(): string
     {
-        $rows = db_connect()->table('hotel_rooms hr')
-            ->select('hr.*, h.name AS hotel_name, h.city AS hotel_city, h.star_rating')
-            ->join('hotels h', 'h.id = hr.hotel_id', 'inner')
-            ->orderBy('h.name', 'ASC')
-            ->orderBy('hr.room_type', 'ASC')
+        $db = db_connect();
+
+        $packages = $db->table('packages')
+            ->select('id, code, name, departure_date, arrival_date, season_id')
+            ->where('season_id', $this->activeSeasonId())
+            ->orderBy('departure_date', 'DESC')
+            ->orderBy('id', 'DESC')
             ->get()
             ->getResultArray();
 
+        $packageId = (int) ($this->request->getGet('package_id') ?? 0);
+        if ($packageId < 1 && $packages !== []) {
+            $packageId = (int) ($packages[0]['id'] ?? 0);
+        }
+
+        $city = trim((string) ($this->request->getGet('city') ?? ''));
+        $rooming = (new RoomAllocationService($db))->roomingListForPackage($packageId, $city);
+
         return view('portal/hotels/rooming_list', [
             'title'       => 'HJMS ERP | Rooming List',
-            'headerTitle' => 'Hotel Management',
+            'headerTitle' => 'Rooming List',
             'activePage'  => 'hotels',
             'userEmail'   => (string) session('user_email'),
-            'rows'        => $rows,
+            'packages'    => $packages,
+            'packageId'   => $packageId,
+            'city'        => $city,
+            'rooming'     => $rooming,
             'success'     => session()->getFlashdata('success'),
             'error'       => session()->getFlashdata('error'),
             'errors'      => session()->getFlashdata('errors') ?: [],
@@ -177,6 +226,9 @@ class HotelController extends BaseController
                 'created_at'  => date('Y-m-d H:i:s'),
                 'updated_at'  => date('Y-m-d H:i:s'),
             ]);
+
+            $createdHotelId = (int) $model->getInsertID();
+            (new HotelRateService())->syncTierRates($createdHotelId, (array) ($this->request->getPost('rates') ?? []));
 
             return redirect()->to('/hotels')->with('success', 'Hotel created successfully.');
         } catch (\Throwable $e) {
@@ -259,6 +311,8 @@ class HotelController extends BaseController
 
             $model->update($hotelId, $data);
 
+            (new HotelRateService())->syncTierRates($hotelId, (array) ($this->request->getPost('rates') ?? []));
+
             return redirect()->to('/hotels')->with('success', 'Hotel updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/hotels/' . $hotelId . '/edit')->withInput()->with('error', $e->getMessage());
@@ -333,6 +387,8 @@ class HotelController extends BaseController
         $payload = [
             'hotel_id'         => (int) $this->request->getPost('hotel_id'),
             'room_type'        => (string) $this->request->getPost('room_type'),
+            'room_cost'        => (string) $this->request->getPost('room_cost'),
+            'beds'             => (string) $this->request->getPost('beds'),
             'total_rooms'      => (string) $this->request->getPost('total_rooms'),
             'allocated_rooms'  => (string) $this->request->getPost('allocated_rooms'),
         ];
@@ -340,6 +396,8 @@ class HotelController extends BaseController
         if (! $this->validateData($payload, [
             'hotel_id'        => 'required|integer',
             'room_type'       => 'required|max_length[80]',
+            'room_cost'       => 'permit_empty|decimal|greater_than_equal_to[0]',
+            'beds'            => 'permit_empty|integer|greater_than_equal_to[0]',
             'total_rooms'     => 'required|integer|greater_than_equal_to[0]',
             'allocated_rooms' => 'permit_empty|integer|greater_than_equal_to[0]',
         ])) {
@@ -358,11 +416,15 @@ class HotelController extends BaseController
             $roomModel->insert([
                 'hotel_id'        => $payload['hotel_id'],
                 'room_type'       => $payload['room_type'],
+                'room_cost'       => $payload['room_cost'] !== '' ? (float) $payload['room_cost'] : null,
+                'beds'            => (int) ($payload['beds'] !== '' ? (int) $payload['beds'] : (new RoomAllocationService())->defaultBedsFor($payload['room_type'])),
                 'total_rooms'     => $totalRooms,
                 'allocated_rooms' => $allocatedRooms,
                 'created_at'      => date('Y-m-d H:i:s'),
                 'updated_at'      => date('Y-m-d H:i:s'),
             ]);
+
+            (new RoomAllocationService())->sync((int) $payload['hotel_id']);
 
             return redirect()->to('/hotels/' . $payload['hotel_id'] . '/edit')->with('success', 'Room type added successfully.');
         } catch (\Throwable $e) {
@@ -377,6 +439,8 @@ class HotelController extends BaseController
 
         $payload = [
             'room_type'       => (string) $this->request->getPost('room_type'),
+            'room_cost'       => (string) $this->request->getPost('room_cost'),
+            'beds'            => (string) $this->request->getPost('beds'),
             'total_rooms'     => (string) $this->request->getPost('total_rooms'),
             'allocated_rooms' => (string) $this->request->getPost('allocated_rooms'),
         ];
@@ -387,6 +451,8 @@ class HotelController extends BaseController
 
         if (! $this->validateData($payload, [
             'room_type'       => 'required|max_length[80]',
+            'room_cost'       => 'permit_empty|decimal|greater_than_equal_to[0]',
+            'beds'            => 'permit_empty|integer|greater_than_equal_to[0]',
             'total_rooms'     => 'required|integer|greater_than_equal_to[0]',
             'allocated_rooms' => 'required|integer|greater_than_equal_to[0]',
         ])) {
@@ -404,10 +470,14 @@ class HotelController extends BaseController
             $roomModel = new HotelRoomModel();
             $roomModel->update($roomId, [
                 'room_type'       => $payload['room_type'],
+                'room_cost'       => $payload['room_cost'] !== '' ? (float) $payload['room_cost'] : null,
+                'beds'            => (int) ($payload['beds'] !== '' ? (int) $payload['beds'] : (new RoomAllocationService())->defaultBedsFor($payload['room_type'])),
                 'total_rooms'     => $totalRooms,
                 'allocated_rooms' => $allocatedRooms,
                 'updated_at'      => date('Y-m-d H:i:s'),
             ]);
+
+            (new RoomAllocationService())->sync($hotelId);
 
             return redirect()->to('/hotels/' . $hotelId . '/edit')->with('success', 'Room allocation updated successfully.');
         } catch (\Throwable $e) {
@@ -432,6 +502,8 @@ class HotelController extends BaseController
                 return redirect()->to('/hotels/' . $hotelId . '/edit')->with('error', 'Room type not found or already removed.');
             }
 
+            (new RoomAllocationService())->sync($hotelId);
+
             return redirect()->to('/hotels/' . $hotelId . '/edit')->with('success', 'Room type deleted successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/hotels/' . $hotelId . '/edit')->with('error', $e->getMessage());
@@ -440,7 +512,7 @@ class HotelController extends BaseController
 
     private function defaultRoomTypes(): array
     {
-        return ['sharing 4 bed', 'sharing 5 bed', 'quad', 'triple', 'double', 'single'];
+        return array_values(HotelRateService::TIERS);
     }
 
     private function parseHotelGallery($rawGallery): array

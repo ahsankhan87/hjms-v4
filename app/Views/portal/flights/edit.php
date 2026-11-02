@@ -66,6 +66,13 @@
                             <input type="datetime-local" name="outbound_arrival_at" value="<?= esc(old('outbound_arrival_at', (string) str_replace(' ', 'T', (string) ($row['arrival_at'] ?? '')))) ?>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         </div>
                     </div>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600">Ticket Fare per Pilgrim (PKR)</label>
+                            <input type="number" step="0.01" min="0" name="outbound_fare" value="<?= esc(old('outbound_fare', (string) ((float) ($row['fare'] ?? 0) > 0 ? (float) $row['fare'] : ''))) ?>" placeholder="e.g. 240000" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <p class="mt-1 text-[11px] text-slate-400">Round-trip ticket fare. Loaded automatically as the ticket cost when this flight is selected in a package.</p>
+                        </div>
+                    </div>
                     <div class="mt-3">
                         <label class="mb-1 block text-xs font-medium text-slate-600">Outbound Ticket Upload (replace)</label>
                         <input type="file" name="outbound_ticket_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

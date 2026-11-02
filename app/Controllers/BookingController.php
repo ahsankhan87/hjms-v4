@@ -8,10 +8,11 @@ use App\Models\BookingPilgrimModel;
 use App\Models\PilgrimModel;
 use App\Services\PackagePricingService;
 use App\Services\AgentLedgerService;
+use App\Services\RoomAllocationService;
 
 class BookingController extends BaseController
 {
-    const PRICING_TIERS = ['sharing', 'quad', 'triple', 'double'];
+    const PRICING_TIERS = ['sharing', 'quint', 'quad', 'triple', 'double'];
 
     private function packageStayDateExpr(string $packageField, string $aggregate): string
     {
@@ -119,7 +120,7 @@ class BookingController extends BaseController
 
         $db = db_connect();
         $booking = $db->table('bookings')
-            ->select('id, status')
+            ->select('id, status, package_id')
             ->where('id', $bookingId)
             ->where('season_id', $seasonId)
             ->get()
@@ -137,12 +138,29 @@ class BookingController extends BaseController
             return redirect()->to('/bookings')->with('success', 'Booking is already approved.');
         }
 
+        // Confirming the booking consumes seats from the package pool.
+        $packageId = (int) ($booking['package_id'] ?? 0);
+        $seatsLimit = $this->packageSeatLimit($packageId);
+        if ($seatsLimit === null) {
+            return redirect()->to('/bookings')->with('error', 'No seats have been configured for this package. Please set total seats in Package Details before approving.');
+        }
+
+        $pilgrimCount = (int) $db->table('booking_pilgrims')->where('booking_id', $bookingId)->countAllResults();
+        $seatsLeft = max(0, $seatsLimit - $this->packageBookedSeats($packageId));
+        if ($pilgrimCount > $seatsLeft) {
+            return redirect()->to('/bookings')->with(
+                'error',
+                "Only {$seatsLeft} seat(s) left on this package, but the booking has {$pilgrimCount} pilgrim(s). Increase the package seats or reduce the booking."
+            );
+        }
+
         $db->table('bookings')->where('id', $bookingId)->update([
             'status' => 'confirmed',
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
+        (new RoomAllocationService())->sync();
 
         return redirect()->to('/bookings')->with('success', 'Booking approved successfully.');
     }
@@ -332,7 +350,7 @@ class BookingController extends BaseController
 
         if (! $this->validateData($payload, [
             'package_id'  => 'required|integer',
-            'pricing_tier' => 'required|in_list[sharing,quad,triple,double]',
+            'pricing_tier' => 'required|in_list[sharing,quint,quad,triple,double]',
             'agent_id'    => 'required|integer|greater_than[0]',
             'branch_id'   => 'permit_empty|integer',
             'status'      => 'required|in_list[draft]',
@@ -397,59 +415,18 @@ class BookingController extends BaseController
                 return redirect()->to($returnUrl)->withInput()->with('error', 'Some selected pilgrims are already in confirmed bookings.');
             }
 
-            // Seats limit check
-            $hotelSeatsLimit = $this->packageHotelSeatsLimit((int) $payload['package_id']);
-            if ((int) ($pricingSummary['include_hotel'] ?? 1) === 1) {
-                if ($hotelSeatsLimit === null || $hotelSeatsLimit < 1) {
-                    return redirect()->to($returnUrl)->withInput()->with('error', 'No hotel seats have been configured for this package. Please set total seats on package hotel before creating a booking.');
-                }
-
-                $seatsLimit = $hotelSeatsLimit;
-                $alreadyBooked = $db->table('booking_pilgrims bp')
-                    ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                    ->where('b.package_id', (int) $payload['package_id'])
-                    ->where('b.status !=', 'cancelled')
-                    ->countAllResults();
-            } elseif (($pricingSummary['mode'] ?? 'tiered') === 'flat') {
-                $seatsLimit = $pricingSummary['flat_seats_limit'];
-                if ($seatsLimit === null || (int) $seatsLimit < 1) {
-                    return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package. Please set package total seats before creating a booking.');
-                }
-
-                $alreadyBooked = $db->table('booking_pilgrims bp')
-                    ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                    ->where('b.package_id', (int) $payload['package_id'])
-                    ->where('b.status !=', 'cancelled')
-                    ->countAllResults();
-            } else {
-                $seatRow = $db->table('package_costs')
-                    ->select('seats_limit')
-                    ->where('package_id', (int) $payload['package_id'])
-                    ->where('cost_type', strtolower(trim((string) $payload['pricing_tier'])))
-                    ->orderBy('id', 'DESC')
-                    ->get()->getRowArray();
-
-                if (empty($seatRow) || $seatRow['seats_limit'] === null || (int) $seatRow['seats_limit'] === 0) {
-                    return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package & tier. Please set a seats limit before creating a booking.');
-                }
-
-                $seatsLimit = (int) $seatRow['seats_limit'];
-                $alreadyBooked = $db->table('booking_pilgrims bp')
-                    ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                    ->where('b.package_id', (int) $payload['package_id'])
-                    ->where('b.pricing_tier', strtolower(trim((string) $payload['pricing_tier'])))
-                    ->where('b.status !=', 'cancelled')
-                    ->countAllResults();
+            // Seats check — one pool per package, consumed by confirmed bookings.
+            $seatsLimit = $this->packageSeatLimit((int) $payload['package_id']);
+            if ($seatsLimit === null || $seatsLimit < 1) {
+                return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for this package. Please set total seats in Package Details before creating a booking.');
             }
 
+            $alreadyBooked = $this->packageBookedSeats((int) $payload['package_id']);
             $remaining = max(0, $seatsLimit - $alreadyBooked);
             if (count($pilgrimIds) > $remaining) {
-                $seatScope = (int) ($pricingSummary['include_hotel'] ?? 1) === 1
-                    ? 'package hotel allocation'
-                    : (($pricingSummary['mode'] ?? 'tiered') === 'flat' ? 'package' : 'package & tier');
                 return redirect()->to($returnUrl)->withInput()->with(
                     'error',
-                    "Only {$remaining} seat(s) available for this {$seatScope}. You selected " . count($pilgrimIds) . ' pilgrim(s).'
+                    "Only {$remaining} seat(s) available for this package. You selected " . count($pilgrimIds) . ' pilgrim(s).'
                 );
             }
 
@@ -498,6 +475,7 @@ class BookingController extends BaseController
             }
 
             (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
+            (new RoomAllocationService())->sync();
 
             return redirect()->to('/bookings')->with('success', 'Booking created successfully.');
         } catch (\Throwable $e) {
@@ -535,7 +513,7 @@ class BookingController extends BaseController
 
         if (! $this->validateData($payload, [
             'package_id' => 'permit_empty|integer',
-            'pricing_tier' => 'permit_empty|in_list[sharing,quad,triple,double]',
+            'pricing_tier' => 'permit_empty|in_list[sharing,quint,quad,triple,double]',
             'agent_id'   => 'required|integer|greater_than[0]',
             'branch_id'  => 'permit_empty|integer',
             'status'     => 'permit_empty|in_list[draft,confirmed,cancelled]',
@@ -706,61 +684,18 @@ class BookingController extends BaseController
                 $pilgrimsChanged = $pilgrimIds !== $existingPilgrimIds;
 
                 if ($packageChanged || $tierChanged || $pilgrimsChanged) {
-                    $hotelSeatsLimit = $this->packageHotelSeatsLimit($effectivePackageId);
-                    if ((int) ($pricingSummary['include_hotel'] ?? 1) === 1) {
-                        $updateSeatsLimit = $hotelSeatsLimit;
-                        if ($updateSeatsLimit === null || (int) $updateSeatsLimit < 1) {
-                            return redirect()->to($returnUrl)->withInput()->with('error', 'No hotel seats have been configured for this package. Please set total seats on package hotel before updating.');
-                        }
-
-                        $othersBooked = $db->table('booking_pilgrims bp')
-                            ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                            ->where('b.package_id', $effectivePackageId)
-                            ->where('b.status !=', 'cancelled')
-                            ->where('b.id !=', $bookingId)
-                            ->countAllResults();
-                    } elseif (($pricingSummary['mode'] ?? 'tiered') === 'flat') {
-                        $updateSeatsLimit = $pricingSummary['flat_seats_limit'];
-                        if ($updateSeatsLimit === null || (int) $updateSeatsLimit < 1) {
-                            return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package. Please set package total seats before updating.');
-                        }
-
-                        $othersBooked = $db->table('booking_pilgrims bp')
-                            ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                            ->where('b.package_id', $effectivePackageId)
-                            ->where('b.status !=', 'cancelled')
-                            ->where('b.id !=', $bookingId)
-                            ->countAllResults();
-                    } else {
-                        $updateSeatRow = $db->table('package_costs')
-                            ->select('seats_limit')
-                            ->where('package_id', $effectivePackageId)
-                            ->where('cost_type', strtolower(trim($effectivePricingTier)))
-                            ->orderBy('id', 'DESC')
-                            ->get()->getRowArray();
-
-                        if (empty($updateSeatRow) || $updateSeatRow['seats_limit'] === null || (int) $updateSeatRow['seats_limit'] === 0) {
-                            return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for the selected package & tier. Please set a seats limit before updating.');
-                        }
-
-                        $updateSeatsLimit = (int) $updateSeatRow['seats_limit'];
-                        $othersBooked = $db->table('booking_pilgrims bp')
-                            ->join('bookings b', 'b.id = bp.booking_id', 'inner')
-                            ->where('b.package_id', $effectivePackageId)
-                            ->where('b.pricing_tier', strtolower(trim($effectivePricingTier)))
-                            ->where('b.status !=', 'cancelled')
-                            ->where('b.id !=', $bookingId)
-                            ->countAllResults();
+                    $updateSeatsLimit = $this->packageSeatLimit($effectivePackageId);
+                    if ($updateSeatsLimit === null || $updateSeatsLimit < 1) {
+                        return redirect()->to($returnUrl)->withInput()->with('error', 'No seats have been configured for this package. Please set total seats in Package Details before updating.');
                     }
+
+                    $othersBooked = $this->packageBookedSeats($effectivePackageId, $bookingId);
 
                     $updateRemaining = max(0, $updateSeatsLimit - $othersBooked);
                     if (count($pilgrimIds) > $updateRemaining) {
-                        $seatScope = (int) ($pricingSummary['include_hotel'] ?? 1) === 1
-                            ? 'package hotel allocation'
-                            : (($pricingSummary['mode'] ?? 'tiered') === 'flat' ? 'package' : 'package & tier');
                         return redirect()->to($returnUrl)->withInput()->with(
                             'error',
-                            "Only {$updateRemaining} seat(s) available for this {$seatScope}. You selected " . count($pilgrimIds) . ' pilgrim(s).'
+                            "Only {$updateRemaining} seat(s) available for this package. You selected " . count($pilgrimIds) . ' pilgrim(s).'
                         );
                     }
                 }
@@ -781,6 +716,7 @@ class BookingController extends BaseController
             }
 
             (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
+            (new RoomAllocationService())->sync();
 
             return redirect()->to('/bookings')->with('success', 'Booking updated successfully.');
         } catch (\Throwable $e) {
@@ -925,16 +861,6 @@ class BookingController extends BaseController
         if ($packageIds !== []) {
             foreach ($packageIds as $packageId) {
                 $summary = $pricingService->summarizePackage((int) $packageId);
-                $hotelSeatsLimit = $this->packageHotelSeatsLimit((int) $packageId);
-                if ((int) ($summary['include_hotel'] ?? 1) === 1) {
-                    $summary['flat_seats_limit'] = $hotelSeatsLimit;
-                    $summary['seat_limit_map'] = [
-                        'sharing' => $hotelSeatsLimit,
-                        'quad' => $hotelSeatsLimit,
-                        'triple' => $hotelSeatsLimit,
-                        'double' => $hotelSeatsLimit,
-                    ];
-                }
                 $packagePricingMeta[$packageId] = $summary;
                 $packagePricingOptions[$packageId] = $summary['mode'] === 'flat'
                     ? ['flat' => (float) ($summary['flat_price'] ?? 0)]
@@ -945,7 +871,7 @@ class BookingController extends BaseController
             }
         }
 
-        // Count already-booked pilgrims per package/tier (excludes cancelled bookings and, when editing, the current booking)
+        // Seats already consumed by confirmed bookings, per package.
         $bookedSeatsCountByPackage = [];
         $bookedPackageCountByPackage = [];
         if ($packageIds !== []) {
@@ -953,53 +879,22 @@ class BookingController extends BaseController
                 ? ' AND b.id != ' . (int) $editingBookingId
                 : '';
             $bookedRows = $db->query(
-                'SELECT b.package_id, b.pricing_tier, COUNT(bp.pilgrim_id) AS booked_count
-                 FROM bookings b
-                 INNER JOIN booking_pilgrims bp ON bp.booking_id = b.id
-                 WHERE b.package_id IN (' . implode(',', $packageIds) . ")
-                   AND b.status != 'cancelled'"
-                    . $excludeBookingSql . '
-                 GROUP BY b.package_id, b.pricing_tier'
-            )->getResultArray();
-
-            foreach ($bookedRows as $row) {
-                $pid  = (int) $row['package_id'];
-                $tier = strtolower(trim((string) ($row['pricing_tier'] ?? '')));
-                if (! isset($bookedSeatsCountByPackage[$pid])) {
-                    $bookedSeatsCountByPackage[$pid] = [];
-                }
-                $bookedSeatsCountByPackage[$pid][$tier] = (int) $row['booked_count'];
-            }
-
-            $flatBookedRows = $db->query(
                 'SELECT b.package_id, COUNT(bp.pilgrim_id) AS booked_count
                  FROM bookings b
                  INNER JOIN booking_pilgrims bp ON bp.booking_id = b.id
                  WHERE b.package_id IN (' . implode(',', $packageIds) . ")
-                   AND b.status != 'cancelled'"
+                   AND b.status = 'confirmed'"
                     . $excludeBookingSql . '
                  GROUP BY b.package_id'
             )->getResultArray();
 
-            foreach ($flatBookedRows as $row) {
-                $bookedPackageCountByPackage[(int) ($row['package_id'] ?? 0)] = (int) ($row['booked_count'] ?? 0);
-            }
-
-            foreach ($packagePricingMeta as $pid => $meta) {
-                if ((int) ($meta['include_hotel'] ?? 1) !== 1) {
-                    continue;
-                }
-
-                $bookedTotal = (int) ($bookedPackageCountByPackage[(int) $pid] ?? 0);
-                if (! isset($bookedSeatsCountByPackage[(int) $pid])) {
-                    $bookedSeatsCountByPackage[(int) $pid] = [];
-                }
-
-                foreach (self::PRICING_TIERS as $tier) {
-                    $bookedSeatsCountByPackage[(int) $pid][$tier] = $bookedTotal;
-                }
+            foreach ($bookedRows as $row) {
+                $pid = (int) ($row['package_id'] ?? 0);
+                $bookedPackageCountByPackage[$pid] = (int) ($row['booked_count'] ?? 0);
+                $bookedSeatsCountByPackage[$pid] = array_fill_keys(self::PRICING_TIERS, (int) ($row['booked_count'] ?? 0));
             }
         }
+
 
         $hasSalesTable = $db->tableExists('sales') && $db->fieldExists('pilgrim_id', 'sales');
         $salesHasPilgrimIds = $hasSalesTable && $db->fieldExists('pilgrim_ids', 'sales');
@@ -1160,21 +1055,45 @@ class BookingController extends BaseController
         return null;
     }
 
-    private function packageHotelSeatsLimit(int $packageId)
+    /**
+     * Total seats offered by a package (single pool for all tiers and hotels).
+     */
+    private function packageSeatLimit(int $packageId): ?int
     {
         if ($packageId < 1) {
             return null;
         }
 
-        $row = db_connect()->table('package_hotels')
-            ->select('MIN(total_seats) AS seats_limit')
-            ->where('package_id', $packageId)
-            ->where('total_seats >', 0)
+        $row = db_connect()->table('packages')
+            ->select('total_seats')
+            ->where('id', $packageId)
             ->get()
             ->getRowArray();
 
-        $limit = (int) ($row['seats_limit'] ?? 0);
+        $limit = (int) ($row['total_seats'] ?? 0);
+
         return $limit > 0 ? $limit : null;
+    }
+
+    /**
+     * Seats already taken by confirmed bookings of a package.
+     */
+    private function packageBookedSeats(int $packageId, ?int $excludeBookingId = null): int
+    {
+        if ($packageId < 1) {
+            return 0;
+        }
+
+        $query = db_connect()->table('booking_pilgrims bp')
+            ->join('bookings b', 'b.id = bp.booking_id', 'inner')
+            ->where('b.package_id', $packageId)
+            ->where('b.status', 'confirmed');
+
+        if ($excludeBookingId !== null && $excludeBookingId > 0) {
+            $query->where('b.id !=', $excludeBookingId);
+        }
+
+        return (int) $query->countAllResults();
     }
 
     private function filterBookingColumns(array $data): array
@@ -1250,6 +1169,7 @@ class BookingController extends BaseController
             }
 
             (new AgentLedgerService())->removeBookingLedger($bookingId);
+            (new RoomAllocationService())->sync();
 
             return redirect()->to('/bookings')->with('success', 'Booking deleted successfully.');
         } catch (\Throwable $e) {

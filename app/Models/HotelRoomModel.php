@@ -14,6 +14,8 @@ class HotelRoomModel extends Model
     protected $allowedFields = [
         'hotel_id',
         'room_type',
+        'beds',
+        'room_cost',
         'total_rooms',
         'allocated_rooms',
         'created_at',

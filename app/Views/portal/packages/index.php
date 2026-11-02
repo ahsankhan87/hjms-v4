@@ -1,343 +1,534 @@
 <?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
-<main class="space-y-4">
+<main class="space-y-3">
 
-    <!-- Top Alert Messages -->
-    <div class="space-y-4">
+    <!-- Alerts -->
+    <div class="space-y-2">
         <?php if (!empty($success)): ?>
-            <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 flex items-center gap-2">
+            <div class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                 <i class="fa-solid fa-circle-check"></i> <?= esc($success) ?>
             </div>
         <?php endif; ?>
         <?php if (!empty($error)): ?>
-            <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 flex items-center gap-2">
+            <div class="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                 <i class="fa-solid fa-circle-exclamation"></i> <?= esc($error) ?>
             </div>
         <?php endif; ?>
         <?php if (!empty($errors)): ?>
             <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                <ul class="list-disc list-inside">
+                <ul class="list-inside list-disc">
                     <?php foreach ($errors as $err): ?>
                         <li><?= esc($err) ?></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
         <?php endif; ?>
+    </div>
 
-        <section class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h1 class="text-base font-semibold text-slate-800">Packages</h1>
-                    <p class="mt-1 text-xs text-slate-500">Browse package performance, facilities, prices, and availability with a richer card view.</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <?php if (!empty($canManagePackage)): ?>
-                        <a href="<?= site_url('/packages/inactive') ?>" class="btn btn-md btn-outline inline-flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-box-archive"></i>
-                            <span>Inactive Packages<?= isset($inactiveCount) ? ' (' . (int) $inactiveCount . ')' : '' ?></span>
-                        </a>
-                        <a href="<?= site_url('/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-plus"></i>
-                            <span>Create New Package</span>
-                        </a>
-                    <?php endif; ?>
-                </div>
+    <!-- Toolbar -->
+    <section class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 md:px-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="min-w-0">
+                <h1 class="flex items-center gap-2 text-base font-semibold text-slate-800">
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-[11px] text-emerald-600"><i class="fa-solid fa-suitcase-rolling"></i></span>
+                    <span>Packages</span>
+                    <span id="package-count" class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600"><?= count($cards ?? []) ?></span>
+                </h1>
+                <p class="mt-0.5 text-[11px] text-slate-500">Flights, hotels and per-person costing for every package at a glance.</p>
             </div>
-        </section>
-
-        <!-- Content Grid -->
-        <?php if (empty($cards)): ?>
-            <div class="rounded-xl border border-slate-200 bg-white p-8 text-center">
-                <div class="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                    <i class="fa-solid fa-box-open text-2xl"></i>
-                </div>
-                <h3 class="text-base font-semibold text-slate-900">No packages found</h3>
-                <p class="mt-1 text-sm text-slate-500">Get started by creating a new package.</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <?php if (!empty($cards)): ?>
+                    <a href="<?= site_url('/packages/print') ?>" target="_blank" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50" title="Open the printable / PDF version of this list">
+                        <i class="fa-solid fa-file-pdf text-[10px] text-rose-600"></i>
+                        <span>PDF<span class="hidden sm:inline"> / Print</span></span>
+                    </a>
+                <?php endif; ?>
+                <?php if (!empty($canManagePackage)): ?>
+                    <a href="<?= site_url('/packages/inactive') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                        <i class="fa-solid fa-box-archive text-[10px]"></i>
+                        <span>Inactive</span><?= isset($inactiveCount) ? ' <span class="rounded bg-slate-100 px-1 font-bold">' . (int) $inactiveCount . '</span>' : '' ?>
+                    </a>
+                    <a href="<?= site_url('/packages/add') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        <span>New package</span>
+                    </a>
+                <?php endif; ?>
             </div>
-        <?php else: ?>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                <?php foreach ($cards as $card): ?>
-                    <?php
-                    $formatDateTime = static function ($value): string {
-                        $value = trim((string) $value);
-                        if ($value === '') {
-                            return 'TBA';
-                        }
+        </div>
 
-                        $timestamp = strtotime($value);
-                        if ($timestamp === false) {
-                            return 'TBA';
-                        }
+        <?php if (!empty($cards)): ?>
+            <div class="relative mt-2">
+                <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-400"></i>
+                <input id="package-search" type="search" autocomplete="off" placeholder="Search code, name, hotel, flight, city…" class="w-full rounded-lg border border-slate-300 bg-white py-1.5 pl-7 pr-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            </div>
+        <?php endif; ?>
+    </section>
 
-                        return date('M d, Y h:i A', $timestamp);
-                    };
+    <?php if (empty($cards)): ?>
+        <div class="rounded-xl border border-slate-200 bg-white p-8 text-center">
+            <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <i class="fa-solid fa-box-open text-xl"></i>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-900">No packages found</h3>
+            <p class="mt-1 text-xs text-slate-500">Get started by creating a new package.</p>
+        </div>
+    <?php else: ?>
+        <?php
+        $tierLabels = \App\Services\HotelRateService::TIER_LABELS;
+        $canViewHotel = function_exists('auth_can') && auth_can('hotels.view');
+        $shortDateTime = static function ($value): string {
+            $value = trim((string) $value);
+            if ($value === '') {
+                return '';
+            }
+            $ts = strtotime($value);
 
-                    $outbound = $card['outbound_flight'] ?? null;
-                    $return = $card['return_flight'] ?? null;
-                    ?>
-                    <div class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-200/70">
+            return $ts === false ? '' : date('d M H:i', $ts);
+        };
+        $shortDate = static function ($value): string {
+            $value = trim((string) $value);
+            if ($value === '') {
+                return '';
+            }
+            $ts = strtotime($value);
 
-                        <!-- Card Header / Image Area -->
-                        <div class="relative border-b border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-3 py-3 text-white">
-                            <div class="pointer-events-none absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 20% 20%, #ffffff 1px, transparent 1px); background-size: 14px 14px;"></div>
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0 relative z-10">
-                                    <h3 class="line-clamp-2 text-lg font-bold leading-tight text-white"><?= esc($card['name']) ?></h3>
-                                    <div class="mt-1 text-xs text-emerald-100/90">
-                                        <?= esc($card['code'] ?: 'Route TBA') ?>
-                                    </div>
-                                    <?php
-                                    $pkgDep = (string) ($card['package_departure_date'] ?? '');
-                                    $pkgArr = (string) ($card['package_arrival_date'] ?? '');
-                                    $pkgDepTs = $pkgDep !== '' ? strtotime($pkgDep) : false;
-                                    $pkgArrTs = $pkgArr !== '' ? strtotime($pkgArr) : false;
-                                    ?>
-                                    <?php if ($pkgDepTs || $pkgArrTs): ?>
-                                        <div class="mt-1 flex items-center gap-1 text-[10px] text-slate-100/80">
-                                            <i class="fa-solid fa-calendar-days text-slate-100/70"></i>
-                                            <span><?= esc($pkgDepTs ? date('d M Y', $pkgDepTs) : '—') ?></span>
-                                            <span class="text-slate-200/70">→</span>
-                                            <span><?= esc($pkgArrTs ? date('d M Y', $pkgArrTs) : '—') ?></span>
-                                        </div>
+            return $ts === false ? '' : date('d M Y', $ts);
+        };
+        ?>
+
+        <?php
+        // Each package gets its own accent (bar + header tint + badge) so neighbouring packages are easy to tell apart.
+        $packageAccents = [
+            ['bar' => '#10b981', 'tint' => 'bg-emerald-50', 'badge' => 'from-emerald-600 to-emerald-500'],
+            ['bar' => '#0ea5e9', 'tint' => 'bg-sky-50', 'badge' => 'from-sky-600 to-sky-500'],
+            ['bar' => '#8b5cf6', 'tint' => 'bg-violet-50', 'badge' => 'from-violet-600 to-violet-500'],
+            ['bar' => '#f59e0b', 'tint' => 'bg-amber-50', 'badge' => 'from-amber-600 to-amber-500'],
+            ['bar' => '#f43f5e', 'tint' => 'bg-rose-50', 'badge' => 'from-rose-600 to-rose-500'],
+        ];
+        $accentIndex = 0;
+        ?>
+        <div id="package-rows" class="space-y-3">
+            <?php foreach ($cards as $card): ?>
+                <?php $accent = $packageAccents[$accentIndex % count($packageAccents)]; $accentIndex++; ?>
+                <?php
+                $outbound = $card['outbound_flight'] ?? null;
+                $return = $card['return_flight'] ?? null;
+                $hotelStays = array_values(array_filter((array) ($card['hotel_stays'] ?? [])));
+                $priceMap = (array) ($card['price_map'] ?? []);
+                $isFlat = ($card['package_mode'] ?? 'tiered') === 'flat';
+
+                $minPrice = null;
+                $minTierLabel = '';
+                foreach ($priceMap as $tierKey => $tierValue) {
+                    if ($tierValue === null || ! is_numeric($tierValue) || (float) $tierValue <= 0) {
+                        continue;
+                    }
+                    if ($minPrice === null || (float) $tierValue < $minPrice) {
+                        $minPrice = (float) $tierValue;
+                        $minTierLabel = (string) ($tierLabels[$tierKey] ?? ucfirst((string) $tierKey));
+                    }
+                }
+                if ($isFlat && $card['flat_price'] !== null) {
+                    $minPrice = (float) $card['flat_price'];
+                    $minTierLabel = 'package price';
+                }
+
+                $seatTotal = max(0, (int) ($card['seat_capacity'] ?? 0));
+                $seatLeft = max(0, (int) ($card['available_seats'] ?? 0));
+                $seatBooked = max(0, (int) ($card['booked_seats'] ?? 0));
+                $seatPct = $seatTotal > 0 ? (int) round($seatLeft / $seatTotal * 100) : 0;
+                $seatTone = $seatLeft <= 0 ? 'bg-rose-500' : ($seatPct <= 20 ? 'bg-amber-500' : 'bg-emerald-500');
+
+                $included = [];
+                if ((float) ($card['visa_cost'] ?? 0) > 0) {
+                    $included[] = 'Visa';
+                }
+                if ((int) ($card['include_hotel'] ?? 1)) {
+                    $included[] = 'Hotel';
+                }
+                if ((int) ($card['include_ticket'] ?? 1)) {
+                    $included[] = 'Ticket';
+                }
+                if ((int) ($card['include_transport'] ?? 1)) {
+                    $included[] = 'Transport';
+                }
+                if ((int) ($card['include_ziarat'] ?? 0)) {
+                    $included[] = 'Ziarat';
+                }
+
+                $transportLabel = implode(' / ', array_filter(array_map('strval', (array) ($card['transport_types'] ?? []))));
+                $transportNames = implode(', ', array_filter(array_map('strval', (array) ($card['transport_names'] ?? []))));
+
+                $searchText = strtolower(implode(' ', array_filter([
+                    (string) ($card['code'] ?? ''),
+                    (string) ($card['name'] ?? ''),
+                    (string) ($card['airline_name'] ?? ''),
+                    (string) ($card['route_label'] ?? ''),
+                    (string) ($outbound['flight_no'] ?? ''),
+                    (string) ($return['flight_no'] ?? ''),
+                    $transportLabel,
+                    $transportNames,
+                    implode(' ', array_map(static fn ($stay) => trim((string) ($stay['name'] ?? '') . ' ' . (string) ($stay['city'] ?? '')), $hotelStays)),
+                ])));
+                ?>
+                <article data-package-row data-search="<?= esc($searchText) ?>" style="border-left:4px solid <?= esc($accent['bar'], 'attr') ?>" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+
+                    <!-- Header line -->
+                    <div class="flex flex-col gap-2 <?= $accent['tint'] ?> px-3 py-2.5 lg:flex-row lg:items-start lg:gap-3">
+                        <div class="flex min-w-0 flex-1 items-start gap-2.5">
+                            <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br <?= $accent['badge'] ?> text-[12px] font-bold uppercase text-white shadow-sm"><?= esc(strtoupper(substr((string) (($card['code'] ?? '') !== '' ? $card['code'] : ($card['name'] ?? 'PK')), 0, 2))) ?></span>
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <h3 class="text-sm font-bold text-slate-900" title="<?= esc((string) ($card['name'] ?? '')) ?>"><?= esc((string) ($card['name'] ?? 'Untitled package')) ?></h3>
+                                    <span class="rounded-md bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white"><?= esc((string) (($card['code'] ?? '') !== '' ? $card['code'] : '—')) ?></span>
+                                    <?php if ($seatLeft <= 0): ?>
+                                        <span class="rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-rose-700">Sold out</span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="relative z-10 shrink-0 flex items-center gap-1">
-                                    <div class="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
-                                        <?= esc($card['duration_days']) ?> Days
-                                    </div>
-                                    <div class="rounded-full border border-emerald-200/40 bg-emerald-300/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-100 backdrop-blur">
-                                        <?= esc($card['available_seats']) ?> Seats Left
-                                    </div>
+                                <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
+                                    <span class="inline-flex items-center gap-1 font-semibold text-slate-700"><i class="fa-regular fa-calendar text-[10px] text-slate-400"></i><?= esc($shortDate($card['package_departure_date'] ?? '') ?: '—') ?> <span class="text-slate-400">→</span> <?= esc($shortDate($card['package_arrival_date'] ?? '') ?: '—') ?></span>
+                                    <span class="inline-flex items-center gap-1"><i class="fa-regular fa-clock text-[10px] text-slate-400"></i><?= (int) ($card['duration_days'] ?? 0) ?> days</span>
+                                    <?php if ($transportLabel !== ''): ?>
+                                        <span class="inline-flex items-center gap-1"><i class="fa-solid fa-bus text-[10px] text-slate-400"></i><?= esc($transportLabel) ?></span>
+                                    <?php endif; ?>
+                                    <?php if ((float) ($card['exchange_rate'] ?? 1) > 1): ?>
+                                        <span class="inline-flex items-center gap-1 text-slate-400" title="SAR to PKR rate used for this package"><i class="fa-solid fa-right-left text-[10px]"></i>1 SAR = <?= esc(rtrim(rtrim(number_format((float) $card['exchange_rate'], 2, '.', ''), '0'), '.')) ?> PKR</span>
+                                    <?php endif; ?>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Card Body -->
-                        <div class="flex-1 space-y-2.5 p-3">
-                            <div class="space-y-1 text-xs">
-                                <?php if (!(int) ($card['include_ticket'] ?? 1)): ?>
-                                    <div class="col-span-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-center text-[11px] italic text-slate-400"><i class="fa-solid fa-plane mr-1"></i> Flight — Self-arranged</div>
-                                <?php else: ?>
-                                    <div class="grid grid-cols-[52px_1fr_auto] items-center gap-1 rounded-lg border border-sky-200/70 bg-sky-50 px-2 py-2">
-                                        <div class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
-                                            <span>Out</span>
-                                            <span class="relative inline-flex h-7 w-7 items-center justify-center rounded-sm border border-slate-300 bg-white shadow-sm">
-                                                <?php if (!empty($card['airline_logo'])): ?>
-                                                    <img
-                                                        src="<?= esc($card['airline_logo']) ?>"
-                                                        alt="Airline"
-                                                        class="h-6 w-6 object-contain"
-                                                        onerror="this.style.display='none'; this.parentNode.querySelector('.airline-fallback-icon').style.display='flex';">
-                                                    <span class="airline-fallback-icon hidden absolute inset-0 items-center justify-center text-[11px] text-slate-500">
-                                                        <i class="fa-solid fa-plane"></i>
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="airline-fallback-icon absolute inset-0 flex items-center justify-center text-[11px] text-slate-500">
-                                                        <i class="fa-solid fa-plane"></i>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </span>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="font-medium text-slate-700 truncate"><?= !empty($outbound) ? esc(trim((string) (($outbound['airline'] ?? '') . ' ' . ($outbound['flight_no'] ?? '')))) : 'TBA' ?></div>
-                                            <div class="text-slate-500 truncate"><?= !empty($outbound) ? esc(trim((string) (($outbound['departure_airport'] ?? '') . ' -> ' . ($outbound['arrival_airport'] ?? '')), ' ->')) : 'Route TBA' ?></div>
-                                        </div>
-                                        <div class="text-[10px] text-slate-600 whitespace-nowrap"><?= esc($formatDateTime($outbound['departure_at'] ?? ($card['departure_datetime'] ?? ''))) ?></div>
-                                    </div>
-
-                                    <div class="grid grid-cols-[52px_1fr_auto] items-center gap-1 rounded-lg border border-emerald-200/70 bg-emerald-50 px-2 py-2">
-                                        <div class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                                            <span>Ret</span>
-                                            <span class="relative inline-flex h-7 w-7 items-center justify-center rounded-sm border border-slate-300 bg-white shadow-sm">
-                                                <?php if (!empty($card['return_airline_logo'])): ?>
-                                                    <img
-                                                        src="<?= esc($card['return_airline_logo']) ?>"
-                                                        alt="Return Airline"
-                                                        class="h-6 w-6 object-contain"
-                                                        onerror="this.style.display='none'; this.parentNode.querySelector('.airline-fallback-icon').style.display='flex';">
-                                                    <span class="airline-fallback-icon hidden absolute inset-0 items-center justify-center text-[11px] text-slate-500">
-                                                        <i class="fa-solid fa-plane"></i>
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="airline-fallback-icon absolute inset-0 flex items-center justify-center text-[11px] text-slate-500">
-                                                        <i class="fa-solid fa-plane"></i>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </span>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="font-medium text-slate-700 truncate"><?= !empty($return) ? esc(trim((string) (($return['airline'] ?? '') . ' ' . ($return['flight_no'] ?? '')))) : 'TBA' ?></div>
-                                            <div class="text-slate-500 truncate"><?= !empty($return) ? esc(trim((string) (($return['departure_airport'] ?? '') . ' -> ' . ($return['arrival_airport'] ?? '')), ' ->')) : 'Route TBA' ?></div>
-                                        </div>
-                                        <div class="text-[10px] text-slate-600 whitespace-nowrap"><?= esc($formatDateTime($return['departure_at'] ?? ($card['departure_datetime'] ?? ''))) ?></div>
+                                <?php if ($included !== []): ?>
+                                    <div class="mt-1 flex flex-wrap items-center gap-1">
+                                        <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Included</span>
+                                        <?php foreach ($included as $inc): ?>
+                                            <span class="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700"><i class="fa-solid fa-check text-[7px]"></i><?= esc($inc) ?></span>
+                                        <?php endforeach; ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
-
-                            <!-- Hotel Info -->
-                            <?php $hotelStays = $card['hotel_stays'] ?? []; ?>
-                            <div class="mb-2 mt-2.5 space-y-1 text-xs">
-                                <?php if (!empty($hotelStays)): ?>
-                                    <?php foreach ($hotelStays as $stay): ?>
-                                        <?php
-                                        $cityText = strtolower(trim((string) ($stay['city'] ?? '')));
-                                        $isMadina = preg_match('/madina|medina/i', $cityText) === 1;
-                                        $cityLogo = $isMadina
-                                            ? base_url('assets/uploads/madina-logo.png')
-                                            : base_url('assets/uploads/makkah-logo.png');
-                                        $cityAlt = $isMadina ? 'Madina' : 'Makkah';
-                                        ?>
-                                        <div class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 text-sm text-slate-600">
-                                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white p-0.5 shadow-sm">
-                                                <img src="<?= esc($cityLogo) ?>" alt="<?= esc($cityAlt) ?>" class="max-h-7 max-w-7 object-contain">
-                                            </span>
-                                            <div class="min-w-0 flex-1">
-                                                <?php if (!empty($stay['id'])): ?>
-                                                    <a href="<?= site_url('/hotels/' . (int) $stay['id']) ?>" class="line-clamp-1 text-slate-700 hover:text-emerald-700 hover:underline" title="View hotel details">
-                                                        <?= esc((string) ($stay['name'] ?? 'Hotel pending')) ?>
-                                                    </a>
-                                                <?php else: ?>
-                                                    <span class="line-clamp-1"><?= esc((string) ($stay['name'] ?? 'Hotel pending')) ?></span>
-                                                <?php endif; ?>
-                                                <div class="text-[10px] text-slate-500">
-                                                    <i class="fa-solid fa-location-dot mr-0.5"></i><?= esc((string) ($stay['city'] ?? $cityAlt)) ?>
-                                                </div>
-                                            </div>
-                                            <span class="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                                                <?= esc((string) max(0, (int) ($stay['nights'] ?? 0))) ?>D
-                                            </span>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php elseif (!(int) ($card['include_hotel'] ?? 1)): ?>
-                                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] italic text-slate-400"><i class="fa-solid fa-bed mr-1"></i> Hotel — Self-arranged</div>
-                                <?php else: ?>
-                                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-500">Hotel stay distribution not available.</div>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Transport Info -->
-                            <?php $transportTypes = $card['transport_types'] ?? []; ?>
-                            <?php $transportNames = $card['transport_names'] ?? []; ?>
-                            <?php $transportTypeText = !empty($transportTypes) ? implode(' / ', $transportTypes) : 'TBA'; ?>
-                            <?php $transportNameText = !empty($transportNames) ? implode(' | ', $transportNames) : 'Transport details pending'; ?>
-                            <?php if (!(int) ($card['include_transport'] ?? 1)): ?>
-                                <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] italic text-slate-400">
-                                    <div class="flex items-center gap-1">
-                                        <i class="fa-solid fa-bus"></i>
-                                        <span>Transport — Self-arranged</span>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <div class="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] text-slate-700">
-                                    <div class="flex items-center gap-1 min-w-0">
-                                        <i class="fa-solid fa-bus text-slate-600"></i>
-                                        <span class="font-semibold shrink-0"><?= esc($transportTypeText) ?></span>
-                                        <span class="text-slate-400">|</span>
-                                        <span class="text-slate-500 truncate"><?= esc($transportNameText) ?></span>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-
-                            <!-- Pricing Grid -->
-                            <?php if (($card['package_mode'] ?? 'tiered') === 'flat'): ?>
-                                <div class="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-emerald-50/60 p-2 text-xs">
-                                    <div class="rounded-lg border border-emerald-200 bg-white px-3 py-2">
-                                        <span class="block text-slate-500">Package Price</span>
-                                        <span class="font-bold text-slate-800">PKR <?= number_format((float) ($card['flat_price'] ?? 0)) ?></span>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <div class="grid grid-cols-2 gap-1.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-emerald-50/60 p-2 text-xs">
-                                    <?php $sharingPrice = $card['price_map']['sharing'] ?? null; ?>
-                                    <?php if ($sharingPrice !== null): ?>
-                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                            <span class="block text-slate-500">Sharing</span>
-                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $sharingPrice) ?></span>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php $quadPrice = $card['price_map']['quad'] ?? null; ?>
-                                    <?php if ($quadPrice !== null): ?>
-                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                            <span class="block text-slate-500">Quad</span>
-                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $quadPrice) ?></span>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php $triplePrice = $card['price_map']['triple'] ?? null; ?>
-                                    <?php if ($triplePrice !== null): ?>
-                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                            <span class="block text-slate-500">Triple</span>
-                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $triplePrice) ?></span>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php $doublePrice = $card['price_map']['double'] ?? null; ?>
-                                    <?php if ($doublePrice !== null): ?>
-                                        <div class="rounded-lg border border-emerald-200 bg-white px-2 py-1.5">
-                                            <span class="block text-slate-500">Double</span>
-                                            <span class="font-bold text-slate-800">PKR <?= number_format((float) $doublePrice) ?></span>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
                         </div>
 
-                        <!-- Card Footer / Actions -->
-                        <div class="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50/80 px-3 py-2">
-                            <?php if (!empty($canManagePackage)): ?>
-                                <div class="flex items-center gap-2">
-                                    <form method="post" action="<?= site_url('/packages/status') ?>" class="shrink-0" onsubmit="return confirm('Move this package to inactive list?');">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
-                                        <input type="hidden" name="is_active" value="0">
-                                        <input type="hidden" name="redirect_to" value="packages">
-                                        <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-white text-amber-600 transition hover:bg-amber-50" title="Move To Inactive">
-                                            <i class="fa-solid fa-box-archive"></i>
-                                        </button>
-                                    </form>
-
-                                    <form method="post" action="<?= site_url('/packages/delete') ?>" class="shrink-0" onsubmit="return confirm('Are you sure you want to delete this package?');">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
-                                        <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50" title="Delete Package">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
+                        <!-- Price + seats + actions -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 lg:justify-end lg:gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400">From</div>
+                                    <?php if ($minPrice !== null): ?>
+                                        <div class="text-base font-bold leading-tight text-slate-900">PKR <?= esc(number_format($minPrice, 0)) ?></div>
+                                        <div class="text-[9px] text-slate-400"><?= esc($minTierLabel) ?></div>
+                                    <?php else: ?>
+                                        <div class="text-xs font-semibold text-slate-400">Not priced</div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php else: ?>
-                                <div></div>
-                            <?php endif; ?>
+                                <div class="w-[86px] shrink-0">
+                                    <div class="flex items-baseline justify-between text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                        <span>Seats</span>
+                                        <span class="<?= $seatLeft <= 0 ? 'text-rose-600' : 'text-slate-700' ?>"><?= $seatLeft ?>/<?= $seatTotal ?></span>
+                                    </div>
+                                    <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                                        <div class="h-full rounded-full <?= $seatTone ?>" style="width: <?= $seatPct ?>%"></div>
+                                    </div>
+                                    <div class="mt-0.5 text-[9px] text-slate-400"><?= $seatBooked ?> sold</div>
+                                </div>
+                            </div>
 
-                            <button type="button"
-                                onclick="sharePackage(<?= (int) $card['id'] ?>)"
-                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-200 bg-white text-sky-600 transition hover:bg-sky-50"
-                                title="Download package image">
-                                <i class="fa-solid fa-download"></i>
+                            <div class="flex items-center gap-1.5">
+                            <button type="button" data-toggle-detail aria-expanded="false" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700" title="Show stay dates & more">
+                                <i data-detail-chevron class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
                             </button>
 
                             <?php if (function_exists('auth_can') && auth_can('bookings.create')): ?>
-                                <a href="<?= site_url('/bookings/add?package_id=' . (int) $card['id']) ?>" class="btn btn-md btn-secondary inline-flex flex-1 items-center justify-center gap-2 text-center">
-                                    <i class="fa-solid fa-file-circle-plus"></i>
-                                    <span>Create Booking</span>
+                                <a href="<?= site_url('/bookings/add?package_id=' . (int) $card['id']) ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-700" title="Create booking for this package">
+                                    <i class="fa-solid fa-calendar-plus text-[10px]"></i><span>Book</span>
                                 </a>
                             <?php endif; ?>
 
+                            <button type="button" onclick="sharePackage(<?= (int) $card['id'] ?>)" class="hidden h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 sm:inline-flex" title="Download package image">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+
                             <?php if (!empty($canManagePackage)): ?>
-                                <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="btn btn-md btn-primary inline-flex flex-1 items-center justify-center gap-2 text-center">
-                                    <i class="fa-solid fa-gear"></i>
-                                    <span>Manage Package</span>
+                                <div class="relative">
+                                    <button type="button" data-menu-toggle class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] text-slate-500 transition hover:border-slate-300 hover:bg-slate-50" title="More actions">
+                                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                                    </button>
+                                    <div data-menu class="absolute right-0 top-full z-30 mt-1 hidden w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                                        <a href="<?= site_url('/bookings/add?package_id=' . (int) $card['id']) ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-file-circle-plus w-3 text-sky-600"></i>Create booking</a>
+                                        <form method="post" action="<?= site_url('/packages/status') ?>" onsubmit="return confirm('Move this package to the inactive list?');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
+                                            <input type="hidden" name="is_active" value="0">
+                                            <input type="hidden" name="redirect_to" value="packages">
+                                            <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-amber-700 hover:bg-amber-50"><i class="fa-solid fa-box-archive w-3"></i>Move to inactive</button>
+                                        </form>
+                                        <form method="post" action="<?= site_url('/packages/delete') ?>" onsubmit="return confirm('Delete this package and all of its linked flights, hotels and transport?');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
+                                            <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-rose-600 hover:bg-rose-50"><i class="fa-solid fa-trash-can w-3"></i>Delete package</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-100">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i><span>Edit</span>
                                 </a>
                             <?php else: ?>
-                                <span class="btn btn-md btn-secondary inline-flex flex-1 items-center justify-center gap-2 text-center opacity-80 cursor-default pointer-events-none">
-                                    <i class="fa-solid fa-eye"></i>
-                                    <span>View Only</span>
-                                </span>
+                                <span class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-semibold text-slate-400" title="Read only access"><i class="fa-solid fa-eye text-[10px]"></i>View only</span>
+                            <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flights / Hotels / Costs -->
+                    <div class="grid gap-2 border-t border-slate-200/70 bg-slate-100/70 px-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)_minmax(0,1fr)]">
+
+                        <!-- Flights -->
+                        <div class="min-w-0 rounded-lg border border-slate-200 bg-white p-2">
+                            <div class="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-sky-700">
+                                <?php if (!empty($card['airline_logo'])): ?>
+                                    <img src="<?= esc((string) $card['airline_logo']) ?>" alt="<?= esc((string) ($card['airline_name'] ?? '')) ?>" class="h-5 w-auto max-w-[52px] object-contain" onerror="this.style.display='none'">
+                                <?php else: ?>
+                                    <i class="fa-solid fa-plane text-[9px]"></i>
+                                <?php endif; ?>
+                                Flights
+                            </div>
+                            <?php if (!(int) ($card['include_ticket'] ?? 1)): ?>
+                                <div class="mt-1 text-[11px] italic text-slate-400">Ticket not included — self arranged</div>
+                            <?php else: ?>
+                                <div class="mt-1 space-y-1">
+                                    <div class="flex items-start gap-1.5">
+                                        <span class="mt-0.5 shrink-0 rounded bg-sky-100 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-sky-700">Out</span>
+                                        <div class="min-w-0 text-[11px] leading-tight">
+                                            <div class="truncate font-semibold text-slate-700">
+                                                <?= esc(trim((string) (($outbound['airline'] ?? '') . ' ' . ($outbound['flight_no'] ?? ''))) ?: 'TBA') ?>
+                                                <?php if (trim((string) (($outbound['departure_airport'] ?? '') . ($outbound['arrival_airport'] ?? ''))) !== ''): ?>
+                                                    <span class="font-normal text-slate-400">·</span>
+                                                    <span class="font-medium text-slate-500"><?= esc(trim((string) (($outbound['departure_airport'] ?? '') . ' → ' . ($outbound['arrival_airport'] ?? '')), ' →')) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="text-[10px] text-slate-400"><?= esc($shortDateTime($outbound['departure_at'] ?? $card['departure_datetime'] ?? '')) ?></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-1.5">
+                                        <span class="mt-0.5 shrink-0 rounded bg-indigo-100 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-indigo-700">Ret</span>
+                                        <div class="min-w-0 text-[11px] leading-tight">
+                                            <div class="truncate font-semibold text-slate-700">
+                                                <?= esc(trim((string) (($return['airline'] ?? '') . ' ' . ($return['flight_no'] ?? ''))) ?: 'TBA') ?>
+                                                <?php if (trim((string) (($return['departure_airport'] ?? '') . ($return['arrival_airport'] ?? ''))) !== ''): ?>
+                                                    <span class="font-normal text-slate-400">·</span>
+                                                    <span class="font-medium text-slate-500"><?= esc(trim((string) (($return['departure_airport'] ?? '') . ' → ' . ($return['arrival_airport'] ?? '')), ' →')) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="text-[10px] text-slate-400"><?= esc($shortDateTime($return['arrival_at'] ?? $card['return_arrival_datetime'] ?? '')) ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Hotels -->
+                        <div class="min-w-0 rounded-lg border border-slate-200 bg-white p-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
+                                    <i class="fa-solid fa-hotel text-[9px]"></i>Hotels
+                                </div>
+                                <?php if ($transportNames !== ''): ?>
+                                    <span class="inline-flex min-w-0 items-center gap-1 text-[9px] text-slate-400"><i class="fa-solid fa-bus text-[8px]"></i><span class="truncate"><?= esc($transportNames) ?></span></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (empty($hotelStays)): ?>
+                                <div class="mt-1 text-[11px] italic text-slate-400"><?= (int) ($card['include_hotel'] ?? 1) ? 'No hotel linked yet' : 'Hotel not included — self arranged' ?></div>
+                            <?php else: ?>
+                                <ul class="mt-1 space-y-1">
+                                    <?php foreach (array_slice($hotelStays, 0, 4) as $stay): ?>
+                                        <?php
+                                        $cityText = strtolower(trim((string) ($stay['city'] ?? '')));
+                                        $isMadina = preg_match('/madina|medina/i', $cityText) === 1;
+                                        $cityLogo = base_url($isMadina ? 'assets/uploads/madina-logo.png' : 'assets/uploads/makkah-logo.png');
+                                        $stayNights = max(0, (int) ($stay['nights'] ?? 0));
+                                        $distance = (int) ($stay['distance_m'] ?? 0);
+                                        ?>
+                                        <li class="flex items-baseline gap-1.5 text-[11px] leading-tight">
+                                            <img src="<?= esc($cityLogo) ?>" alt="" class="h-3.5 w-3.5 shrink-0 translate-y-0.5 object-contain">
+                                            <span class="min-w-0 flex-1">
+                                                <span class="font-semibold text-slate-700"><?= esc((string) ($stay['city'] ?? 'Hotel')) ?></span>
+                                                <span class="text-slate-400">·</span>
+                                                <?php if (!empty($stay['id']) && $canViewHotel): ?>
+                                                    <a href="<?= site_url('/hotels/' . (int) $stay['id']) ?>" class="text-slate-600 underline decoration-slate-300 decoration-dotted underline-offset-2 hover:text-emerald-700 hover:decoration-emerald-500" title="Open hotel profile"><?= esc((string) ($stay['name'] ?? 'Hotel pending')) ?></a>
+                                                <?php else: ?>
+                                                    <span class="text-slate-600"><?= esc((string) ($stay['name'] ?? 'Hotel pending')) ?></span>
+                                                <?php endif; ?>
+                                                <?php if ($distance > 0): ?>
+                                                    <span class="text-[10px] text-slate-400">(<?= esc(number_format($distance)) ?> m)</span>
+                                                <?php endif; ?>
+                                            </span>
+                                            <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-600"><?= $stayNights ?>n</span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                    <?php if (count($hotelStays) > 4): ?>
+                                        <li class="text-[10px] font-semibold text-slate-400">+<?= count($hotelStays) - 4 ?> more stay(s)</li>
+                                    <?php endif; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Costs -->
+                        <div class="min-w-0 rounded-lg border border-slate-200 bg-white p-2">
+                            <div class="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                <i class="fa-solid fa-tags text-[9px]"></i>Cost / person (PKR)
+                            </div>
+                            <?php if ($isFlat): ?>
+                                <div class="mt-1 flex items-baseline justify-between gap-2 rounded-md bg-emerald-50 px-2 py-1">
+                                    <span class="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Package</span>
+                                    <span class="text-[12px] font-bold text-emerald-900"><?= esc(number_format((float) ($card['flat_price'] ?? 0), 0)) ?></span>
+                                </div>
+                            <?php elseif ($priceMap === []): ?>
+                                <div class="mt-1 text-[11px] italic text-slate-400">No price set</div>
+                            <?php else: ?>
+                                <div class="mt-1 grid grid-cols-1 gap-x-3 xl:grid-cols-2">
+                                    <?php foreach ($priceMap as $tierKey => $tierValue): ?>
+                                        <?php if ($tierValue === null || (float) $tierValue <= 0) { continue; } ?>
+                                        <?php $isLowest = $minPrice !== null && abs((float) $tierValue - $minPrice) < 0.01; ?>
+                                        <div class="flex items-baseline justify-between gap-2 border-b border-dashed border-slate-100 py-[1px] text-[11px] last:border-0">
+                                            <span class="text-[10px] font-semibold uppercase tracking-wide <?= $isLowest ? 'text-emerald-700' : 'text-slate-400' ?>"><?= esc((string) ($tierLabels[$tierKey] ?? ucfirst((string) $tierKey))) ?></span>
+                                            <span class="font-bold <?= $isLowest ? 'text-emerald-800' : 'text-slate-800' ?>"><?= esc(number_format((float) $tierValue, 0)) ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
                             <?php endif; ?>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </div>
+
+                    <!-- Expandable detail: exact dates + costing inputs -->
+                    <div data-package-detail class="hidden border-t border-slate-100 bg-white px-3 py-2.5">
+                        <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                            <div>
+                                <p class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Stay dates</p>
+                                <ul class="mt-1 space-y-1">
+                                    <?php if ($hotelStays === []): ?>
+                                        <li class="text-[10px] text-slate-400">No hotel stay recorded</li>
+                                    <?php else: ?>
+                                        <?php foreach ($hotelStays as $stay): ?>
+                                            <li class="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-2 py-1 text-[10px]">
+                                                <span class="min-w-0 truncate text-slate-700"><?= esc((string) ($stay['name'] ?? '')) ?> <span class="text-slate-400">· <?= esc((string) ($stay['city'] ?? '')) ?></span></span>
+                                                <span class="shrink-0 font-semibold text-slate-600"><?= esc($shortDate($stay['check_in_date'] ?? '')) ?> → <?= esc($shortDate($stay['check_out_date'] ?? '')) ?></span>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Costing (SAR × rate)</p>
+                                <ul class="mt-1 space-y-1 text-[10px] text-slate-600">
+                                    <li class="flex justify-between gap-2"><span>Visa</span><span class="font-semibold"><?= esc(number_format((float) ($card['visa_cost'] ?? 0), 2)) ?> SAR</span></li>
+                                    <li class="flex justify-between gap-2"><span>Ziarat</span><span class="font-semibold"><?= (int) ($card['include_ziarat'] ?? 0) ? esc(number_format((float) ($card['ziarat_cost'] ?? 0), 2)) . ' SAR' : 'Not included' ?></span></li>
+                                    <li class="flex justify-between gap-2"><span>SAR → PKR rate</span><span class="font-semibold"><?= esc(rtrim(rtrim(number_format((float) ($card['exchange_rate'] ?? 1), 4, '.', ''), '0'), '.')) ?></span></li>
+                                    <li class="flex justify-between gap-2"><span>Seats sold / total</span><span class="font-semibold"><?= $seatBooked ?> / <?= $seatTotal ?></span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Transport</p>
+                                <ul class="mt-1 space-y-1 text-[10px] text-slate-600">
+                                    <?php if ($transportNames === ''): ?>
+                                        <li class="text-slate-400">No transport linked</li>
+                                    <?php else: ?>
+                                        <?php foreach ((array) ($card['transport_names'] ?? []) as $transportName): ?>
+                                            <li class="rounded-md border border-slate-200 px-2 py-1"><?= esc((string) $transportName) ?></li>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                    <?php if (!empty($card['flight_count'])): ?>
+                                        <li class="pt-1 text-slate-400"><?= (int) $card['flight_count'] ?> flight record(s) linked</li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
+
+        <div id="package-empty" class="hidden rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs text-slate-500">
+            <i class="fa-solid fa-magnifying-glass mb-1 block text-lg text-slate-300"></i>
+            No package matches your search.
+        </div>
+
+        <script>
+            (function() {
+                'use strict';
+
+                var rows = Array.prototype.slice.call(document.querySelectorAll('[data-package-row]'));
+
+                rows.forEach(function(row) {
+                    var toggle = row.querySelector('[data-toggle-detail]');
+                    var panel = row.querySelector('[data-package-detail]');
+                    var chevron = row.querySelector('[data-detail-chevron]');
+
+                    if (!toggle || !panel) {
+                        return;
+                    }
+
+                    toggle.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        var open = panel.classList.contains('hidden');
+                        panel.classList.toggle('hidden', !open);
+                        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                        toggle.title = open ? 'Hide stay dates' : 'Show stay dates';
+                        if (chevron) {
+                            chevron.classList.toggle('rotate-180', open);
+                        }
+                    });
+                });
+
+                var search = document.getElementById('package-search');
+                var empty = document.getElementById('package-empty');
+                var count = document.getElementById('package-count');
+
+                if (search) {
+                    search.addEventListener('input', function() {
+                        var query = search.value.trim().toLowerCase();
+                        var visible = 0;
+
+                        rows.forEach(function(row) {
+                            var match = query === '' || (row.dataset.search || '').indexOf(query) !== -1;
+                            row.classList.toggle('hidden', !match);
+                            if (match) {
+                                visible += 1;
+                            }
+                        });
+
+                        if (empty) {
+                            empty.classList.toggle('hidden', visible !== 0);
+                        }
+                        if (count) {
+                            count.textContent = visible;
+                        }
+                    });
+                }
+
+                function closeMenus(except) {
+                    Array.prototype.slice.call(document.querySelectorAll('[data-menu]')).forEach(function(menu) {
+                        if (menu !== except) {
+                            menu.classList.add('hidden');
+                        }
+                    });
+                }
+
+                Array.prototype.slice.call(document.querySelectorAll('[data-menu-toggle]')).forEach(function(button) {
+                    button.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        var menu = button.parentElement.querySelector('[data-menu]');
+                        if (!menu) {
+                            return;
+                        }
+                        closeMenus(menu);
+                        menu.classList.toggle('hidden');
+                    });
+                });
+
+                document.addEventListener('click', function() {
+                    closeMenus(null);
+                });
+            })();
+        </script>
+    <?php endif; ?>
 </main>
 
 <!-- ═══════════════════════════════════════════════════
@@ -358,6 +549,8 @@ $companyEmail = esc((string) ($company['email'] ?? ''));
         $shareHotels   = $card['hotel_stays'] ?? [];
         $shareTransports = $card['transport_names'] ?? [];
         $sharePrices   = $card['price_map'] ?? [];
+        $shareIsFlat   = ($card['package_mode'] ?? 'tiered') === 'flat';
+        $shareFlatPrice = (float) ($card['flat_price'] ?? 0);
         $pkgDep2 = (string) ($card['package_departure_date'] ?? '');
         $pkgArr2 = (string) ($card['package_arrival_date'] ?? '');
         $pkgDepFmt = $pkgDep2 !== '' ? date('d M Y', strtotime($pkgDep2)) : '—';
@@ -392,14 +585,40 @@ $companyEmail = esc((string) ($company['email'] ?? ''));
             </div>
 
             <!-- Pricing -->
-            <?php if (!empty($sharePrices)): ?>
+            <?php
+            $sharePricingRows = [];
+            if ($shareIsFlat && $shareFlatPrice > 0) {
+                $sharePriceLabel = 'Package Price';
+                if ((int) ($card['include_ticket'] ?? 1) === 1
+                    && (int) ($card['include_transport'] ?? 1) === 0
+                    && (int) ($card['include_hotel'] ?? 1) === 0) {
+                    $sharePriceLabel = 'Ticket Price';
+                } elseif ((int) ($card['include_transport'] ?? 1) === 1
+                    && (int) ($card['include_ticket'] ?? 1) === 0
+                    && (int) ($card['include_hotel'] ?? 1) === 0) {
+                    $sharePriceLabel = 'Transport Price';
+                }
+                $sharePricingRows[] = ['label' => $sharePriceLabel, 'amount' => $shareFlatPrice];
+            } else {
+                foreach ((array) $sharePrices as $type => $amount) {
+                    if ($amount === null || (float) $amount <= 0) {
+                        continue;
+                    }
+                    $sharePricingRows[] = [
+                        'label' => ucwords(str_replace('_', ' ', (string) $type)),
+                        'amount' => (float) $amount,
+                    ];
+                }
+            }
+            ?>
+            <?php if ($sharePricingRows !== []): ?>
                 <div style="padding:12px 20px;background:#f8fffe;border-bottom:1px solid #f0f0f0;">
-                    <div style="font-size:11px;font-weight:600;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Package Pricing</div>
+                    <div style="font-size:11px;font-weight:600;color:#4b5563;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;"><?= $shareIsFlat ? 'Package Price' : 'Package Pricing' ?></div>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                        <?php foreach ($sharePrices as $type => $amount): ?>
+                        <?php foreach ($sharePricingRows as $pricingRow): ?>
                             <div style="background:#fff;border:1px solid #d1fae5;border-radius:8px;padding:6px 12px;min-width:90px;">
-                                <div style="font-size:10px;color:#6b7280;text-transform:capitalize;"><?= esc($type) ?></div>
-                                <div style="font-size:14px;font-weight:700;color:#065f46;">PKR <?= number_format((float) $amount) ?></div>
+                                <div style="font-size:10px;color:#6b7280;text-transform:capitalize;"><?= esc((string) ($pricingRow['label'] ?? '')) ?></div>
+                                <div style="font-size:14px;font-weight:700;color:#065f46;">PKR <?= number_format((float) ($pricingRow['amount'] ?? 0)) ?></div>
                             </div>
                         <?php endforeach; ?>
                     </div>

@@ -7,7 +7,7 @@ use CodeIgniter\Database\BaseConnection;
 
 class PackagePricingService
 {
-    const TIERS = ['sharing', 'quad', 'triple', 'double'];
+    const TIERS = ['sharing', 'quint', 'quad', 'triple', 'double'];
 
     private $db;
 
@@ -23,7 +23,7 @@ class PackagePricingService
         }
 
         $package = $this->db->table('packages')
-            ->select('id, total_seats, include_hotel, include_ticket, include_transport, purchase_price_visa')
+            ->select('id, total_seats, include_hotel, include_ticket, include_transport, include_ziarat, ziarat_cost, purchase_price_visa, exchange_rate')
             ->where('id', $packageId)
             ->get()
             ->getRowArray();
@@ -32,25 +32,8 @@ class PackagePricingService
             return $this->emptySummary();
         }
 
-        $existingCosts = $this->db->table('package_costs')
-            ->select('cost_type, seats_limit, id')
-            ->where('package_id', $packageId)
-            ->orderBy('id', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        $seatLimitMap = [];
-        foreach ($existingCosts as $costRow) {
-            $tier = $this->normalizeTier((string) ($costRow['cost_type'] ?? ''));
-            if ($tier === null || isset($seatLimitMap[$tier])) {
-                continue;
-            }
-
-            $seatLimitMap[$tier] = $costRow['seats_limit'] !== null ? (int) $costRow['seats_limit'] : null;
-        }
-
         $hotelRows = $this->db->table('package_hotels')
-            ->select('id, hotel_id, room_type, cost_amount, sharing_cost, quad_cost, triple_cost, double_cost')
+            ->select('id, hotel_id, room_type, cost_amount, sharing_cost, quint_cost, quad_cost, triple_cost, double_cost')
             ->where('package_id', $packageId)
             ->orderBy('id', 'ASC')
             ->get()
@@ -70,7 +53,7 @@ class PackagePricingService
             ->get()
             ->getResultArray();
 
-        return $this->buildSummary($package, $hotelRows, $flightRows, $transportRows, $seatLimitMap);
+        return $this->buildSummary($package, $hotelRows, $flightRows, $transportRows);
     }
 
     public function recalculatePackage(int $packageId): array
@@ -82,16 +65,6 @@ class PackagePricingService
 
         $costModel = new PackageCostModel();
         $existingRows = $costModel->where('package_id', $packageId)->findAll();
-
-        $preservedSeatLimits = [];
-        foreach ($existingRows as $row) {
-            $tier = $this->normalizeTier((string) ($row['cost_type'] ?? ''));
-            if ($tier === null || isset($preservedSeatLimits[$tier])) {
-                continue;
-            }
-
-            $preservedSeatLimits[$tier] = $row['seats_limit'] !== null ? (int) $row['seats_limit'] : null;
-        }
 
         $targetRows = [];
         if ($summary['mode'] === 'flat') {
@@ -106,6 +79,8 @@ class PackagePricingService
                 ];
             }
         } else {
+            // Seats are a single package-level pool, so every tier carries the same limit.
+            $seatLimit = $summary['flat_seats_limit'];
             foreach ($summary['price_map'] as $tier => $amount) {
                 $normalizedTier = $this->normalizeTier((string) $tier);
                 if ($normalizedTier === null) {
@@ -116,7 +91,7 @@ class PackagePricingService
                     'package_id' => $packageId,
                     'cost_type' => $normalizedTier,
                     'cost_amount' => (float) $amount,
-                    'seats_limit' => $preservedSeatLimits[$normalizedTier] ?? null,
+                    'seats_limit' => $seatLimit,
                 ];
             }
         }
@@ -150,12 +125,13 @@ class PackagePricingService
         return $tier ?? 'sharing';
     }
 
-    private function buildSummary(array $package, array $hotelRows, array $flightRows, array $transportRows, array $seatLimitMap): array
+    private function buildSummary(array $package, array $hotelRows, array $flightRows, array $transportRows): array
     {
         $packageId = (int) ($package['id'] ?? 0);
         $includeHotel = (int) ($package['include_hotel'] ?? 1) === 1;
         $includeTicket = (int) ($package['include_ticket'] ?? 1) === 1;
         $includeTransport = (int) ($package['include_transport'] ?? 1) === 1;
+        $includeZiarat = (int) ($package['include_ziarat'] ?? 0) === 1;
 
         $hotelTotals = [];
         $uniqueHotelRows = [];
@@ -163,6 +139,7 @@ class PackagePricingService
             $uniqueKey = implode('|', [
                 (int) ($row['hotel_id'] ?? 0),
                 round((float) ($row['sharing_cost'] ?? 0), 2),
+                round((float) ($row['quint_cost'] ?? 0), 2),
                 round((float) ($row['quad_cost'] ?? 0), 2),
                 round((float) ($row['triple_cost'] ?? 0), 2),
                 round((float) ($row['double_cost'] ?? 0), 2),
@@ -199,6 +176,7 @@ class PackagePricingService
             }
         }
 
+        // Flight/ticket costs are entered in PKR; hotel, transport and visa costs in SAR.
         $flightTotal = 0.0;
         foreach ($flightRows as $row) {
             $flightTotal += (float) ($row['cost_amount'] ?? 0);
@@ -220,8 +198,17 @@ class PackagePricingService
             $hotelTotals = [];
         }
 
+        $exchangeRate = (float) ($package['exchange_rate'] ?? 0);
+        if ($exchangeRate <= 0) {
+            $exchangeRate = 1.0;
+        }
+
+        // Ziarat (holy sites visit) is a SAR cost that only applies when opted in.
+        $ziaratTotal = $includeZiarat ? (float) ($package['ziarat_cost'] ?? 0) : 0.0;
+
         $mode = $includeHotel ? 'tiered' : 'flat';
-        $flatExtras = $flightTotal + $transportTotal + $visaTotal;
+        $sarExtrasPkr = ($transportTotal + $visaTotal + $ziaratTotal) * $exchangeRate;
+        $flatExtras = $flightTotal + $sarExtrasPkr;
         $priceMap = [];
 
         if ($mode === 'tiered') {
@@ -230,7 +217,7 @@ class PackagePricingService
                     continue;
                 }
 
-                $priceMap[$tier] = round((float) $hotelTotals[$tier] + $flatExtras, 2);
+                $priceMap[$tier] = round(((float) $hotelTotals[$tier] * $exchangeRate) + $flatExtras, 2);
             }
         }
 
@@ -239,25 +226,23 @@ class PackagePricingService
             $flatPrice = round($flatExtras, 2);
         }
 
-        $flatSeatLimit = null;
-        if ($mode === 'flat') {
-            $packageTotalSeats = (int) ($package['total_seats'] ?? 0);
-            if ($packageTotalSeats > 0) {
-                $flatSeatLimit = $packageTotalSeats;
-            } elseif ($seatLimitMap !== []) {
-                $flatSeatLimit = max(array_map(static function ($value): int {
-                    return (int) ($value ?? 0);
-                }, $seatLimitMap));
-            }
-        }
+        // Seats are one pool per package regardless of mode/tier.
+        $packageTotalSeats = (int) ($package['total_seats'] ?? 0);
+        $flatSeatLimit = $packageTotalSeats > 0 ? $packageTotalSeats : null;
+        $seatLimitMap = $packageTotalSeats > 0 ? array_fill_keys(self::TIERS, $packageTotalSeats) : [];
 
         return [
             'package_id' => $packageId,
             'mode' => $mode,
+            'exchange_rate' => $exchangeRate,
             'hotel_totals' => $hotelTotals,
             'flight_total' => round($flightTotal, 2),
-            'transport_total' => round($transportTotal, 2),
-            'visa_total' => round($visaTotal, 2),
+            'transport_total_sar' => round($transportTotal, 2),
+            'visa_total_sar' => round($visaTotal, 2),
+            'ziarat_total_sar' => round($ziaratTotal, 2),
+            'transport_total' => round($transportTotal * $exchangeRate, 2),
+            'visa_total' => round($visaTotal * $exchangeRate, 2),
+            'ziarat_total' => round($ziaratTotal * $exchangeRate, 2),
             'price_map' => $priceMap,
             'flat_price' => $flatPrice,
             'has_pricing' => $mode === 'flat' ? ($flatPrice !== null && $flatPrice > 0) : $priceMap !== [],
@@ -266,6 +251,7 @@ class PackagePricingService
             'include_hotel' => $includeHotel,
             'include_ticket' => $includeTicket,
             'include_transport' => $includeTransport,
+            'include_ziarat' => $includeZiarat,
         ];
     }
 
@@ -280,10 +266,15 @@ class PackagePricingService
         return [
             'package_id' => 0,
             'mode' => 'tiered',
+            'exchange_rate' => 1.0,
             'hotel_totals' => [],
             'flight_total' => 0.0,
+            'transport_total_sar' => 0.0,
+            'visa_total_sar' => 0.0,
+            'ziarat_total_sar' => 0.0,
             'transport_total' => 0.0,
             'visa_total' => 0.0,
+            'ziarat_total' => 0.0,
             'price_map' => [],
             'flat_price' => null,
             'has_pricing' => false,
@@ -292,6 +283,7 @@ class PackagePricingService
             'include_hotel' => true,
             'include_ticket' => true,
             'include_transport' => true,
+            'include_ziarat' => false,
         ];
     }
 }

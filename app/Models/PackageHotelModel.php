@@ -21,6 +21,7 @@ class PackageHotelModel extends Model
         'room_type',
         'cost_amount',
         'sharing_cost',
+        'quint_cost',
         'quad_cost',
         'triple_cost',
         'double_cost',

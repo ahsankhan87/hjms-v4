@@ -45,6 +45,11 @@
                     </div>
                 </div>
 
+                <!-- Room Rates -->
+                <div class="space-y-3 border-t border-slate-100 pt-3">
+                    <?= view('portal/hotels/_rates', ['rates' => old('rates') ?: []]) ?>
+                </div>
+
                 <!-- Media & Links -->
                 <div class="space-y-3 border-t border-slate-100 pt-3">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Media &amp; Links</p>

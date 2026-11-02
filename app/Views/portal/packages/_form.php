@@ -31,10 +31,18 @@ if (! is_array($transportInputRows) || $transportInputRows === []) {
 $incHotel = (int) old('include_hotel', (string) ($row['include_hotel'] ?? 1));
 $incTicket = (int) old('include_ticket', (string) ($row['include_ticket'] ?? 1));
 $incTransport = (int) old('include_transport', (string) ($row['include_transport'] ?? 1));
+$incZiarat = (int) old('include_ziarat', (string) ($row['include_ziarat'] ?? 0));
 
-$inputClass = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500';
-$labelClass = 'block text-xs font-medium text-slate-600';
-$cardClass = 'rounded-xl border border-slate-200 bg-white';
+$inputClass = 'mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500';
+$labelClass = 'block text-[10px] font-bold uppercase tracking-wide text-slate-500';
+$cardClass = 'overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm';
+$accordionHeadClass = 'flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-slate-50';
+$accordionIconClass = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-[11px] text-emerald-600';
+
+$tierKeys = \App\Services\HotelRateService::TIERS;
+$tierLabels = is_array($tierLabels ?? null) && $tierLabels !== [] ? $tierLabels : \App\Services\HotelRateService::TIER_LABELS;
+$hotelRates = is_array($hotelRates ?? null) ? $hotelRates : [];
+$hotelRatesJson = json_encode($hotelRates, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 
 $hotelMasterJson = json_encode(array_map(static function (array $hotel): array {
     return [
@@ -66,7 +74,7 @@ $predefinedMakkahContact = 'Niamat kiyani Phone No.+966 53 908 1421';
 $predefinedMadinaContact = 'M Irfan Phone No.00966568553058';
 $predefinedTransportContact = 'Sajid Nawaz Phone No.00966591195335';
 
-$renderHotelRow = static function (array $stay, int|string $index) use ($hotelOptions, $inputClass, $labelClass): void {
+$renderHotelRow = static function (array $stay, int|string $index) use ($hotelOptions, $inputClass, $labelClass, $tierLabels, $tierKeys): void {
     $currentHotelId = (int) ($stay['hotel_id'] ?? 0);
     $auto = (string) ($stay['auto'] ?? '');
     $nights = (string) ($stay['nights'] ?? '');
@@ -74,16 +82,16 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
         return (float) $value > 0 ? (string) (float) $value : '';
     };
     ?>
-    <div data-hotel-row class="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
-        <div class="flex items-center justify-between gap-2">
-            <span data-stay-label class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Stay</span>
-            <span data-stay-dates class="text-xs font-semibold text-slate-600"></span>
-            <button type="button" data-remove-hotel-row class="inline-flex h-7 items-center gap-1 rounded-md border border-rose-200 bg-white px-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">
-                <i class="fa-solid fa-xmark"></i><span>Remove</span>
+    <div data-hotel-row class="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+        <div class="flex items-center gap-2">
+            <span data-stay-label class="inline-flex shrink-0 items-center rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Stay</span>
+            <span data-stay-dates class="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-500"></span>
+            <button type="button" data-remove-hotel-row class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-[10px] text-rose-600 hover:border-rose-300 hover:bg-rose-50" title="Remove stay">
+                <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
-        <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
-            <div>
+        <div class="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            <div class="col-span-1">
                 <label class="<?= $labelClass ?>">City</label>
                 <select name="hotel_stay[<?= $index ?>][city]" data-hotel-city class="<?= $inputClass ?>">
                     <?php foreach (['Makkah', 'Madina'] as $cityOption): ?>
@@ -91,10 +99,15 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="col-span-1 md:col-span-2">
+            <div class="col-span-1 sm:order-2">
+                <label class="<?= $labelClass ?>">Nights</label>
+                <input type="number" min="0" name="hotel_stay[<?= $index ?>][nights]" value="<?= esc($nights) ?>" data-stay-nights data-auto="<?= $auto !== '' ? '1' : '0' ?>" data-preferred="<?= esc($auto) ?>" class="<?= $inputClass ?>">
+                <input type="hidden" name="hotel_stay[<?= $index ?>][auto]" value="<?= esc($auto) ?>" data-stay-auto>
+            </div>
+            <div class="col-span-2 sm:order-1">
                 <label class="<?= $labelClass ?>">Hotel</label>
                 <select name="hotel_stay[<?= $index ?>][hotel_id]" data-hotel-select class="<?= $inputClass ?>">
-                    <option value="">Select hotel…</option>
+                    <option value="">+ Not listed / new hotel</option>
                     <?php foreach (($hotelOptions ?? []) as $hotelOption): ?>
                         <?php $hotelOptionId = (int) ($hotelOption['id'] ?? 0); ?>
                         <option value="<?= esc((string) $hotelOptionId) ?>" <?= $currentHotelId === $hotelOptionId ? 'selected' : '' ?>>
@@ -103,104 +116,148 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div>
-                <label class="<?= $labelClass ?>">New hotel name</label>
-                <input name="hotel_stay[<?= $index ?>][hotel_name]" value="<?= esc((string) ($stay['hotel_name'] ?? '')) ?>" placeholder="If not in list" class="<?= $inputClass ?>">
-            </div>
-            <div>
-                <label class="<?= $labelClass ?>">Nights</label>
-                <input type="number" min="0" name="hotel_stay[<?= $index ?>][nights]" value="<?= esc($nights) ?>" data-stay-nights data-auto="<?= $auto !== '' ? '1' : '0' ?>" data-preferred="<?= esc($auto) ?>" class="<?= $inputClass ?>">
-                <input type="hidden" name="hotel_stay[<?= $index ?>][auto]" value="<?= esc($auto) ?>" data-stay-auto>
-            </div>
-            <div class="col-span-2 md:col-span-4 xl:col-span-4">
-                <label class="<?= $labelClass ?>">Room tier costs for this hotel (PKR, whole stay)</label>
-                <div class="mt-1 grid grid-cols-2 gap-2 md:grid-cols-5">
-                    <input name="hotel_stay[<?= $index ?>][sharing_cost]" value="<?= esc($formatCost($stay['sharing_cost'] ?? 0)) ?>" placeholder="Sharing" data-hotel-cost class="<?= $inputClass ?> !mt-0">
-                    <input name="hotel_stay[<?= $index ?>][quad_cost]" value="<?= esc($formatCost($stay['quad_cost'] ?? 0)) ?>" placeholder="Quad" data-hotel-cost class="<?= $inputClass ?> !mt-0">
-                    <input name="hotel_stay[<?= $index ?>][triple_cost]" value="<?= esc($formatCost($stay['triple_cost'] ?? 0)) ?>" placeholder="Triple" data-hotel-cost class="<?= $inputClass ?> !mt-0">
-                    <input name="hotel_stay[<?= $index ?>][double_cost]" value="<?= esc($formatCost($stay['double_cost'] ?? 0)) ?>" placeholder="Double" data-hotel-cost class="<?= $inputClass ?> !mt-0">
-                    <input type="number" min="0" name="hotel_stay[<?= $index ?>][total_seats]" value="<?= esc((string) ((int) ($stay['total_seats'] ?? 0) > 0 ? (int) $stay['total_seats'] : '')) ?>" placeholder="Seats" class="<?= $inputClass ?> !mt-0">
-                </div>
-                <p data-cost-note class="mt-1 hidden text-[11px] font-medium text-sky-700"></p>
+            <div data-hotel-name-wrap class="col-span-2 <?= $currentHotelId > 0 ? 'hidden' : '' ?> sm:order-3 sm:col-span-4">
+                <label class="<?= $labelClass ?>">Hotel name <span class="font-medium normal-case tracking-normal text-slate-400">— only when the hotel is not in the list</span></label>
+                <input name="hotel_stay[<?= $index ?>][hotel_name]" value="<?= esc((string) ($stay['hotel_name'] ?? '')) ?>" placeholder="Type the hotel name" class="<?= $inputClass ?>">
             </div>
         </div>
+        <div class="mt-1.5 flex items-center justify-between gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Room rates (SAR, whole stay)</span>
+            <button type="button" data-reload-rates class="inline-flex items-center gap-1 rounded border border-emerald-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-50">
+                <i class="fa-solid fa-rotate text-[9px]"></i><span>Use hotel rates</span>
+            </button>
+        </div>
+        <div class="mt-1 grid grid-cols-3 gap-1.5 sm:grid-cols-5">
+            <?php foreach ($tierKeys as $tierKey): ?>
+                <div>
+                    <span data-tier-label class="block text-[10px] font-semibold uppercase tracking-wide text-slate-400"><?= esc((string) ($tierLabels[$tierKey] ?? $tierKey)) ?></span>
+                    <input type="number" step="0.01" min="0"
+                        name="hotel_stay[<?= $index ?>][<?= esc($tierKey) ?>_cost]"
+                        value="<?= esc($formatCost($stay[$tierKey . '_cost'] ?? 0)) ?>"
+                        placeholder="0.00"
+                        data-tier="<?= esc($tierKey) ?>"
+                        data-hotel-cost class="mt-0.5 w-full rounded-md border border-slate-300 bg-white px-1.5 py-1 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <p data-rate-note class="mt-1 hidden text-[10px] font-medium leading-tight text-slate-500"></p>
+        <p data-cost-note class="mt-1 hidden text-[10px] font-medium leading-tight text-sky-700"></p>
         <input type="hidden" name="hotel_stay[<?= $index ?>][stay_id]" value="<?= esc((string) (int) ($stay['stay_id'] ?? 0)) ?>">
     </div>
     <?php
 };
 ?>
-<main class="space-y-4">
+
+<main class="space-y-3">
     <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
     <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
     <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
-    <form method="post" action="<?= esc($formAction) ?>" id="package-form" class="space-y-4">
+    <form method="post" action="<?= esc($formAction) ?>" id="package-form" class="space-y-2.5">
         <?= csrf_field() ?>
         <input type="hidden" name="package_id" value="<?= esc((string) (int) ($row['id'] ?? 0)) ?>">
         <input type="hidden" name="flight_id" id="flight-id" value="<?= esc((string) (int) ($flight['flight_id'] ?? 0)) ?>">
         <input type="hidden" name="flight_source" id="flight-source" value="<?= (int) ($flight['flight_id'] ?? 0) > 0 ? 'existing' : '' ?>">
 
-        <section class="<?= $cardClass ?> p-4">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h2 class="inline-flex items-center gap-2 text-sm font-semibold text-slate-800"><i class="fa-solid fa-plane-departure text-emerald-600"></i><span>1. Flight &amp; Trip Dates</span></h2>
-                    <p class="mt-1 text-xs text-slate-500">These dates drive everything else: outbound departure = first hotel check-in, return arrival = last hotel check-out. Duration is calculated automatically.</p>
-                </div>
-                <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                    <input type="hidden" name="include_ticket" value="0">
-                    <input type="checkbox" name="include_ticket" value="1" id="toggle-ticket" class="rounded border-slate-300" <?= $incTicket ? 'checked' : '' ?>>
-                    <span>Package includes flight / ticket</span>
-                </label>
+        <div class="flex items-center justify-between gap-2 px-0.5">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Package setup</p>
+            <div class="flex items-center gap-2 text-[11px] font-semibold text-emerald-700">
+                <button type="button" data-acc-all="open" class="hover:underline">Expand all</button>
+                <span class="text-slate-300">&middot;</span>
+                <button type="button" data-acc-all="close" class="hover:underline">Collapse all</button>
             </div>
+        </div>
 
-            <div class="mt-3 grid gap-3 xl:grid-cols-2">
-                <div class="rounded-lg border border-slate-200 p-3">
-                    <div class="flex items-center justify-between gap-2">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-700">Outbound — Pakistan to Saudi Arabia</h3>
-                        <span class="text-[11px] text-slate-400">Defines first hotel check-in</span>
+        <!-- 1. flight & trip dates -->
+        <section id="flight-section" data-acc="flight" class="<?= $cardClass ?>">
+            <button type="button" data-acc-toggle class="<?= $accordionHeadClass ?>">
+                <span class="<?= $accordionIconClass ?>"><i class="fa-solid fa-plane-departure"></i></span>
+                <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-semibold text-slate-800">Flight &amp; trip dates</span>
+                    <span class="block truncate text-[11px] text-slate-500">Sets hotel check-in / check-out and the package duration</span>
+                </span>
+                <span id="chip-flight" class="hidden shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 sm:inline-flex">&mdash;</span>
+                <i data-acc-chevron class="fa-solid fa-chevron-down shrink-0 text-[10px] text-slate-400 transition-transform"></i>
+            </button>
+            <div data-acc-body class="space-y-2 border-t border-slate-200 bg-slate-50/60 px-3 py-3">
+                <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                        <label class="<?= $labelClass ?>">Outbound departure <span class="text-rose-500">*</span></label>
+                        <input type="datetime-local" name="outbound_departure_at" id="trip-start" value="<?= esc(old('outbound_departure_at', (string) ($flight['departure_at'] ?? ''))) ?>" required class="<?= $inputClass ?>">
+                        <p class="mt-0.5 text-[10px] leading-tight text-slate-400">Pakistan &rarr; Saudi Arabia &middot; first hotel check-in</p>
                     </div>
-                    <?php if (!empty($flightTemplates)): ?>
-                        <div class="mt-2">
-                            <label class="<?= $labelClass ?>">Load from Flight Management <span class="font-normal text-slate-400">(optional)</span></label>
-                            <select id="flight-template-select" class="<?= $inputClass ?>">
-                                <option value="">— enter flight details below —</option>
-                                <?php foreach ($flightTemplates as $template): ?>
-                                    <?php
-                                    $templateOutbound = trim((string) (($template['airline'] ?? '') . ' ' . ($template['flight_no'] ?? '')));
-                                    $templateReturn = trim((string) (($template['return_airline'] ?? '') . ' ' . ($template['return_flight_no'] ?? '')));
-                                    $templateToLocal = static function ($value): string {
-                                        return trim((string) ($value ?? '')) === '' ? '' : date('Y-m-d\TH:i', strtotime((string) $value));
-                                    };
-                                    ?>
-                                    <option value="<?= esc((string) (int) ($template['id'] ?? 0)) ?>"
-                                        data-airline="<?= esc((string) ($template['airline'] ?? '')) ?>"
-                                        data-flight-no="<?= esc((string) ($template['flight_no'] ?? '')) ?>"
-                                        data-pnr="<?= esc((string) ($template['pnr'] ?? '')) ?>"
-                                        data-departure-airport="<?= esc((string) ($template['departure_airport'] ?? '')) ?>"
-                                        data-arrival-airport="<?= esc((string) ($template['arrival_airport'] ?? '')) ?>"
-                                        data-outbound-departure-at="<?= esc($templateToLocal($template['departure_at'] ?? '')) ?>"
-                                        data-outbound-arrival-at="<?= esc($templateToLocal($template['arrival_at'] ?? '')) ?>"
-                                        data-return-airline="<?= esc((string) ($template['return_airline'] ?? '')) ?>"
-                                        data-return-flight-no="<?= esc((string) ($template['return_flight_no'] ?? '')) ?>"
-                                        data-return-pnr="<?= esc((string) ($template['return_pnr'] ?? '')) ?>"
-                                        data-return-departure-airport="<?= esc((string) ($template['return_departure_airport'] ?? '')) ?>"
-                                        data-return-arrival-airport="<?= esc((string) ($template['return_arrival_airport'] ?? '')) ?>"
-                                        data-return-departure-at="<?= esc($templateToLocal($template['return_departure_at'] ?? '')) ?>"
-                                        data-return-arrival-at="<?= esc($templateToLocal($template['return_arrival_at'] ?? '')) ?>"
-                                    ><?= esc($templateOutbound !== '' ? $templateOutbound : 'Flight #' . (int) ($template['id'] ?? 0)) ?> · <?= esc((string) ($template['departure_at'] ?? '')) ?><?= $templateReturn !== '' ? ' · back: ' . esc($templateReturn) : '' ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <p class="mt-1 text-[11px] text-slate-400">Loading a saved flight keeps its master record; the trip dates below are still taken from the fields you fill in.</p>
+                    <div>
+                        <label class="<?= $labelClass ?>">Return arrival <span class="text-rose-500">*</span></label>
+                        <input type="datetime-local" name="return_arrival_at" id="trip-end" value="<?= esc(old('return_arrival_at', (string) ($flight['return_arrival_at'] ?? ''))) ?>" required class="<?= $inputClass ?>">
+                        <p class="mt-0.5 text-[10px] leading-tight text-slate-400">Saudi Arabia &rarr; Pakistan &middot; last hotel check-out</p>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="<?= $labelClass ?>">Duration</label>
+                        <div id="trip-summary" class="mt-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800"><?= !empty($row['duration_days']) ? esc((string) (int) $row['duration_days']) . ' day(s) — calculated from the dates above' : 'Enter both dates above.' ?></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2">
+                    <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-700">
+                        <input type="hidden" name="include_ticket" value="0">
+                        <input type="checkbox" name="include_ticket" value="1" id="toggle-ticket" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" <?= $incTicket ? 'checked' : '' ?>>
+                        <span>Flight / ticket is part of this package</span>
+                    </label>
+                    <span id="ticket-off-note" class="text-[10px] font-medium text-slate-400">Flight details hidden &mdash; the dates above are still used for the itinerary.</span>
+                </div>
+
+                <div data-ticket-details class="rounded-lg border border-slate-200 bg-white p-2.5">
+                    <div class="flex flex-wrap items-end gap-2">
+                        <?php if (!empty($flightTemplates)): ?>
+                            <div class="min-w-[12rem] flex-1">
+                                <label class="<?= $labelClass ?>">Load from Flight Management <span class="font-medium normal-case tracking-normal text-slate-400">(optional)</span></label>
+                                <select id="flight-template-select" class="<?= $inputClass ?>">
+                                    <option value="">&mdash; enter flight details below &mdash;</option>
+                                    <?php foreach ($flightTemplates as $template): ?>
+                                        <?php
+                                        $templateOutbound = trim((string) (($template['airline'] ?? '') . ' ' . ($template['flight_no'] ?? '')));
+                                        $templateReturn = trim((string) (($template['return_airline'] ?? '') . ' ' . ($template['return_flight_no'] ?? '')));
+                                        $templateToLocal = static function ($value): string {
+                                            return trim((string) ($value ?? '')) === '' ? '' : date('Y-m-d\TH:i', strtotime((string) $value));
+                                        };
+                                        ?>
+                                        <option value="<?= esc((string) (int) ($template['id'] ?? 0)) ?>"
+                                            data-airline="<?= esc((string) ($template['airline'] ?? '')) ?>"
+                                            data-flight-no="<?= esc((string) ($template['flight_no'] ?? '')) ?>"
+                                            data-pnr="<?= esc((string) ($template['pnr'] ?? '')) ?>"
+                                            data-departure-airport="<?= esc((string) ($template['departure_airport'] ?? '')) ?>"
+                                            data-arrival-airport="<?= esc((string) ($template['arrival_airport'] ?? '')) ?>"
+                                            data-outbound-departure-at="<?= esc($templateToLocal($template['departure_at'] ?? '')) ?>"
+                                            data-outbound-arrival-at="<?= esc($templateToLocal($template['arrival_at'] ?? '')) ?>"
+                                            data-return-airline="<?= esc((string) ($template['return_airline'] ?? '')) ?>"
+                                            data-return-flight-no="<?= esc((string) ($template['return_flight_no'] ?? '')) ?>"
+                                            data-return-pnr="<?= esc((string) ($template['return_pnr'] ?? '')) ?>"
+                                            data-return-departure-airport="<?= esc((string) ($template['return_departure_airport'] ?? '')) ?>"
+                                            data-return-arrival-airport="<?= esc((string) ($template['return_arrival_airport'] ?? '')) ?>"
+                                            data-return-departure-at="<?= esc($templateToLocal($template['return_departure_at'] ?? '')) ?>"
+                                            data-return-arrival-at="<?= esc($templateToLocal($template['return_arrival_at'] ?? '')) ?>"
+                                            data-fare="<?= esc((string) (float) ($template['fare'] ?? 0)) ?>"
+                                        ><?= esc($templateOutbound !== '' ? $templateOutbound : 'Flight #' . (int) ($template['id'] ?? 0)) ?> &middot; <?= esc((string) ($template['departure_at'] ?? '')) ?><?= $templateReturn !== '' ? ' &middot; back: ' . esc($templateReturn) : '' ?><?= (float) ($template['fare'] ?? 0) > 0 ? ' &middot; fare ' . esc(number_format((float) $template['fare'], 0)) . ' PKR' : '' ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
+                        <div class="w-full sm:w-40">
+                            <label class="<?= $labelClass ?>">Ticket cost (PKR)</label>
+                            <input type="number" step="0.01" min="0" name="ticket_cost" id="ticket-cost" value="<?= esc(old('ticket_cost', (float) ($flight['cost_amount'] ?? 0) > 0 ? (string) (float) $flight['cost_amount'] : '')) ?>" placeholder="e.g. 240000" class="<?= $inputClass ?>">
                         </div>
-                    <?php endif; ?>
-                    <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
+                    </div>
+                    <p class="mt-1 text-[10px] text-slate-400">Only the ticket stays in PKR &mdash; every other package cost is in SAR. <span id="ticket-fare-note" class="hidden font-semibold text-emerald-600"></span></p>
+
+                    <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Outbound flight</p>
+                    <div class="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
                         <div>
                             <label class="<?= $labelClass ?>">Airline</label>
-                            <input name="airline" value="<?= esc(old('airline', (string) ($flight['airline'] ?? ''))) ?>" placeholder="e.g. PIA" class="<?= $inputClass ?>">
+                            <input name="airline" value="<?= esc(old('airline', (string) ($flight['airline'] ?? ''))) ?>" placeholder="PIA" class="<?= $inputClass ?>">
                         </div>
                         <div>
                             <label class="<?= $labelClass ?>">Flight No</label>
-                            <input name="flight_no" value="<?= esc(old('flight_no', (string) ($flight['flight_no'] ?? ''))) ?>" placeholder="e.g. PK-741" class="<?= $inputClass ?>">
+                            <input name="flight_no" value="<?= esc(old('flight_no', (string) ($flight['flight_no'] ?? ''))) ?>" placeholder="PK-741" class="<?= $inputClass ?>">
                         </div>
                         <div>
                             <label class="<?= $labelClass ?>">PNR</label>
@@ -214,23 +271,14 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                             <label class="<?= $labelClass ?>">To</label>
                             <input name="arrival_airport" value="<?= esc(old('arrival_airport', (string) ($flight['arrival_airport'] ?? ''))) ?>" placeholder="Jeddah (JED)" class="<?= $inputClass ?>">
                         </div>
-                        <div>
-                            <label class="<?= $labelClass ?>">Departure <span class="text-rose-600">*</span></label>
-                            <input type="datetime-local" name="outbound_departure_at" id="trip-start" value="<?= esc(old('outbound_departure_at', (string) ($flight['departure_at'] ?? ''))) ?>" required class="<?= $inputClass ?>">
-                        </div>
-                        <div>
+                        <div class="col-span-2 sm:col-span-1">
                             <label class="<?= $labelClass ?>">Arrival</label>
                             <input type="datetime-local" name="outbound_arrival_at" value="<?= esc(old('outbound_arrival_at', (string) ($flight['arrival_at'] ?? ''))) ?>" class="<?= $inputClass ?>">
                         </div>
                     </div>
-                </div>
 
-                <div class="rounded-lg border border-slate-200 p-3">
-                    <div class="flex items-center justify-between gap-2">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-700">Return — Saudi Arabia to Pakistan</h3>
-                        <span class="text-[11px] text-slate-400">Defines last hotel check-out</span>
-                    </div>
-                    <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
+                    <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Return flight</p>
+                    <div class="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
                         <div>
                             <label class="<?= $labelClass ?>">Airline</label>
                             <input name="return_airline" value="<?= esc(old('return_airline', (string) ($flight['return_airline'] ?? ''))) ?>" class="<?= $inputClass ?>">
@@ -251,244 +299,295 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                             <label class="<?= $labelClass ?>">To</label>
                             <input name="return_arrival_airport" value="<?= esc(old('return_arrival_airport', (string) ($flight['return_arrival_airport'] ?? ''))) ?>" placeholder="Lahore (LHE)" class="<?= $inputClass ?>">
                         </div>
-                        <div>
+                        <div class="col-span-2 sm:col-span-1">
                             <label class="<?= $labelClass ?>">Departure</label>
                             <input type="datetime-local" name="return_departure_at" value="<?= esc(old('return_departure_at', (string) ($flight['return_departure_at'] ?? ''))) ?>" class="<?= $inputClass ?>">
                         </div>
-                        <div>
-                            <label class="<?= $labelClass ?>">Arrival <span class="text-rose-600">*</span></label>
-                            <input type="datetime-local" name="return_arrival_at" id="trip-end" value="<?= esc(old('return_arrival_at', (string) ($flight['return_arrival_at'] ?? ''))) ?>" required class="<?= $inputClass ?>">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-3 grid gap-2 md:grid-cols-3">
-                <div>
-                    <label class="<?= $labelClass ?>">Ticket cost (PKR)</label>
-                    <input type="number" step="0.01" min="0" name="ticket_cost" value="<?= esc(old('ticket_cost', (float) ($flight['cost_amount'] ?? 0) > 0 ? (string) (float) $flight['cost_amount'] : '')) ?>" placeholder="e.g. 240000" class="<?= $inputClass ?>">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="<?= $labelClass ?>">Trip duration</label>
-                    <div id="trip-summary" class="mt-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-                        <?= !empty($row['duration_days']) ? esc((string) (int) $row['duration_days']) . ' day(s) — calculated from the flight dates' : 'Enter the outbound departure and return arrival dates above.' ?>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="<?= $cardClass ?> p-4" id="hotel-section">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h2 class="inline-flex items-center gap-2 text-sm font-semibold text-slate-800"><i class="fa-solid fa-hotel text-emerald-600"></i><span>2. Hotel Stays</span></h2>
-                    <p class="mt-1 text-xs text-slate-500">Default itinerary is Makkah → Madina → Makkah. Stay dates are chained automatically from the trip dates; add, remove or reorder stays as needed.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="add-hotel-row" class="btn btn-outline h-8 inline-flex items-center gap-1 px-2 text-[11px] font-semibold"><i class="fa-solid fa-plus"></i><span>Add stay</span></button>
-                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
+        <!-- 2. hotel stays -->
+        <section id="hotel-section" data-acc="hotels" class="<?= $cardClass ?>">
+            <button type="button" data-acc-toggle class="<?= $accordionHeadClass ?>">
+                <span class="<?= $accordionIconClass ?>"><i class="fa-solid fa-hotel"></i></span>
+                <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-semibold text-slate-800">Hotel stays</span>
+                    <span class="block truncate text-[11px] text-slate-500">Makkah &rarr; Madina &rarr; Makkah, dates chained from the flight</span>
+                </span>
+                <span id="chip-hotels" class="hidden shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 sm:inline-flex">&mdash;</span>
+                <i data-acc-chevron class="fa-solid fa-chevron-down shrink-0 text-[10px] text-slate-400 transition-transform"></i>
+            </button>
+            <div data-acc-body class="space-y-2 border-t border-slate-200 bg-slate-50/60 px-3 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-700">
                         <input type="hidden" name="include_hotel" value="0">
-                        <input type="checkbox" name="include_hotel" value="1" id="toggle-hotel" class="rounded border-slate-300" <?= $incHotel ? 'checked' : '' ?>>
-                        <span>Hotel included</span>
+                        <input type="checkbox" name="include_hotel" value="1" id="toggle-hotel" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" <?= $incHotel ? 'checked' : '' ?>>
+                        <span>Hotel is part of this package</span>
                     </label>
+                    <button type="button" id="add-hotel-row" class="inline-flex h-7 items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50">
+                        <i class="fa-solid fa-plus text-[10px]"></i><span>Add stay</span>
+                    </button>
+                </div>
+                <div data-hotel-body class="space-y-2">
+                    <div id="hotel-stay-rows" class="space-y-2">
+                        <?php foreach ($stayRows as $index => $stay): ?>
+                            <?php $renderHotelRow((array) $stay, (int) $index); ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <div id="stay-balance" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-medium text-slate-600">Stay dates are calculated once the flight dates are entered.</div>
                 </div>
             </div>
-            <div id="hotel-stay-rows" class="mt-3 space-y-3">
-                <?php foreach ($stayRows as $index => $stay): ?>
-                    <?php $renderHotelRow((array) $stay, (int) $index); ?>
-                <?php endforeach; ?>
-            </div>
-            <div id="stay-balance" class="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">Stay dates will be calculated once the flight dates are entered.</div>
         </section>
 
-        <section class="<?= $cardClass ?> p-4" id="transport-section">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h2 class="inline-flex items-center gap-2 text-sm font-semibold text-slate-800"><i class="fa-solid fa-bus text-emerald-600"></i><span>3. Transport</span></h2>
-                    <p class="mt-1 text-xs text-slate-500">Pick a transport from the master list or type a new one.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="add-transport-row" class="btn btn-outline h-8 inline-flex items-center gap-1 px-2 text-[11px] font-semibold"><i class="fa-solid fa-plus"></i><span>Add transport</span></button>
-                    <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">
+        <!-- 3. transport + ziarat -->
+        <section id="transport-section" data-acc="transport" class="<?= $cardClass ?>">
+            <button type="button" data-acc-toggle class="<?= $accordionHeadClass ?>">
+                <span class="<?= $accordionIconClass ?>"><i class="fa-solid fa-bus"></i></span>
+                <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-semibold text-slate-800">Transport &amp; ziarat</span>
+                    <span class="block truncate text-[11px] text-slate-500">Pick from the master list or type a new one</span>
+                </span>
+                <span id="chip-transport" class="hidden shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 sm:inline-flex">&mdash;</span>
+                <i data-acc-chevron class="fa-solid fa-chevron-down shrink-0 text-[10px] text-slate-400 transition-transform"></i>
+            </button>
+            <div data-acc-body class="space-y-2 border-t border-slate-200 bg-slate-50/60 px-3 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-700">
                         <input type="hidden" name="include_transport" value="0">
-                        <input type="checkbox" name="include_transport" value="1" id="toggle-transport" class="rounded border-slate-300" <?= $incTransport ? 'checked' : '' ?>>
-                        <span>Transport included</span>
+                        <input type="checkbox" name="include_transport" value="1" id="toggle-transport" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" <?= $incTransport ? 'checked' : '' ?>>
+                        <span>Transport is part of this package</span>
                     </label>
+                    <button type="button" id="add-transport-row" class="inline-flex h-7 items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50">
+                        <i class="fa-solid fa-plus text-[10px]"></i><span>Add transport</span>
+                    </button>
                 </div>
-            </div>
-            <div id="transport-rows" class="mt-3 space-y-2">
-                <?php foreach ($transportInputRows as $index => $transportRow): ?>
-                    <div data-transport-row class="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2 md:grid-cols-12">
-                        <div class="md:col-span-3">
-                            <label class="<?= $labelClass ?>">Transport</label>
-                            <select name="transport_row[<?= (int) $index ?>][transport_id]" class="<?= $inputClass ?>">
-                                <option value="">New / not listed</option>
-                                <?php foreach (($transportOptions ?? []) as $transportOption): ?>
-                                    <?php $transportOptionId = (int) ($transportOption['id'] ?? 0); ?>
-                                    <option value="<?= esc((string) $transportOptionId) ?>" <?= (int) ($transportRow['transport_id'] ?? 0) === $transportOptionId ? 'selected' : '' ?>>
-                                        <?= esc((string) ($transportOption['transport_name'] ?? '')) ?> — <?= esc((string) ($transportOption['provider_name'] ?? '')) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="md:col-span-3">
-                            <label class="<?= $labelClass ?>">New transport name</label>
-                            <input name="transport_row[<?= (int) $index ?>][transport_name]" value="<?= esc((string) ($transportRow['transport_name'] ?? '')) ?>" placeholder="If not in list" class="<?= $inputClass ?>">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="<?= $labelClass ?>">Seats</label>
-                            <input type="number" min="0" name="transport_row[<?= (int) $index ?>][seat_capacity]" value="<?= esc((string) ($transportRow['seat_capacity'] ?? '')) ?>" class="<?= $inputClass ?>">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="<?= $labelClass ?>">Cost (PKR)</label>
-                            <input type="number" step="0.01" min="0" name="transport_row[<?= (int) $index ?>][cost_amount]" value="<?= esc((string) ($transportRow['cost_amount'] ?? '')) ?>" class="<?= $inputClass ?>">
-                        </div>
-                        <div class="flex items-end md:col-span-2">
-                            <button type="button" data-remove-transport-row class="inline-flex h-9 w-full items-center justify-center gap-1 rounded-md border border-rose-200 bg-white px-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">
-                                <i class="fa-solid fa-xmark"></i><span>Remove</span>
+
+                <div id="transport-rows" class="space-y-1.5">
+                    <?php foreach ($transportInputRows as $index => $transportRow): ?>
+                        <?php $transportSelected = (int) ($transportRow['transport_id'] ?? 0) > 0; ?>
+                        <div data-transport-row class="grid grid-cols-4 items-end gap-1.5 rounded-lg border border-slate-200 bg-slate-50/60 p-2 sm:flex sm:flex-wrap">
+                            <div class="col-span-4 sm:min-w-[9rem] sm:flex-1">
+                                <label class="<?= $labelClass ?>">Transport</label>
+                                <select name="transport_row[<?= (int) $index ?>][transport_id]" data-transport-select class="<?= $inputClass ?>">
+                                    <option value="">+ Not listed / new transport</option>
+                                    <?php foreach (($transportOptions ?? []) as $transportOption): ?>
+                                        <?php $transportOptionId = (int) ($transportOption['id'] ?? 0); ?>
+                                        <option value="<?= esc((string) $transportOptionId) ?>" <?= (int) ($transportRow['transport_id'] ?? 0) === $transportOptionId ? 'selected' : '' ?>>
+                                            <?= esc((string) ($transportOption['transport_name'] ?? '')) ?> — <?= esc((string) ($transportOption['provider_name'] ?? '')) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div data-transport-name-wrap class="col-span-4 sm:min-w-[8rem] sm:flex-1 <?= $transportSelected ? 'hidden' : '' ?>">
+                                <label class="<?= $labelClass ?>">New name</label>
+                                <input name="transport_row[<?= (int) $index ?>][transport_name]" value="<?= esc((string) ($transportRow['transport_name'] ?? '')) ?>" placeholder="If not listed" class="<?= $inputClass ?>">
+                            </div>
+                            <div class="col-span-1 sm:w-[4.5rem]">
+                                <label class="<?= $labelClass ?>">Seats</label>
+                                <input type="number" min="0" name="transport_row[<?= (int) $index ?>][seat_capacity]" value="<?= esc((string) ($transportRow['seat_capacity'] ?? '')) ?>" class="<?= $inputClass ?>">
+                            </div>
+                            <div class="col-span-2 sm:w-[5.5rem]">
+                                <label class="<?= $labelClass ?>">Cost SAR</label>
+                                <input type="number" step="0.01" min="0" name="transport_row[<?= (int) $index ?>][cost_amount]" value="<?= esc((string) ($transportRow['cost_amount'] ?? '')) ?>" class="<?= $inputClass ?>">
+                            </div>
+                            <button type="button" data-remove-transport-row class="col-span-1 inline-flex h-8 w-full items-center justify-center sm:w-8 sm:shrink-0 rounded-md border border-slate-200 bg-white text-[10px] text-rose-600 hover:border-rose-300 hover:bg-rose-50" title="Remove transport">
+                                <i class="fa-solid fa-xmark"></i>
                             </button>
                         </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="rounded-lg border border-amber-200 bg-amber-50/70 px-2.5 py-2">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-100 text-[10px] text-amber-700"><i class="fa-solid fa-kaaba"></i></span>
+                        <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-amber-900">
+                            <input type="hidden" name="include_ziarat" value="0">
+                            <input type="checkbox" name="include_ziarat" value="1" id="toggle-ziarat" class="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500" <?= $incZiarat ? 'checked' : '' ?>>
+                            <span>Ziarat included</span>
+                        </label>
+                        <span class="text-[10px] text-amber-700">Visit of the holy sites &mdash; added to the package price.</span>
+                        <div id="ziarat-fields" class="flex items-center gap-1.5">
+                            <input type="number" step="0.01" min="0" name="ziarat_cost" value="<?= esc(old('ziarat_cost', (string) ((float) ($row['ziarat_cost'] ?? 0) > 0 ? (float) $row['ziarat_cost'] : ''))) ?>" placeholder="150" class="w-24 rounded-lg border border-amber-300 bg-white px-2 py-1 text-sm text-slate-800 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <span class="text-[10px] font-bold uppercase tracking-wide text-amber-700">SAR</span>
+                        </div>
                     </div>
-                <?php endforeach; ?>
-            </div>
-        </section>
-
-        <section class="<?= $cardClass ?> p-4">
-            <h2 class="inline-flex items-center gap-2 text-sm font-semibold text-slate-800"><i class="fa-solid fa-tags text-emerald-600"></i><span>4. Package Details</span></h2>
-            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
-                <div>
-                    <label class="<?= $labelClass ?>">Code <span class="text-rose-600">*</span></label>
-                    <input name="code" value="<?= esc(old('code', (string) ($row['code'] ?? ''))) ?>" required placeholder="e.g. UMR-APR-2026" class="<?= $inputClass ?>">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="<?= $labelClass ?>">Name <span class="text-rose-600">*</span></label>
-                    <input name="name" value="<?= esc(old('name', (string) ($row['name'] ?? ''))) ?>" required placeholder="Package name" class="<?= $inputClass ?>">
-                </div>
-                <div>
-                    <label class="<?= $labelClass ?>">Type</label>
-                    <select name="package_type" class="<?= $inputClass ?>">
-                        <?php $packageType = old('package_type', (string) ($row['package_type'] ?? 'umrah')); ?>
-                        <option value="umrah" <?= $packageType === 'umrah' ? 'selected' : '' ?>>Umrah</option>
-                        <option value="hajj" <?= $packageType === 'hajj' ? 'selected' : '' ?>>Hajj</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="<?= $labelClass ?>">Visa cost (PKR)</label>
-                    <input type="number" step="0.01" min="0" name="purchase_price_visa" value="<?= esc(old('purchase_price_visa', (string) ($row['purchase_price_visa'] ?? ''))) ?>" class="<?= $inputClass ?>">
-                </div>
-                <div>
-                    <label class="<?= $labelClass ?>">Status</label>
-                    <select name="is_active" class="<?= $inputClass ?>">
-                        <?php $isActive = (string) old('is_active', (string) ($row['is_active'] ?? 1)); ?>
-                        <option value="1" <?= $isActive === '1' ? 'selected' : '' ?>>Active</option>
-                        <option value="0" <?= $isActive === '0' ? 'selected' : '' ?>>Inactive</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="<?= $labelClass ?>">Internal notes</label>
-                    <input name="notes" value="<?= esc(old('notes', (string) ($row['notes'] ?? ''))) ?>" class="<?= $inputClass ?>">
                 </div>
             </div>
         </section>
 
-        <section class="<?= $cardClass ?> p-4">
-            <h2 class="inline-flex items-center gap-2 text-sm font-semibold text-slate-800"><i class="fa-solid fa-file-lines text-emerald-600"></i><span>5. Voucher Settings</span></h2>
-            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div class="md:col-span-2">
-                    <label class="<?= $labelClass ?>">Default Shirka company</label>
-                    <?php
-                    $selectedShirkaCompanyId = (string) old('default_shirka_company_id', (string) ($row['default_shirka_company_id'] ?? ''));
-                    if ($selectedShirkaCompanyId === '' && ! empty($companies)) {
-                        $selectedShirkaCompanyId = (string) ($companies[0]['id'] ?? '');
-                    }
-                    ?>
-                    <select name="default_shirka_company_id" class="<?= $inputClass ?>">
-                        <option value="">Select shirka company…</option>
-                        <?php foreach (($companies ?? []) as $item): ?>
-                            <?php $companyId = (string) ($item['id'] ?? ''); ?>
-                            <option value="<?= esc($companyId) ?>" <?= $selectedShirkaCompanyId === $companyId ? 'selected' : '' ?>><?= esc((string) ($item['name'] ?? '')) ?></option>
-                        <?php endforeach; ?>
-                    </select>
+        <!-- 4. package details -->
+        <section id="details-section" data-acc="details" class="<?= $cardClass ?>">
+            <button type="button" data-acc-toggle class="<?= $accordionHeadClass ?>">
+                <span class="<?= $accordionIconClass ?>"><i class="fa-solid fa-tags"></i></span>
+                <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-semibold text-slate-800">Package details</span>
+                    <span class="block truncate text-[11px] text-slate-500">Code, seats, visa, exchange rate and notes</span>
+                </span>
+                <span id="chip-details" class="hidden shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 sm:inline-flex">&mdash;</span>
+                <i data-acc-chevron class="fa-solid fa-chevron-down shrink-0 text-[10px] text-slate-400 transition-transform"></i>
+            </button>
+            <div data-acc-body class="space-y-2 border-t border-slate-200 bg-slate-50/60 px-3 py-3">
+                <div class="grid grid-cols-2 gap-1.5 lg:grid-cols-6">
+                    <div>
+                        <label class="<?= $labelClass ?>">Code <span class="text-rose-500">*</span></label>
+                        <input name="code" value="<?= esc(old('code', (string) ($row['code'] ?? ''))) ?>" required placeholder="UMR-APR-2026" class="<?= $inputClass ?>">
+                    </div>
+                    <div class="col-span-1 lg:col-span-3">
+                        <label class="<?= $labelClass ?>">Name <span class="text-rose-500">*</span></label>
+                        <input name="name" value="<?= esc(old('name', (string) ($row['name'] ?? ''))) ?>" required placeholder="Package name" class="<?= $inputClass ?>">
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">Type</label>
+                        <select name="package_type" class="<?= $inputClass ?>">
+                            <?php $packageType = old('package_type', (string) ($row['package_type'] ?? 'umrah')); ?>
+                            <option value="umrah" <?= $packageType === 'umrah' ? 'selected' : '' ?>>Umrah</option>
+                            <option value="hajj" <?= $packageType === 'hajj' ? 'selected' : '' ?>>Hajj</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">Status</label>
+                        <select name="is_active" class="<?= $inputClass ?>">
+                            <?php $isActive = (string) old('is_active', (string) ($row['is_active'] ?? 1)); ?>
+                            <option value="1" <?= $isActive === '1' ? 'selected' : '' ?>>Active</option>
+                            <option value="0" <?= $isActive === '0' ? 'selected' : '' ?>>Inactive</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="md:col-span-2">
-                    <label class="<?= $labelClass ?>">Voucher instructions (Urdu)</label>
-                    <textarea name="voucher_instructions_ur" rows="4" dir="rtl" class="<?= $inputClass ?>"><?= esc(old('voucher_instructions_ur', (string) ($row['voucher_instructions_ur'] ?? '') !== '' ? $row['voucher_instructions_ur'] : $predefinedInstructionUr)) ?></textarea>
+                <div class="grid grid-cols-2 gap-1.5 lg:grid-cols-6">
+                    <div>
+                        <label class="<?= $labelClass ?>">Seats <span class="text-rose-500">*</span></label>
+                        <input type="number" min="1" name="total_seats" id="package-total-seats" value="<?= esc(old('total_seats', (string) (int) ($row['total_seats'] ?? 0) > 0 ? (string) (int) $row['total_seats'] : '')) ?>" required placeholder="45" class="<?= $inputClass ?>">
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">Visa cost (SAR)</label>
+                        <input type="number" step="0.01" min="0" name="purchase_price_visa" value="<?= esc(old('purchase_price_visa', (string) ($row['purchase_price_visa'] ?? ''))) ?>" placeholder="575" class="<?= $inputClass ?>">
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">SAR &rarr; PKR <span class="text-rose-500">*</span></label>
+                        <input type="number" step="0.0001" min="0.0001" name="exchange_rate" id="exchange-rate" value="<?= esc(old('exchange_rate', (string) ($exchangeRate ?? 1))) ?>" required placeholder="74.5" class="<?= $inputClass ?>">
+                    </div>
+                    <div class="col-span-2 lg:col-span-3">
+                        <label class="<?= $labelClass ?>">Internal notes</label>
+                        <input name="notes" value="<?= esc(old('notes', (string) ($row['notes'] ?? ''))) ?>" class="<?= $inputClass ?>">
+                    </div>
                 </div>
-                <div class="md:col-span-2">
-                    <label class="<?= $labelClass ?>">Voucher instructions (English)</label>
-                    <textarea name="voucher_instructions_en" rows="3" class="<?= $inputClass ?>"><?= esc(old('voucher_instructions_en', (string) ($row['voucher_instructions_en'] ?? ''))) ?></textarea>
-                </div>
-                <div>
-                    <label class="<?= $labelClass ?>">Makkah office</label>
-                    <input name="makkah_contact" value="<?= esc(old('makkah_contact', (string) (($row['makkah_contact'] ?? '') !== '' ? $row['makkah_contact'] : $predefinedMakkahContact))) ?>" class="<?= $inputClass ?>">
-                </div>
-                <div>
-                    <label class="<?= $labelClass ?>">Madina office</label>
-                    <input name="madina_contact" value="<?= esc(old('madina_contact', (string) (($row['madina_contact'] ?? '') !== '' ? $row['madina_contact'] : $predefinedMadinaContact))) ?>" class="<?= $inputClass ?>">
-                </div>
-                <div>
-                    <label class="<?= $labelClass ?>">Transport contact</label>
-                    <input name="transport_contact" value="<?= esc(old('transport_contact', (string) (($row['transport_contact'] ?? '') !== '' ? $row['transport_contact'] : $predefinedTransportContact))) ?>" class="<?= $inputClass ?>">
+                <p class="text-[10px] text-slate-400">Seats are sold once per package and used up by confirmed bookings. Hotel, transport, visa and ziarat are SAR and converted with the rate above; the ticket stays in PKR.</p>
+            </div>
+        </section>
+
+        <!-- 5. voucher -->
+        <section id="voucher-section" data-acc="voucher" class="<?= $cardClass ?>">
+            <button type="button" data-acc-toggle class="<?= $accordionHeadClass ?>">
+                <span class="<?= $accordionIconClass ?>"><i class="fa-solid fa-file-lines"></i></span>
+                <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-semibold text-slate-800">Voucher &amp; instructions</span>
+                    <span class="block truncate text-[11px] text-slate-500">Optional &mdash; shirka, contacts and printed instructions</span>
+                </span>
+                <span id="chip-voucher" class="hidden shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 sm:inline-flex">Optional</span>
+                <i data-acc-chevron class="fa-solid fa-chevron-down shrink-0 text-[10px] text-slate-400 transition-transform"></i>
+            </button>
+            <div data-acc-body class="space-y-2 border-t border-slate-200 bg-slate-50/60 px-3 py-3">
+                <div class="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                    <div class="sm:col-span-2 lg:col-span-1">
+                        <label class="<?= $labelClass ?>">Default Shirka company</label>
+                        <?php
+                        $selectedShirkaCompanyId = (string) old('default_shirka_company_id', (string) ($row['default_shirka_company_id'] ?? ''));
+                        if ($selectedShirkaCompanyId === '' && ! empty($companies)) {
+                            $selectedShirkaCompanyId = (string) ($companies[0]['id'] ?? '');
+                        }
+                        ?>
+                        <select name="default_shirka_company_id" class="<?= $inputClass ?>">
+                            <option value="">Select shirka company…</option>
+                            <?php foreach (($companies ?? []) as $item): ?>
+                                <?php $companyId = (string) ($item['id'] ?? ''); ?>
+                                <option value="<?= esc($companyId) ?>" <?= $selectedShirkaCompanyId === $companyId ? 'selected' : '' ?>><?= esc((string) ($item['name'] ?? '')) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">Makkah office</label>
+                        <input name="makkah_contact" value="<?= esc(old('makkah_contact', (string) (($row['makkah_contact'] ?? '') !== '' ? $row['makkah_contact'] : $predefinedMakkahContact))) ?>" class="<?= $inputClass ?>">
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">Madina office</label>
+                        <input name="madina_contact" value="<?= esc(old('madina_contact', (string) (($row['madina_contact'] ?? '') !== '' ? $row['madina_contact'] : $predefinedMadinaContact))) ?>" class="<?= $inputClass ?>">
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">Transport contact</label>
+                        <input name="transport_contact" value="<?= esc(old('transport_contact', (string) (($row['transport_contact'] ?? '') !== '' ? $row['transport_contact'] : $predefinedTransportContact))) ?>" class="<?= $inputClass ?>">
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <label class="<?= $labelClass ?>">Voucher instructions (Urdu)</label>
+                        <textarea name="voucher_instructions_ur" rows="3" dir="rtl" class="<?= $inputClass ?>"><?= esc(old('voucher_instructions_ur', (string) ($row['voucher_instructions_ur'] ?? '') !== '' ? $row['voucher_instructions_ur'] : $predefinedInstructionUr)) ?></textarea>
+                    </div>
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <label class="<?= $labelClass ?>">Voucher instructions (English)</label>
+                        <textarea name="voucher_instructions_en" rows="2" class="<?= $inputClass ?>"><?= esc(old('voucher_instructions_en', (string) ($row['voucher_instructions_en'] ?? ''))) ?></textarea>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm mt-4">
-            <p class="text-xs text-slate-500">Flight dates drive the hotel dates and package duration automatically.</p>
+        <div class="sticky bottom-0 z-20 -mx-3 border-t border-slate-200 bg-white/95 px-3 py-2 shadow-[0_-6px_16px_-8px_rgba(15,23,42,0.25)] backdrop-blur md:-mx-6 md:px-6">
             <div class="flex items-center gap-2">
-                <a href="<?= site_url('packages') ?>" class="btn btn-outline btn-md inline-flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i><span>Cancel</span></a>
-                <button type="submit" class="btn btn-primary btn-md inline-flex items-center gap-2">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    <span><?= $isEdit ? 'Save Changes' : 'Create Package' ?></span>
-                </button>
+                <p class="hidden min-w-0 flex-1 truncate text-[11px] text-slate-500 lg:block">Flight dates drive the hotel dates, nights and duration automatically.</p>
+                <div class="flex flex-1 items-center justify-end gap-2 lg:flex-none">
+                    <a href="<?= site_url('packages') ?>" class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-arrow-left"></i><span>Cancel</span></a>
+                    <button type="submit" class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 sm:flex-none">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span><?= $isEdit ? 'Save changes' : 'Create package' ?></span>
+                    </button>
+                </div>
             </div>
         </div>
     </form>
 </main>
 
 <template id="hotel-row-template">
-    <?php $renderHotelRow([
+    <?php
+    $templateStay = [
         'stay_id' => 0,
         'city' => 'Makkah',
         'hotel_id' => 0,
         'hotel_name' => '',
         'nights' => '',
-        'sharing_cost' => '',
-        'quad_cost' => '',
-        'triple_cost' => '',
-        'double_cost' => '',
-        'total_seats' => '',
         'auto' => 'rest',
-    ], '__INDEX__'); ?>
+    ];
+    foreach ($tierKeys as $tierKey) {
+        $templateStay[$tierKey . '_cost'] = '';
+    }
+    $renderHotelRow($templateStay, '__INDEX__');
+    ?>
 </template>
 
 <template id="transport-row-template">
-    <div data-transport-row class="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2 md:grid-cols-12">
-        <div class="md:col-span-3">
+    <div data-transport-row class="grid grid-cols-4 items-end gap-1.5 rounded-lg border border-slate-200 bg-slate-50/60 p-2 sm:flex sm:flex-wrap">
+        <div class="col-span-4 sm:min-w-[9rem] sm:flex-1">
             <label class="<?= $labelClass ?>">Transport</label>
-            <select name="transport_row[__INDEX__][transport_id]" class="<?= $inputClass ?>">
-                <option value="">New / not listed</option>
+            <select name="transport_row[__INDEX__][transport_id]" data-transport-select class="<?= $inputClass ?>">
+                <option value="">+ Not listed / new transport</option>
                 <?php foreach (($transportOptions ?? []) as $transportOption): ?>
                     <option value="<?= esc((string) (int) ($transportOption['id'] ?? 0)) ?>"><?= esc((string) ($transportOption['transport_name'] ?? '')) ?> — <?= esc((string) ($transportOption['provider_name'] ?? '')) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="md:col-span-3">
-            <label class="<?= $labelClass ?>">New transport name</label>
-            <input name="transport_row[__INDEX__][transport_name]" placeholder="If not in list" class="<?= $inputClass ?>">
+        <div data-transport-name-wrap class="col-span-4 sm:min-w-[8rem] sm:flex-1">
+            <label class="<?= $labelClass ?>">New name</label>
+            <input name="transport_row[__INDEX__][transport_name]" placeholder="If not listed" class="<?= $inputClass ?>">
         </div>
-        <div class="md:col-span-2">
+        <div class="col-span-1 sm:w-[4.5rem]">
             <label class="<?= $labelClass ?>">Seats</label>
             <input type="number" min="0" name="transport_row[__INDEX__][seat_capacity]" class="<?= $inputClass ?>">
         </div>
-        <div class="md:col-span-2">
-            <label class="<?= $labelClass ?>">Cost (PKR)</label>
+        <div class="col-span-2 sm:w-[5.5rem]">
+            <label class="<?= $labelClass ?>">Cost SAR</label>
             <input type="number" step="0.01" min="0" name="transport_row[__INDEX__][cost_amount]" class="<?= $inputClass ?>">
         </div>
-        <div class="flex items-end md:col-span-2">
-            <button type="button" data-remove-transport-row class="inline-flex h-9 w-full items-center justify-center gap-1 rounded-md border border-rose-200 bg-white px-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50">
-                <i class="fa-solid fa-xmark"></i><span>Remove</span>
-            </button>
-        </div>
+        <button type="button" data-remove-transport-row class="col-span-1 inline-flex h-8 w-full items-center justify-center sm:w-8 sm:shrink-0 rounded-md border border-slate-200 bg-white text-[10px] text-rose-600 hover:border-rose-300 hover:bg-rose-50" title="Remove transport">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
     </div>
 </template>
 
@@ -502,6 +601,8 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
         }
 
         var hotelMaster = <?= $hotelMasterJson ?>;
+        var hotelRates = <?= $hotelRatesJson ?>;
+        var tierKeys = <?= json_encode($tierKeys) ?>;
         var hotelRowsWrap = document.getElementById('hotel-stay-rows');
         var transportRowsWrap = document.getElementById('transport-rows');
         var hotelTemplate = document.getElementById('hotel-row-template');
@@ -584,7 +685,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
             var placeholder = document.createElement('option');
             placeholder.value = '';
-            placeholder.textContent = 'Select hotel…';
+            placeholder.textContent = '+ Not listed / new hotel';
             select.appendChild(placeholder);
 
             hotelMaster.forEach(function(hotel) {
@@ -600,6 +701,100 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
             if (current && select.querySelector('option[value="' + current + '"]')) {
                 select.value = current;
+            }
+        }
+
+        function rowNights(row) {
+            var nightsInput = rowField(row, 'nights');
+            var nights = nightsInput ? Math.max(0, parseInt(nightsInput.value || '0', 10)) : 0;
+
+            if (nights > 0) {
+                return nights;
+            }
+
+            var window = tripWindow();
+            var index = rows().indexOf(row);
+            if (window && index === 0) {
+                return window.days;
+            }
+
+            return 0;
+        }
+
+        function effectiveStayNights(row) {
+            var plan = stayPlan(tripWindow());
+            var entry = plan[rows().indexOf(row)];
+
+            return entry ? entry.nights : rowNights(row);
+        }
+
+        /**
+         * Loads the hotel-module rate for a stay row and converts it to the
+         * whole-stay cost that the package stores (rate per person per night × nights).
+         */
+        function applyHotelRates(row, force) {
+            var select = rowField(row, 'hotel_id');
+            var note = row.querySelector('[data-rate-note]');
+            var hotelId = select ? String(select.value || '') : '';
+            var rates = hotelId !== '' ? (hotelRates[hotelId] || null) : null;
+            var nights = effectiveStayNights(row);
+
+            if (!rates) {
+                if (note && hotelId !== '') {
+                    note.textContent = 'No room rates are set for this hotel in the Hotel module yet — entering one here will not update the hotel master rates.';
+                    note.classList.remove('hidden');
+                } else if (note) {
+                    note.classList.add('hidden');
+                    note.textContent = '';
+                }
+                return;
+            }
+
+            var hasAnyRate = tierKeys.some(function(tier) {
+                return Number(rates[tier] || 0) > 0;
+            });
+
+            if (!hasAnyRate) {
+                if (note) {
+                    note.textContent = 'This hotel has no rates saved in the Hotel module yet — enter the rates for this stay manually.';
+                    note.classList.remove('hidden');
+                }
+                return;
+            }
+
+            var applied = [];
+            row.querySelectorAll('[data-hotel-cost]').forEach(function(input) {
+                var tier = input.dataset.tier || '';
+                var rate = Number(rates[tier] || 0);
+
+                if (!force && String(input.value || '').trim() !== '') {
+                    return;
+                }
+
+                if (rate <= 0) {
+                    return;
+                }
+
+                var total = nights > 0 ? rate * nights : rate;
+                input.value = String(Math.round(total * 100) / 100);
+
+                var labelEl = input.parentElement ? input.parentElement.querySelector('[data-tier-label]') : null;
+                var labelText = labelEl && labelEl.textContent.trim() !== '' ? labelEl.textContent.trim() : tier;
+                applied.push(labelText + ' ' + Number(rate).toLocaleString() + (nights > 0 ? ' × ' + nights + 'n' : ''));
+            });
+
+            if (note) {
+                if (applied.length > 0) {
+                    note.textContent = 'Rates loaded from the hotel module (SAR, per person / night): ' + applied.join(', ') + '. You can override any value.';
+                    note.classList.remove('hidden');
+                } else {
+                    note.classList.add('hidden');
+                    note.textContent = '';
+                }
+            }
+
+            if (applied.length > 0) {
+                row.dataset.ratesAuto = '1';
             }
         }
 
@@ -716,13 +911,77 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             });
         }
 
+        /**
+         * Mirrors the server-side planner: rows with a hotel and nights are chained
+         * from the trip start, trimmed to the trip end, and the last valid stay
+         * absorbs any remaining nights.
+         *
+         * @returns {Object<string, {checkIn: Date, checkOut: Date, nights: number, extended: boolean}>}
+         */
+        function stayPlan(window) {
+            var plan = {};
+
+            if (!window) {
+                return plan;
+            }
+
+            var valid = rows().filter(function(row) {
+                var nightsInput = rowField(row, 'nights');
+                var nights = nightsInput ? Math.max(0, parseInt(nightsInput.value || '0', 10)) : 0;
+                var hotel = rowField(row, 'hotel_id');
+                var nameInput = rowField(row, 'hotel_name');
+                var hasHotel = (hotel && String(hotel.value || '') !== '') || (nameInput && String(nameInput.value || '').trim() !== '');
+
+                return nights > 0 && hasHotel;
+            });
+
+            if (valid.length === 0) {
+                return plan;
+            }
+
+            var cursor = new Date(window.start.getTime());
+            var lastKey = '';
+
+            valid.forEach(function(row) {
+                var nightsInput = rowField(row, 'nights');
+                var nights = Math.max(0, parseInt(nightsInput.value || '0', 10));
+                var checkOut = addDays(cursor, nights);
+
+                if (checkOut.getTime() > window.end.getTime()) {
+                    checkOut = new Date(window.end.getTime());
+                }
+
+                if (checkOut.getTime() <= cursor.getTime()) {
+                    return;
+                }
+
+                var index = rows().indexOf(row);
+                plan[index] = {
+                    checkIn: new Date(cursor.getTime()),
+                    checkOut: checkOut,
+                    nights: diffDays(cursor, checkOut),
+                    extended: false
+                };
+
+                lastKey = String(index);
+                cursor = checkOut;
+            });
+
+            if (lastKey !== '' && cursor.getTime() < window.end.getTime()) {
+                plan[lastKey].checkOut = new Date(window.end.getTime());
+                plan[lastKey].nights = diffDays(plan[lastKey].checkIn, plan[lastKey].checkOut);
+                plan[lastKey].extended = true;
+            }
+
+            return plan;
+        }
+
         function paintStays() {
             var window = tripWindow();
-            var all = rows();
-            var cursor = window ? new Date(window.start.getTime()) : null;
+            var plan = stayPlan(window);
             var rawNights = 0;
 
-            all.forEach(function(row, index) {
+            rows().forEach(function(row, index) {
                 row.dataset.stayNumber = String(index + 1);
                 var label = row.querySelector('[data-stay-label]');
                 if (label) {
@@ -730,33 +989,22 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                 }
 
                 var nightsInput = rowField(row, 'nights');
-                var nights = nightsInput ? Math.max(0, parseInt(nightsInput.value || '0', 10)) : 0;
-                var dates = row.querySelector('[data-stay-dates]');
-                rawNights += nights;
+                rawNights += nightsInput ? Math.max(0, parseInt(nightsInput.value || '0', 10)) : 0;
 
-                if (!window || !cursor || nights < 1) {
-                    if (dates) {
-                        dates.textContent = '';
-                    }
+                var dates = row.querySelector('[data-stay-dates]');
+                if (!dates) {
                     return;
                 }
 
-                var trimmed = false;
-                var checkOut = addDays(cursor, nights);
-                if (checkOut.getTime() > window.end.getTime()) {
-                    checkOut = new Date(window.end.getTime());
-                    trimmed = true;
+                var entry = plan[index];
+                if (!entry) {
+                    dates.textContent = '';
+                    return;
                 }
 
-                var nightsShown = diffDays(cursor, checkOut);
-
-                if (dates) {
-                    dates.textContent = nightsShown < 1 ?
-                        'No nights left in the trip window' :
-                        formatDate(cursor) + ' → ' + formatDate(checkOut) + ' (' + nightsShown + ' night' + (nightsShown === 1 ? '' : 's') + (trimmed ? ', trimmed to trip end' : '') + ')';
-                }
-
-                cursor = checkOut;
+                dates.textContent = formatDate(entry.checkIn) + ' → ' + formatDate(entry.checkOut)
+                    + ' (' + entry.nights + ' night' + (entry.nights === 1 ? '' : 's')
+                    + (entry.extended ? ', extended to trip end' : '') + ')';
             });
 
             if (!stayBalance) {
@@ -765,24 +1013,24 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
             if (!window) {
                 stayBalance.textContent = 'Stay dates will be calculated once the outbound departure and return arrival dates are entered.';
-                stayBalance.className = 'mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600';
+                stayBalance.className = 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-medium text-slate-600';
                 return;
             }
 
             if (rawNights > window.days) {
                 stayBalance.textContent = 'Stays add up to ' + rawNights + ' night(s) but the trip is only ' + window.days + ' night(s) (' + formatDate(window.start) + ' → ' + formatDate(window.end) + '). Extra nights are trimmed to the trip window on save.';
-                stayBalance.className = 'mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700';
+                stayBalance.className = 'rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-medium text-rose-700';
                 return;
             }
 
             if (rawNights < window.days) {
-                stayBalance.textContent = (window.days - rawNights) + ' night(s) of the ' + window.days + '-night trip are not allocated yet. The last stay will be extended to ' + formatDate(window.end) + ' on save.';
-                stayBalance.className = 'mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700';
+                stayBalance.textContent = (window.days - rawNights) + ' night(s) of the ' + window.days + '-night trip are not allocated yet. The last stay will be extended to ' + formatDate(window.end) + '.';
+                stayBalance.className = 'rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700';
                 return;
             }
 
             stayBalance.textContent = 'All ' + window.days + ' night(s) allocated: ' + formatDate(window.start) + ' → ' + formatDate(window.end) + '.';
-            stayBalance.className = 'mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700';
+            stayBalance.className = 'rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-700';
         }
 
         function refresh(redistribute) {
@@ -801,7 +1049,15 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             }
 
             paintStays();
+
+            rows().forEach(function(row) {
+                if (row.dataset.ratesAuto === '1') {
+                    applyHotelRates(row, true);
+                }
+            });
+
             syncCostSharing();
+            paintChips();
         }
 
         function bindHotelRow(row) {
@@ -818,11 +1074,17 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
             if (hotelSelect) {
                 hotelSelect.addEventListener('change', function() {
-                    var nameInput = rowField(row, 'hotel_name');
-                    if (nameInput && hotelSelect.value !== '') {
-                        nameInput.value = '';
-                    }
+                    syncHotelNameWrap(row);
+                    applyHotelRates(row, true);
                     refresh(false);
+                });
+            }
+
+            var reloadRatesButton = row.querySelector('[data-reload-rates]');
+            if (reloadRatesButton) {
+                reloadRatesButton.addEventListener('click', function() {
+                    applyHotelRates(row, true);
+                    syncCostSharing();
                 });
             }
 
@@ -849,6 +1111,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
             row.querySelectorAll('[data-hotel-cost]').forEach(function(input) {
                 input.addEventListener('input', function() {
+                    row.dataset.ratesAuto = '';
                     syncCostSharing();
                 });
             });
@@ -888,8 +1151,23 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             if (removeButton) {
                 removeButton.addEventListener('click', function() {
                     row.remove();
+                    paintChips();
                 });
             }
+
+            var select = row.querySelector('[data-transport-select]');
+            if (select) {
+                select.addEventListener('change', function() {
+                    syncTransportNameWrap(row);
+                });
+            }
+
+            var costInput = row.querySelector('[name$="[cost_amount]"]');
+            if (costInput) {
+                costInput.addEventListener('input', paintChips);
+            }
+
+            syncTransportNameWrap(row);
         }
 
         function addTransportRow() {
@@ -909,11 +1187,13 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
             transportRowsWrap.appendChild(row);
             bindTransportRow(row);
+            paintChips();
         }
 
         rows().forEach(function(row) {
             fillHotelSelect(row);
             bindHotelRow(row);
+            applyHotelRates(row, false);
         });
 
         Array.prototype.slice.call(transportRowsWrap ? transportRowsWrap.querySelectorAll('[data-transport-row]') : []).forEach(bindTransportRow);
@@ -939,29 +1219,212 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             addTransportButton.addEventListener('click', addTransportRow);
         }
 
-        var toggleMap = {
-            'toggle-hotel': document.getElementById('hotel-section'),
-            'toggle-transport': document.getElementById('transport-section')
-        };
+        /* ---------- show / hide ---------- */
+        function setHidden(el, hide) {
+            if (el) {
+                el.classList.toggle('hidden', !!hide);
+            }
+        }
 
-        Object.keys(toggleMap).forEach(function(id) {
-            var checkbox = document.getElementById(id);
-            var section = toggleMap[id];
-            if (!checkbox || !section) {
+        function syncHotelNameWrap(row) {
+            var select = rowField(row, 'hotel_id');
+            var wrap = row.querySelector('[data-hotel-name-wrap]');
+            var nameInput = rowField(row, 'hotel_name');
+            var hasHotel = select ? String(select.value || '') !== '' : false;
+
+            if (hasHotel && nameInput) {
+                nameInput.value = '';
+            }
+
+            setHidden(wrap, hasHotel);
+        }
+
+        function syncTransportNameWrap(row) {
+            var select = row.querySelector('[data-transport-select]');
+            setHidden(row.querySelector('[data-transport-name-wrap]'), select ? String(select.value || '') !== '' : false);
+        }
+
+        /* ---------- collapsible sections ---------- */
+        var accSections = Array.prototype.slice.call(form.querySelectorAll('[data-acc]'));
+        var accStorageKey = 'hjms:package-form:sections';
+        var accDefaults = { flight: true, hotels: true, transport: false, details: true, voucher: false };
+        var forceOpenSections = <?= (! empty($errors) || ! empty($error)) ? 'true' : 'false' ?>;
+        var accStored = {};
+
+        try {
+            accStored = JSON.parse(window.localStorage.getItem(accStorageKey) || '{}') || {};
+        } catch (e) {
+            accStored = {};
+        }
+
+        function accSet(section, open, persist) {
+            setHidden(section.querySelector('[data-acc-body]'), !open);
+
+            var chevron = section.querySelector('[data-acc-chevron]');
+            if (chevron) {
+                chevron.classList.toggle('rotate-180', open);
+            }
+
+            section.dataset.accOpen = open ? '1' : '0';
+
+            if (persist) {
+                accStored[section.dataset.acc] = open;
+                try {
+                    window.localStorage.setItem(accStorageKey, JSON.stringify(accStored));
+                } catch (e) {
+                    /* storage unavailable */
+                }
+            }
+        }
+
+        accSections.forEach(function(section) {
+            var name = section.dataset.acc || '';
+            var open = forceOpenSections || (Object.prototype.hasOwnProperty.call(accStored, name) ? !!accStored[name] : accDefaults[name] !== false);
+            accSet(section, open, false);
+
+            var toggle = section.querySelector('[data-acc-toggle]');
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    accSet(section, section.dataset.accOpen !== '1', true);
+                });
+            }
+        });
+
+        Array.prototype.slice.call(form.querySelectorAll('[data-acc-all]')).forEach(function(button) {
+            button.addEventListener('click', function() {
+                var open = button.dataset.accAll === 'open';
+                accSections.forEach(function(section) {
+                    accSet(section, open, true);
+                });
+            });
+        });
+
+        var ticketToggle = document.getElementById('toggle-ticket');
+        var ticketDetails = form.querySelector('[data-ticket-details]');
+        var ticketOffNote = document.getElementById('ticket-off-note');
+        var hotelToggle = document.getElementById('toggle-hotel');
+        var hotelBody = form.querySelector('[data-hotel-body]');
+        var transportToggle = document.getElementById('toggle-transport');
+        var transportBody = form.querySelector('[data-transport-body]');
+        var ziaratToggle = document.getElementById('toggle-ziarat');
+        var ziaratFields = document.getElementById('ziarat-fields');
+
+        function applyIncludeToggles() {
+            setHidden(ticketDetails, ticketToggle ? !ticketToggle.checked : false);
+            setHidden(ticketOffNote, ticketToggle ? ticketToggle.checked : true);
+            setHidden(hotelBody, hotelToggle ? !hotelToggle.checked : false);
+            setHidden(transportBody, transportToggle ? !transportToggle.checked : false);
+            setHidden(ziaratFields, ziaratToggle ? !ziaratToggle.checked : false);
+        }
+
+        [ticketToggle, hotelToggle, transportToggle, ziaratToggle].forEach(function(toggle) {
+            if (!toggle) {
+                return;
+            }
+            toggle.addEventListener('change', function() {
+                applyIncludeToggles();
+                paintChips();
+            });
+        });
+
+        applyIncludeToggles();
+
+        /* ---------- live section chips ---------- */
+        function setChip(id, text, tone) {
+            var chip = document.getElementById(id);
+            if (!chip) {
                 return;
             }
 
-            var apply = function() {
-                section.classList.toggle('opacity-60', !checkbox.checked);
+            var tones = {
+                slate: 'bg-slate-100 text-slate-600',
+                emerald: 'bg-emerald-100 text-emerald-700',
+                amber: 'bg-amber-100 text-amber-700',
+                rose: 'bg-rose-100 text-rose-700'
             };
 
-            checkbox.addEventListener('change', apply);
-            apply();
+            chip.textContent = text;
+            chip.className = 'hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold sm:inline-flex ' + (tones[tone] || tones.slate);
+        }
+
+        function numberOrZero(value) {
+            var parsed = parseFloat(String(value || '').replace(/,/g, ''));
+
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function paintChips() {
+            var trip = tripWindow();
+            setChip('chip-flight', trip ? trip.days + ' days' : 'Dates missing', trip ? 'emerald' : 'rose');
+
+            var stayCount = 0;
+            var stayNights = 0;
+
+            rows().forEach(function(row) {
+                var nightsInput = rowField(row, 'nights');
+                var hotel = rowField(row, 'hotel_id');
+                var nameInput = rowField(row, 'hotel_name');
+                var nights = nightsInput ? Math.max(0, parseInt(nightsInput.value || '0', 10)) : 0;
+                var hasHotel = (hotel && String(hotel.value || '') !== '') || (nameInput && String(nameInput.value || '').trim() !== '');
+
+                if (nights > 0 && hasHotel) {
+                    stayCount += 1;
+                    stayNights += nights;
+                }
+            });
+
+            if (hotelToggle && !hotelToggle.checked) {
+                setChip('chip-hotels', 'Not included', 'slate');
+            } else if (stayCount > 0) {
+                setChip('chip-hotels', stayCount + ' stay' + (stayCount === 1 ? '' : 's') + ' · ' + stayNights + ' nights', 'emerald');
+            } else {
+                setChip('chip-hotels', 'No stays yet', 'amber');
+            }
+
+            var transportTotal = 0;
+            Array.prototype.slice.call(form.querySelectorAll('[data-transport-row] [name$="[cost_amount]"]')).forEach(function(input) {
+                transportTotal += numberOrZero(input.value);
+            });
+
+            if (transportToggle && !transportToggle.checked) {
+                setChip('chip-transport', 'Not included', 'slate');
+            } else if (transportTotal > 0) {
+                setChip('chip-transport', 'SAR ' + transportTotal.toLocaleString(), 'emerald');
+            } else {
+                setChip('chip-transport', 'No transport', 'amber');
+            }
+
+            var codeInput = form.querySelector('[name="code"]');
+            var seatsInput = document.getElementById('package-total-seats');
+            var codeValue = codeInput ? String(codeInput.value || '').trim() : '';
+            var seatsValue = seatsInput ? String(seatsInput.value || '').trim() : '';
+
+            if (codeValue === '' || seatsValue === '') {
+                setChip('chip-details', 'Required fields', 'rose');
+            } else {
+                setChip('chip-details', seatsValue + ' seats', 'emerald');
+            }
+
+            var shirkaSelect = form.querySelector('[name="default_shirka_company_id"]');
+            var shirkaText = shirkaSelect && shirkaSelect.selectedIndex >= 0 ? String(shirkaSelect.options[shirkaSelect.selectedIndex].textContent || '').trim() : '';
+            var hasShirka = shirkaText !== '' && shirkaText.indexOf('Select') === -1;
+            setChip('chip-voucher', hasShirka ? shirkaText : 'Optional', hasShirka ? 'emerald' : 'slate');
+        }
+
+        ['code', 'total_seats', 'default_shirka_company_id'].forEach(function(name) {
+            var input = form.querySelector('[name="' + name + '"]');
+            if (!input) {
+                return;
+            }
+            input.addEventListener('input', paintChips);
+            input.addEventListener('change', paintChips);
         });
 
         var flightTemplateSelect = document.getElementById('flight-template-select');
         var flightIdInput = document.getElementById('flight-id');
         var flightSourceInput = document.getElementById('flight-source');
+        var ticketCostInput = document.getElementById('ticket-cost');
+        var fareNote = document.getElementById('ticket-fare-note');
         var flightFieldNames = [
             'airline', 'flight_no', 'pnr', 'departure_airport', 'arrival_airport',
             'outbound_arrival_at', 'return_airline', 'return_flight_no', 'return_pnr',
@@ -977,6 +1440,10 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                     }
                     if (flightSourceInput) {
                         flightSourceInput.value = '';
+                    }
+                    if (fareNote) {
+                        fareNote.textContent = '';
+                        fareNote.classList.add('hidden');
                     }
                     return;
                 }
@@ -996,6 +1463,20 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                         input.value = option.dataset[key];
                     }
                 });
+
+                var fare = numberOrZero(option.dataset.fare);
+
+                if (ticketCostInput && fare > 0) {
+                    ticketCostInput.value = String(fare);
+                    ticketCostInput.dispatchEvent(new Event('input', {
+                        bubbles: true
+                    }));
+                }
+
+                if (fareNote) {
+                    fareNote.textContent = fare > 0 ? 'Fare ' + fare.toLocaleString() + ' PKR loaded from the flight.' : '';
+                    fareNote.classList.toggle('hidden', fare <= 0);
+                }
 
                 refresh(true);
             });

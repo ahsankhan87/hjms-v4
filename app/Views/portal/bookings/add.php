@@ -45,9 +45,9 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Package Pricing <span class="text-rose-500">*</span></label>
-                    <div class="grid grid-cols-4 gap-2" id="tier-selector">
+                    <div class="grid grid-cols-5 gap-2" id="tier-selector">
                         <?php $tierValue = (string) old('pricing_tier', 'sharing'); ?>
-                        <?php foreach (($pricingTiers ?? ['sharing', 'quad', 'triple', 'double']) as $tier): ?>
+                        <?php foreach (($pricingTiers ?? ['sharing', 'quint', 'quad', 'triple', 'double']) as $tier): ?>
                             <label class="tier-btn relative cursor-pointer rounded-lg border-2 py-2 text-center text-xs font-semibold transition-all
                                 <?= $tierValue === $tier ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300' ?>">
                                 <input type="radio" name="pricing_tier" value="<?= esc($tier) ?>" class="sr-only" <?= $tierValue === $tier ? 'checked' : '' ?>>
@@ -281,7 +281,6 @@
             const tier = selectedTier();
             const meta = selectedMeta();
             const flatMode = isFlatPackage(meta);
-            const hotelSeatMode = Number(meta.include_hotel || 1) === 1;
 
             if (flatMode) {
                 $tiers.filter('[value="sharing"]').prop('checked', true);
@@ -334,11 +333,11 @@
 
             // Seats warning
             if (noSeatsConfigured) {
-                $('#seats-warning-text').text(hotelSeatMode ? 'No hotel seats configured for this package. Please set total seats on package hotel before booking.' : (flatMode ? 'No seats configured for this package. Please set package total seats before booking.' : 'No seats configured for this package & tier. Please set a seats limit in Package Management before booking.'));
+                $('#seats-warning-text').text('No seats configured for this package. Please set total seats in Package Details first.');
                 $('#seats-warning').removeClass('hidden');
             } else if (exceeded) {
                 $('#seats-warning-text').text(
-                    'Only ' + remaining + ' seat(s) left for this ' + (hotelSeatMode ? 'package hotel allocation' : (flatMode ? 'package' : 'tier')) + '. You selected ' + count + ' pilgrim(s).');
+                    'Only ' + remaining + ' seat(s) left on this package. You selected ' + count + ' pilgrim(s).');
                 $('#seats-warning').removeClass('hidden');
             } else {
                 $('#seats-warning').addClass('hidden');

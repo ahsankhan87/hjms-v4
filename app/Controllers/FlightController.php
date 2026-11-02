@@ -308,6 +308,7 @@ class FlightController extends BaseController
             'arrival_airport'   => (string) $this->request->getPost($prefix . 'arrival_airport'),
             'departure_at'      => $this->normalizeDateTimeInput((string) $this->request->getPost($prefix . 'departure_at')),
             'arrival_at'        => $this->normalizeDateTimeInput((string) $this->request->getPost($prefix . 'arrival_at')),
+            'fare'              => trim((string) $this->request->getPost($prefix . 'fare')),
         ];
     }
 
@@ -338,6 +339,7 @@ class FlightController extends BaseController
             'arrival_airport'   => 'permit_empty|max_length[80]',
             'departure_at'      => 'permit_empty|valid_date[Y-m-d H:i:s]',
             'arrival_at'        => 'permit_empty|valid_date[Y-m-d H:i:s]',
+            'fare'              => 'permit_empty|decimal|greater_than_equal_to[0]',
         ];
     }
 
@@ -351,6 +353,7 @@ class FlightController extends BaseController
             'arrival_airport'   => $payload['arrival_airport'] !== '' ? $payload['arrival_airport'] : null,
             'departure_at'      => $payload['departure_at'] !== '' ? $payload['departure_at'] : null,
             'arrival_at'        => $payload['arrival_at'] !== '' ? $payload['arrival_at'] : null,
+            'fare'              => ($payload['fare'] ?? '') !== '' ? (float) $payload['fare'] : 0,
             'updated_at'        => date('Y-m-d H:i:s'),
         ];
 

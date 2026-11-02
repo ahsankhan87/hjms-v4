@@ -11,6 +11,7 @@ $statusMap = [
 $stc = $statusMap[$status] ?? $statusMap['draft'];
 $tierMap = [
     'sharing' => ['bg' => 'bg-violet-100', 'text' => 'text-violet-700'],
+    'quint'   => ['bg' => 'bg-teal-100',   'text' => 'text-teal-700'],
     'quad'    => ['bg' => 'bg-sky-100',    'text' => 'text-sky-700'],
     'triple'  => ['bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
     'double'  => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],

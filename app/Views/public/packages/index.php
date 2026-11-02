@@ -78,10 +78,6 @@
                     }
                 }
                 $startingPrice = !empty($numericPrices) ? min($numericPrices) : null;
-                $sharing = $priceMap['sharing'] ?? null;
-                $quad = $priceMap['quad'] ?? null;
-                $triple = $priceMap['triple'] ?? null;
-                $double = $priceMap['double'] ?? null;
                 $packageMode = (string) ($card['package_mode'] ?? 'tiered');
                 $flatPrice = $card['flat_price'] ?? null;
                 ?>
@@ -155,23 +151,13 @@
                                     <div><?= $flatPrice !== null ? 'PKR ' . esc(number_format((float) $flatPrice, 0)) : 'N/A' ?></div>
                                 </div>
                             <?php else: ?>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sky-700">
-                                    <div>
-                                        <div class="font-semibold">Sharing</div>
-                                        <div><?= $sharing !== null ? 'PKR ' . esc(number_format((float) $sharing, 0)) : 'N/A' ?></div>
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold">Quad</div>
-                                        <div><?= $quad !== null ? 'PKR ' . esc(number_format((float) $quad, 0)) : 'N/A' ?></div>
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold">Triple</div>
-                                        <div><?= $triple !== null ? 'PKR ' . esc(number_format((float) $triple, 0)) : 'N/A' ?></div>
-                                    </div>
-                                    <div>
-                                        <div class="font-semibold">Double</div>
-                                        <div><?= $double !== null ? 'PKR ' . esc(number_format((float) $double, 0)) : 'N/A' ?></div>
-                                    </div>
+                                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sky-700">
+                                    <?php foreach (\App\Services\HotelRateService::TIER_LABELS as $tierKey => $tierLabel): ?>
+                                        <div>
+                                            <div class="font-semibold"><?= esc($tierLabel) ?></div>
+                                            <div><?= isset($priceMap[$tierKey]) && $priceMap[$tierKey] !== null ? 'PKR ' . esc(number_format((float) $priceMap[$tierKey], 0)) : 'N/A' ?></div>
+                                        </div>
+                                    <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
                         </div>

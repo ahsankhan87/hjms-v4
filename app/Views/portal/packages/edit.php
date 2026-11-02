@@ -31,19 +31,32 @@ $summaryFlatPrice = $pricingSummary['flat_price'] ?? null;
                 <div class="mt-0.5 text-lg font-bold text-slate-800"><?= $summaryFlatPrice !== null ? 'PKR ' . esc(number_format((float) $summaryFlatPrice, 2)) : '—' ?></div>
             </div>
         <?php else: ?>
-            <?php foreach (['sharing', 'quad', 'triple', 'double'] as $tier): ?>
-                <?php $tierPrice = $summaryPriceMap[$tier] ?? null; ?>
+            <?php foreach (\App\Services\HotelRateService::TIER_LABELS as $tierKey => $tierLabel): ?>
+                <?php $tierPrice = $summaryPriceMap[$tierKey] ?? null; ?>
                 <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500"><?= esc($tier) ?></div>
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500"><?= esc($tierLabel) ?></div>
                     <div class="mt-0.5 text-base font-bold text-slate-800"><?= $tierPrice !== null ? 'PKR ' . esc(number_format((float) $tierPrice, 2)) : 'Not configured' ?></div>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
-    <div class="mt-2 grid gap-2 text-[11px] text-slate-600 md:grid-cols-3">
-        <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">Flight: PKR <?= esc(number_format((float) ($pricingSummary['flight_total'] ?? 0), 2)) ?></div>
-        <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">Transport: PKR <?= esc(number_format((float) ($pricingSummary['transport_total'] ?? 0), 2)) ?></div>
-        <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">Visa: PKR <?= esc(number_format((float) ($pricingSummary['visa_total'] ?? 0), 2)) ?></div>
+    <?php
+    $summaryRate = (float) ($pricingSummary['exchange_rate'] ?? $row['exchange_rate'] ?? 1);
+    $summaryHotelTotals = (array) ($pricingSummary['hotel_totals'] ?? []);
+    $summaryHotelSar = $summaryHotelTotals === [] ? 0.0 : min(array_map('floatval', $summaryHotelTotals));
+    $summaryHotelSarMax = $summaryHotelTotals === [] ? 0.0 : max(array_map('floatval', $summaryHotelTotals));
+    ?>
+    <div class="mt-2 grid gap-2 text-[11px] text-slate-600 md:grid-cols-6">
+        <div class="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5">Flight (PKR): <?= esc(number_format((float) ($pricingSummary['flight_total'] ?? 0), 2)) ?></div>
+        <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">
+            Hotels (SAR): <?= esc(number_format($summaryHotelSar, 2)) ?><?= $summaryHotelSarMax > $summaryHotelSar ? ' – ' . esc(number_format($summaryHotelSarMax, 2)) : '' ?>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">Transport (SAR): <?= esc(number_format((float) ($pricingSummary['transport_total_sar'] ?? 0), 2)) ?></div>
+        <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">
+            Ziarat (SAR): <?= (int) ($row['include_ziarat'] ?? 0) === 1 ? esc(number_format((float) ($pricingSummary['ziarat_total_sar'] ?? 0), 2)) : 'Not included' ?>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">Visa (SAR): <?= esc(number_format((float) ($pricingSummary['visa_total_sar'] ?? 0), 2)) ?></div>
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-800">SAR → PKR: <?= esc(rtrim(rtrim(number_format($summaryRate, 4, '.', ''), '0'), '.')) ?></div>
     </div>
 </section>
 

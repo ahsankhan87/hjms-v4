@@ -19,6 +19,7 @@ class FlightModel extends Model
         'arrival_airport',
         'departure_at',
         'arrival_at',
+        'fare',
         'ticket_file_name',
         'ticket_file_path',
         'return_airline',
