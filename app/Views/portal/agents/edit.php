@@ -15,9 +15,9 @@
         <article class="rounded-xl border border-slate-200 bg-white p-4">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <h2 class="text-sm font-semibold text-slate-900">Update Agent</h2>
-                <a href="<?= site_url('/agents/' . (int) ($row['id'] ?? 0) . '/ledger') ?>" class="btn btn-sm btn-secondary">Open Ledger</a>
+                <a href="<?= site_url('/admin/agents/' . (int) ($row['id'] ?? 0) . '/ledger') ?>" class="btn btn-sm btn-secondary">Open Ledger</a>
             </div>
-            <form method="post" action="<?= site_url('/agents/update') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/agents/update') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="agent_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
 
@@ -87,7 +87,7 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/agents') ?>" class="btn btn-md btn-secondary">Back</a>
+                    <a href="<?= site_url('/admin/agents') ?>" class="btn btn-md btn-secondary">Back</a>
                     <button class="btn btn-md btn-primary" type="submit"><i class="fa-solid fa-check"></i><span>Update Agent</span></button>
                 </div>
             </form>
@@ -95,7 +95,7 @@
             <hr class="my-5 border-slate-200">
 
             <h2 class="text-sm font-semibold text-slate-900">Delete Agent</h2>
-            <form method="post" action="<?= site_url('/agents/delete') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/agents/delete') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="agent_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
                 <button class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this agent?')"><i class="fa-solid fa-trash"></i><span>Delete Agent</span></button>

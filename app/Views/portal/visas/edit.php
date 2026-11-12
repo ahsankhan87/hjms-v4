@@ -9,7 +9,7 @@
     <section class="grid gap-3 lg:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
             <h3 class="text-sm font-semibold text-slate-800">Edit Visa</h3>
-            <form method="post" action="<?= site_url('/visas/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/visas/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="visa_id" value="<?= esc($row['id']) ?>">
 
@@ -90,7 +90,7 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/visas') ?>" class="btn btn-md btn-secondary">Back</a>
+                    <a href="<?= site_url('/admin/visas') ?>" class="btn btn-md btn-secondary">Back</a>
                     <button type="submit" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-check"></i><span>Update Visa</span>
                     </button>
@@ -100,7 +100,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-sm font-semibold text-slate-800">Delete Visa</h3>
-            <form method="post" action="<?= site_url('/visas/delete') ?>" class="mt-4">
+            <form method="post" action="<?= site_url('/admin/visas/delete') ?>" class="mt-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="visa_id" value="<?= esc($row['id']) ?>">
                 <button type="submit" class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this visa record?')">

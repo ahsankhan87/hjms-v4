@@ -26,7 +26,7 @@
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-4">
-            <form method="post" action="<?= site_url('/flights') ?>" enctype="multipart/form-data" class="space-y-4">
+            <form method="post" action="<?= site_url('/admin/flights') ?>" enctype="multipart/form-data" class="space-y-4">
                 <?= csrf_field() ?>
                 <section class="rounded-lg border border-sky-200 bg-sky-50 p-3">
                     <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-sky-800">Quick paste supplier short code</h4>
@@ -180,7 +180,7 @@
                     </div>
                 </section>
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/flights') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                    <a href="<?= site_url('/admin/flights') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-check"></i><span>Create Flight</span>
                     </button>

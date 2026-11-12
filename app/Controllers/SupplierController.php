@@ -95,7 +95,7 @@ class SupplierController extends BaseController
     {
         $row = (new SupplierModel())->find($id);
         if (empty($row)) {
-            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found.');
         }
 
         return view('portal/suppliers/edit', [
@@ -114,7 +114,7 @@ class SupplierController extends BaseController
     {
         $supplier = (new SupplierModel())->find($id);
         if (empty($supplier)) {
-            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found.');
         }
 
         $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
@@ -151,7 +151,7 @@ class SupplierController extends BaseController
     {
         $supplier = (new SupplierModel())->find($id);
         if (empty($supplier)) {
-            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found.');
         }
 
         $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
@@ -182,14 +182,14 @@ class SupplierController extends BaseController
         $payload = $this->extractSupplierPayload();
 
         if (! $this->validateData($payload, $this->supplierRules())) {
-            return redirect()->to('/suppliers/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/suppliers/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             (new SupplierModel())->insert($this->buildSupplierData($payload, true));
-            return redirect()->to('/suppliers')->with('success', 'Supplier added successfully.');
+            return redirect()->to('/admin/suppliers')->with('success', 'Supplier added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/suppliers/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/suppliers/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -199,18 +199,18 @@ class SupplierController extends BaseController
         $payload = $this->extractSupplierPayload();
 
         if ($supplierId < 1) {
-            return redirect()->to('/suppliers')->with('error', 'Valid supplier ID is required.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Valid supplier ID is required.');
         }
 
         if (! $this->validateData($payload, $this->supplierRules())) {
-            return redirect()->to('/suppliers/' . $supplierId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/suppliers/' . $supplierId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             (new SupplierModel())->update($supplierId, $this->buildSupplierData($payload, false));
-            return redirect()->to('/suppliers')->with('success', 'Supplier updated successfully.');
+            return redirect()->to('/admin/suppliers')->with('success', 'Supplier updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/suppliers/' . $supplierId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/suppliers/' . $supplierId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -218,14 +218,14 @@ class SupplierController extends BaseController
     {
         $supplierId = (int) $this->request->getPost('supplier_id');
         if ($supplierId < 1) {
-            return redirect()->to('/suppliers')->with('error', 'Valid supplier ID is required for delete.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Valid supplier ID is required for delete.');
         }
 
         try {
             (new SupplierModel())->delete($supplierId);
-            return redirect()->to('/suppliers')->with('success', 'Supplier deleted successfully.');
+            return redirect()->to('/admin/suppliers')->with('success', 'Supplier deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/suppliers')->with('error', $e->getMessage());
+            return redirect()->to('/admin/suppliers')->with('error', $e->getMessage());
         }
     }
 
@@ -256,18 +256,18 @@ class SupplierController extends BaseController
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
-            return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $supplier = (new SupplierModel())->find($payload['supplier_id']);
         if (empty($supplier)) {
-            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found.');
         }
 
         try {
             $amount = (float) $payload['amount'];
             if (abs($amount) < 0.0000001) {
-                return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
+                return redirect()->to('/admin/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
             }
 
             $exchangeRate = $this->resolveLedgerExchangeRate($payload['currency'], (float) $payload['exchange_rate']);
@@ -309,9 +309,9 @@ class SupplierController extends BaseController
 
             (new SupplierLedgerEntryModel())->insert($insertData);
 
-            return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
+            return redirect()->to('/admin/suppliers/' . $payload['supplier_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/suppliers/' . $payload['supplier_id'] . '/ledger')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -330,7 +330,7 @@ class SupplierController extends BaseController
         ];
 
         if ($entryId < 1 || $supplierId < 1) {
-            return redirect()->to('/suppliers')->with('error', 'Valid entry and supplier IDs are required.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Valid entry and supplier IDs are required.');
         }
 
         if (! $this->validateData($payload, [
@@ -342,24 +342,24 @@ class SupplierController extends BaseController
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
-            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/suppliers/' . $supplierId . '/ledger')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $entryModel = new SupplierLedgerEntryModel();
         $entry = $entryModel->find($entryId);
         if (empty($entry) || (int) ($entry['supplier_id'] ?? 0) !== $supplierId) {
-            return redirect()->to('/suppliers')->with('error', 'Ledger entry not found.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Ledger entry not found.');
         }
 
         $supplier = (new SupplierModel())->find($supplierId);
         if (empty($supplier)) {
-            return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found.');
         }
 
         try {
             $amount = (float) $payload['amount'];
             if (abs($amount) < 0.0000001) {
-                return redirect()->to('/suppliers/' . $supplierId . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
+                return redirect()->to('/admin/suppliers/' . $supplierId . '/ledger')->withInput()->with('error', 'Amount must be greater than zero.');
             }
 
             $currency = $payload['currency'] !== '' ? $payload['currency'] : strtoupper((string) ($entry['currency'] ?? 'PKR'));
@@ -411,9 +411,9 @@ class SupplierController extends BaseController
 
             $entryModel->update($entryId, $updateData);
 
-            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('success', 'Ledger entry updated successfully.');
+            return redirect()->to('/admin/suppliers/' . $supplierId . '/ledger')->with('success', 'Ledger entry updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/suppliers/' . $supplierId . '/ledger')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -423,19 +423,19 @@ class SupplierController extends BaseController
         $entryId = (int) $this->request->getPost('entry_id');
 
         if ($supplierId < 1 || $entryId < 1) {
-            return redirect()->to('/suppliers')->with('error', 'Valid supplier and entry IDs are required.');
+            return redirect()->to('/admin/suppliers')->with('error', 'Valid supplier and entry IDs are required.');
         }
 
         try {
             $supplier = (new SupplierModel())->find($supplierId);
             if (empty($supplier)) {
-                return redirect()->to('/suppliers')->with('error', 'Supplier not found.');
+                return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found.');
             }
 
             $entryModel = new SupplierLedgerEntryModel();
             $entry = $entryModel->find($entryId);
             if (empty($entry) || (int) ($entry['supplier_id'] ?? 0) !== $supplierId) {
-                return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('error', 'Ledger entry not found for this supplier.');
+                return redirect()->to('/admin/suppliers/' . $supplierId . '/ledger')->with('error', 'Ledger entry not found for this supplier.');
             }
 
             if (!empty($entry['attachment'])) {
@@ -446,9 +446,9 @@ class SupplierController extends BaseController
             }
 
             $entryModel->delete($entryId);
-            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('success', 'Ledger entry deleted successfully.');
+            return redirect()->to('/admin/suppliers/' . $supplierId . '/ledger')->with('success', 'Ledger entry deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/suppliers/' . $supplierId . '/ledger')->with('error', $e->getMessage());
+            return redirect()->to('/admin/suppliers/' . $supplierId . '/ledger')->with('error', $e->getMessage());
         }
     }
 
@@ -778,7 +778,7 @@ class SupplierController extends BaseController
     public function downloadAttachment(string $filename = '')
     {
         if (empty($filename)) {
-            return redirect()->to('/suppliers')->with('error', 'No file specified.');
+            return redirect()->to('/admin/suppliers')->with('error', 'No file specified.');
         }
 
         // Sanitize filename to prevent directory traversal

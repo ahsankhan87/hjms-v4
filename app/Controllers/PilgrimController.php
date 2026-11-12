@@ -51,7 +51,7 @@ class PilgrimController extends BaseController
         $linkedAgentId = $this->linkedAgentId();
 
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $rows = [];
@@ -162,7 +162,7 @@ class PilgrimController extends BaseController
         }
 
         if (empty($row)) {
-            return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found.');
+            return redirect()->to('/admin/pilgrims')->with('error', 'Pilgrim not found.');
         }
 
         $row['full_name'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
@@ -184,7 +184,7 @@ class PilgrimController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();
@@ -203,7 +203,7 @@ class PilgrimController extends BaseController
         }
 
         if (empty($row)) {
-            return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found.');
+            return redirect()->to('/admin/pilgrims')->with('error', 'Pilgrim not found.');
         }
 
         // Agent name
@@ -406,7 +406,7 @@ class PilgrimController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -450,17 +450,17 @@ class PilgrimController extends BaseController
             'reference'            => 'permit_empty|max_length[200]',
             'blood_group'          => 'permit_empty|in_list[' . implode(',', self::BLOOD_GROUP_OPTIONS) . ']',
         ], self::PASSPORT_MESSAGES)) {
-            return redirect()->to('/pilgrims/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/pilgrims/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $ruleErrors = $this->pilgrimRuleErrors($payload, $seasonId);
         if ($ruleErrors !== []) {
-            return redirect()->to('/pilgrims/add')->withInput()->with('errors', $ruleErrors);
+            return redirect()->to('/admin/pilgrims/add')->withInput()->with('errors', $ruleErrors);
         }
 
         $imageData = $this->handlePilgrimImageUploads();
         if (isset($imageData['error'])) {
-            return redirect()->to('/pilgrims/add')->withInput()->with('error', (string) $imageData['error']);
+            return redirect()->to('/admin/pilgrims/add')->withInput()->with('error', (string) $imageData['error']);
         }
 
         try {
@@ -496,9 +496,9 @@ class PilgrimController extends BaseController
 
             $model->insert($insertData);
 
-            return redirect()->to('/pilgrims')->with('success', 'Pilgrim created successfully.');
+            return redirect()->to('/admin/pilgrims')->with('success', 'Pilgrim created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/pilgrims')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/pilgrims')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -508,7 +508,7 @@ class PilgrimController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -537,7 +537,7 @@ class PilgrimController extends BaseController
         $passportChanged = $currentPilgrim === null
             || $this->normalizePassportNo((string) ($currentPilgrim['passport_no'] ?? '')) !== $payload['passport_no'];
         if ($pilgrimId < 1) {
-            return redirect()->to('/pilgrims')->withInput()->with('error', 'Valid pilgrim ID is required.');
+            return redirect()->to('/admin/pilgrims')->withInput()->with('error', 'Valid pilgrim ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -561,17 +561,17 @@ class PilgrimController extends BaseController
             'blood_group'          => 'permit_empty|in_list[' . implode(',', self::BLOOD_GROUP_OPTIONS) . ']',
             'is_active'            => 'permit_empty|in_list[0,1]',
         ], self::PASSPORT_MESSAGES)) {
-            return redirect()->to('/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $ruleErrors = $this->pilgrimRuleErrors($payload, $seasonId, $pilgrimId, $passportChanged);
         if ($ruleErrors !== []) {
-            return redirect()->to('/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('errors', $ruleErrors);
+            return redirect()->to('/admin/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('errors', $ruleErrors);
         }
 
         $imageData = $this->handlePilgrimImageUploads();
         if (isset($imageData['error'])) {
-            return redirect()->to('/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('error', (string) $imageData['error']);
+            return redirect()->to('/admin/pilgrims/' . $pilgrimId . '/edit')->withInput()->with('error', (string) $imageData['error']);
         }
 
         try {
@@ -582,7 +582,7 @@ class PilgrimController extends BaseController
             }
             $existing = $existingQuery->first();
             if (empty($existing)) {
-                return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found in active season.');
+                return redirect()->to('/admin/pilgrims')->with('error', 'Pilgrim not found in active season.');
             }
 
             $removable = [
@@ -629,9 +629,9 @@ class PilgrimController extends BaseController
                 'updated_at'           => date('Y-m-d H:i:s'),
             ] + $imageData + $removeData);
 
-            return redirect()->to('/pilgrims')->with('success', 'Pilgrim updated successfully.');
+            return redirect()->to('/admin/pilgrims')->with('success', 'Pilgrim updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/pilgrims')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/pilgrims')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -641,11 +641,11 @@ class PilgrimController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         if ($pilgrimId < 1) {
-            return redirect()->to('/pilgrims')->with('error', 'Valid pilgrim ID is required for delete.');
+            return redirect()->to('/admin/pilgrims')->with('error', 'Valid pilgrim ID is required for delete.');
         }
 
         try {
@@ -656,18 +656,18 @@ class PilgrimController extends BaseController
             }
             $existing = $existingQuery->first();
             if (empty($existing)) {
-                return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found in active season.');
+                return redirect()->to('/admin/pilgrims')->with('error', 'Pilgrim not found in active season.');
             }
 
             $deleted = $model->delete($pilgrimId);
 
             if (! $deleted) {
-                return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found or already removed.');
+                return redirect()->to('/admin/pilgrims')->with('error', 'Pilgrim not found or already removed.');
             }
 
-            return redirect()->to('/pilgrims')->with('success', 'Pilgrim deleted successfully.');
+            return redirect()->to('/admin/pilgrims')->with('success', 'Pilgrim deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/pilgrims')->with('error', $e->getMessage());
+            return redirect()->to('/admin/pilgrims')->with('error', $e->getMessage());
         }
     }
 
@@ -684,11 +684,11 @@ class PilgrimController extends BaseController
         $linkedAgentId = $this->linkedAgentId();
 
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         if ($pilgrimId < 1) {
-            return redirect()->to('/pilgrims')->with('error', 'Valid pilgrim ID is required.');
+            return redirect()->to('/admin/pilgrims')->with('error', 'Valid pilgrim ID is required.');
         }
 
         try {
@@ -699,7 +699,7 @@ class PilgrimController extends BaseController
             }
             $existing = $query->first();
             if (empty($existing)) {
-                return redirect()->to('/pilgrims')->with('error', 'Pilgrim not found in active season.');
+                return redirect()->to('/admin/pilgrims')->with('error', 'Pilgrim not found in active season.');
             }
 
             $model->update($pilgrimId, [
@@ -708,9 +708,9 @@ class PilgrimController extends BaseController
                 'updated_at'       => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/pilgrims/' . $pilgrimId)->with('success', 'Pilgrim made available again. They can now be sold/booked for a new trip.');
+            return redirect()->to('/admin/pilgrims/' . $pilgrimId)->with('success', 'Pilgrim made available again. They can now be sold/booked for a new trip.');
         } catch (\Throwable $e) {
-            return redirect()->to('/pilgrims/' . $pilgrimId)->with('error', $e->getMessage());
+            return redirect()->to('/admin/pilgrims/' . $pilgrimId)->with('error', $e->getMessage());
         }
     }
 
@@ -718,32 +718,32 @@ class PilgrimController extends BaseController
     {
         $linkedAgentId = $this->linkedAgentId();
         if ($this->activeSeasonId() === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $file = $this->request->getFile('mofa_csv');
         if ($file === null || $file->getError() === UPLOAD_ERR_NO_FILE) {
-            return redirect()->to('/pilgrims')->with('error', 'Please choose a CSV file to import.');
+            return redirect()->to('/admin/pilgrims')->with('error', 'Please choose a CSV file to import.');
         }
 
         if (! $file->isValid()) {
-            return redirect()->to('/pilgrims')->with('error', 'Uploaded file is invalid.');
+            return redirect()->to('/admin/pilgrims')->with('error', 'Uploaded file is invalid.');
         }
 
         $extension = strtolower((string) $file->getExtension());
         if ($extension !== 'csv') {
-            return redirect()->to('/pilgrims')->with('error', 'Only CSV files are allowed.');
+            return redirect()->to('/admin/pilgrims')->with('error', 'Only CSV files are allowed.');
         }
 
         try {
             $rows = $this->readMofaCsvRows($file->getTempName());
             if (count($rows) < 2) {
-                return redirect()->to('/pilgrims')->with('error', 'No data rows found in the uploaded file.');
+                return redirect()->to('/admin/pilgrims')->with('error', 'No data rows found in the uploaded file.');
             }
 
             $headerMap = $this->buildMofaHeaderMap($rows[0]);
             if (! isset($headerMap['mutamer_name']) || ! isset($headerMap['passport_no'])) {
-                return redirect()->to('/pilgrims')->with('error', 'Required MOFA columns are missing. Ensure Mutamer Name and Passport No exist.');
+                return redirect()->to('/admin/pilgrims')->with('error', 'Required MOFA columns are missing. Ensure Mutamer Name and Passport No exist.');
             }
 
             $model = new PilgrimModel();
@@ -792,9 +792,9 @@ class PilgrimController extends BaseController
                 $inserted++;
             }
 
-            return redirect()->to('/pilgrims')->with('success', 'MOFA import complete. Added: ' . $inserted . ', duplicates skipped: ' . $duplicates . ', invalid/empty skipped: ' . $skipped . '.');
+            return redirect()->to('/admin/pilgrims')->with('success', 'MOFA import complete. Added: ' . $inserted . ', duplicates skipped: ' . $duplicates . ', invalid/empty skipped: ' . $skipped . '.');
         } catch (\Throwable $e) {
-            return redirect()->to('/pilgrims')->with('error', 'Import failed: ' . $e->getMessage());
+            return redirect()->to('/admin/pilgrims')->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 

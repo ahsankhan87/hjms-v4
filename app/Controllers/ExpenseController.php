@@ -11,7 +11,7 @@ class ExpenseController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $filters = ['from_date' => (string) $this->request->getGet('from_date'), 'to_date' => (string) $this->request->getGet('to_date'), 'expense_category_id' => (string) $this->request->getGet('expense_category_id'), 'payment_method' => (string) $this->request->getGet('payment_method'), 'status' => (string) $this->request->getGet('status')];
@@ -52,7 +52,7 @@ class ExpenseController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         return view('portal/expenses/add', ['title' => 'HJMS ERP | Add Expense', 'headerTitle' => 'Expenses', 'activePage' => 'expenses', 'userEmail' => (string) session('user_email'), 'categories' => (new ExpenseCategoryModel())->where('season_id', $seasonId)->orderBy('name', 'ASC')->findAll(), 'success' => session()->getFlashdata('success'), 'error' => session()->getFlashdata('error'), 'errors' => session()->getFlashdata('errors') ?: []]);
@@ -62,12 +62,12 @@ class ExpenseController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $row = (new ExpenseModel())->where('season_id', $seasonId)->find($id);
         if (empty($row)) {
-            return redirect()->to('/expenses')->with('error', 'Expense not found.');
+            return redirect()->to('/admin/expenses')->with('error', 'Expense not found.');
         }
 
         return view('portal/expenses/edit', ['title' => 'HJMS ERP | Edit Expense', 'headerTitle' => 'Expenses', 'activePage' => 'expenses', 'userEmail' => (string) session('user_email'), 'row' => $row, 'categories' => (new ExpenseCategoryModel())->where('season_id', $seasonId)->orderBy('name', 'ASC')->findAll(), 'success' => session()->getFlashdata('success'), 'error' => session()->getFlashdata('error'), 'errors' => session()->getFlashdata('errors') ?: []]);
@@ -77,23 +77,23 @@ class ExpenseController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = $this->extractExpensePayload();
         if (! $this->validateData($payload, $this->expenseRules())) {
-            return redirect()->to('/expenses/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/expenses/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         if ((new ExpenseCategoryModel())->where('season_id', $seasonId)->find((int) $payload['expense_category_id']) === null) {
-            return redirect()->to('/expenses/add')->withInput()->with('error', 'Expense category not found for the active season.');
+            return redirect()->to('/admin/expenses/add')->withInput()->with('error', 'Expense category not found for the active season.');
         }
 
         try {
             (new ExpenseModel())->insert($this->buildExpenseData($payload, $seasonId, true));
-            return redirect()->to('/expenses')->with('success', 'Expense added successfully.');
+            return redirect()->to('/admin/expenses')->with('success', 'Expense added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/expenses/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/expenses/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -101,34 +101,34 @@ class ExpenseController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $expenseId = (int) $this->request->getPost('expense_id');
         if ($expenseId < 1) {
-            return redirect()->to('/expenses')->with('error', 'Valid expense ID is required.');
+            return redirect()->to('/admin/expenses')->with('error', 'Valid expense ID is required.');
         }
 
         $payload = $this->extractExpensePayload();
         if (! $this->validateData($payload, $this->expenseRules())) {
-            return redirect()->to('/expenses/' . $expenseId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/expenses/' . $expenseId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $model = new ExpenseModel();
         $row = $model->where('season_id', $seasonId)->find($expenseId);
         if (empty($row)) {
-            return redirect()->to('/expenses')->with('error', 'Expense not found.');
+            return redirect()->to('/admin/expenses')->with('error', 'Expense not found.');
         }
 
         if ((new ExpenseCategoryModel())->where('season_id', $seasonId)->find((int) $payload['expense_category_id']) === null) {
-            return redirect()->to('/expenses/' . $expenseId . '/edit')->withInput()->with('error', 'Expense category not found for the active season.');
+            return redirect()->to('/admin/expenses/' . $expenseId . '/edit')->withInput()->with('error', 'Expense category not found for the active season.');
         }
 
         try {
             $model->update($expenseId, $this->buildExpenseData($payload, $seasonId, false));
-            return redirect()->to('/expenses')->with('success', 'Expense updated successfully.');
+            return redirect()->to('/admin/expenses')->with('success', 'Expense updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/expenses/' . $expenseId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/expenses/' . $expenseId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -136,25 +136,25 @@ class ExpenseController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $expenseId = (int) $this->request->getPost('expense_id');
         if ($expenseId < 1) {
-            return redirect()->to('/expenses')->with('error', 'Valid expense ID is required.');
+            return redirect()->to('/admin/expenses')->with('error', 'Valid expense ID is required.');
         }
 
         $model = new ExpenseModel();
         $row = $model->where('season_id', $seasonId)->find($expenseId);
         if (empty($row)) {
-            return redirect()->to('/expenses')->with('error', 'Expense not found.');
+            return redirect()->to('/admin/expenses')->with('error', 'Expense not found.');
         }
 
         try {
             $model->delete($expenseId);
-            return redirect()->to('/expenses')->with('success', 'Expense deleted successfully.');
+            return redirect()->to('/admin/expenses')->with('success', 'Expense deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/expenses')->with('error', $e->getMessage());
+            return redirect()->to('/admin/expenses')->with('error', $e->getMessage());
         }
     }
 

@@ -59,7 +59,7 @@
                     ], static function ($value): bool {
                         return trim((string) $value) !== '';
                     });
-                    $printUrl = site_url('/packages/print') . ($printQuery !== [] ? ('?' . http_build_query($printQuery)) : '');
+                    $printUrl = site_url('/admin/packages/print') . ($printQuery !== [] ? ('?' . http_build_query($printQuery)) : '');
                     ?>
                     <a id="package-print-link" href="<?= esc($printUrl) ?>" target="_blank" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50" title="Open the printable / PDF version of this list">
                         <i class="fa-solid fa-file-pdf text-[10px] text-rose-600"></i>
@@ -67,11 +67,11 @@
                     </a>
                 <?php endif; ?>
                 <?php if (!empty($canManagePackage)): ?>
-                    <a href="<?= site_url('/packages/inactive') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                    <a href="<?= site_url('/admin/packages/inactive') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
                         <i class="fa-solid fa-box-archive text-[10px]"></i>
                         <span>Inactive</span><?= isset($inactiveCount) ? ' <span class="rounded bg-slate-100 px-1 font-bold">' . (int) $inactiveCount . '</span>' : '' ?>
                     </a>
-                    <a href="<?= site_url('/packages/add') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700">
+                    <a href="<?= site_url('/admin/packages/add') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700">
                         <i class="fa-solid fa-plus text-[10px]"></i>
                         <span>New package</span>
                     </a>
@@ -109,7 +109,7 @@
             return trim((string) $value) !== '';
         });
         ?>
-            <form id="package-filter-form" method="get" action="<?= site_url('/packages') ?>" class="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
+            <form id="package-filter-form" method="get" action="<?= site_url('/admin/packages') ?>" class="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
                 <input type="hidden" id="package-tab-input" name="tab" value="<?= esc($filterTab) ?>">
                 <div id="package-tabs" class="flex flex-wrap items-center gap-1.5">
                     <?php foreach ($packageTabs as $tabKey => $tab): ?>
@@ -119,7 +119,7 @@
                         if ($tabKey !== 'all') {
                             $tabQuery['tab'] = $tabKey;
                         }
-                        $tabUrl = site_url('/packages') . ($tabQuery !== [] ? ('?' . http_build_query($tabQuery)) : '');
+                        $tabUrl = site_url('/admin/packages') . ($tabQuery !== [] ? ('?' . http_build_query($tabQuery)) : '');
                         ?>
                         <a href="<?= esc($tabUrl) ?>" aria-current="<?= $isActiveTab ? 'page' : 'false' ?>" title="<?= esc($tab['title'], 'attr') ?>" class="inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition <?= $isActiveTab ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700' ?>">
                             <i class="fa-solid <?= esc($tab['icon'], 'attr') ?> text-[9px]"></i>
@@ -154,7 +154,7 @@
                         </button>
                     </div>
                     <div class="md:col-span-1">
-                        <a href="<?= site_url('/packages') ?>" id="package-clear-filters" class="inline-flex h-full w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-100">
+                        <a href="<?= site_url('/admin/packages') ?>" id="package-clear-filters" class="inline-flex h-full w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-100">
                             Clear
                         </a>
                     </div>
@@ -171,13 +171,13 @@
             <p class="mt-1 text-xs text-slate-500"><?= $hasActiveFilters ? 'No package matches your current filters.' : 'Get started by creating a new package.' ?></p>
             <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
                 <?php if ($hasActiveFilters): ?>
-                    <a href="<?= site_url('/packages') ?>" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    <a href="<?= site_url('/admin/packages') ?>" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                         <i class="fa-solid fa-rotate-left text-[10px]"></i>
                         <span>Clear filters</span>
                     </a>
                 <?php endif; ?>
                 <?php if (!empty($canManagePackage)): ?>
-                    <a href="<?= site_url('/packages/add') ?>" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
+                    <a href="<?= site_url('/admin/packages/add') ?>" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
                         <i class="fa-solid fa-plus text-[10px]"></i>
                         <span>Create package</span>
                     </a>
@@ -481,7 +481,7 @@
                                 </button>
 
                                 <?php if (function_exists('auth_can') && auth_can('bookings.create')): ?>
-                                    <a href="<?= site_url('/bookings/add?package_id=' . (int) $card['id']) ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-700" title="Create booking for this package">
+                                    <a href="<?= site_url('/admin/bookings/add?package_id=' . (int) $card['id']) ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-700" title="Create booking for this package">
                                         <i class="fa-solid fa-calendar-plus text-[10px]"></i><span>Book</span>
                                     </a>
                                 <?php endif; ?>
@@ -500,22 +500,22 @@
                                             <i class="fa-solid fa-ellipsis-vertical"></i>
                                         </button>
                                         <div data-menu class="absolute right-0 top-full z-30 mt-1 hidden w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
-                                            <a href="<?= site_url('/bookings/add?package_id=' . (int) $card['id']) ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-file-circle-plus w-3 text-sky-600"></i>Create booking</a>
-                                            <form method="post" action="<?= site_url('/packages/status') ?>" onsubmit="return confirm('Move this package to the inactive list?');">
+                                            <a href="<?= site_url('/admin/bookings/add?package_id=' . (int) $card['id']) ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-file-circle-plus w-3 text-sky-600"></i>Create booking</a>
+                                            <form method="post" action="<?= site_url('/admin/packages/status') ?>" onsubmit="return confirm('Move this package to the inactive list?');">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
                                                 <input type="hidden" name="is_active" value="0">
                                                 <input type="hidden" name="redirect_to" value="packages">
                                                 <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-amber-700 hover:bg-amber-50"><i class="fa-solid fa-box-archive w-3"></i>Move to inactive</button>
                                             </form>
-                                            <form method="post" action="<?= site_url('/packages/delete') ?>" onsubmit="return confirm('Delete this package and all of its linked flights, hotels and transport?');">
+                                            <form method="post" action="<?= site_url('/admin/packages/delete') ?>" onsubmit="return confirm('Delete this package and all of its linked flights, hotels and transport?');">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="package_id" value="<?= esc($card['id']) ?>">
                                                 <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-rose-600 hover:bg-rose-50"><i class="fa-solid fa-trash-can w-3"></i>Delete package</button>
                                             </form>
                                         </div>
                                     </div>
-                                    <a href="<?= site_url('/packages/' . (int) $card['id'] . '/edit') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-100">
+                                    <a href="<?= site_url('/admin/packages/' . (int) $card['id'] . '/edit') ?>" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-100">
                                         <i class="fa-solid fa-pen-to-square text-[10px]"></i><span>Edit</span>
                                     </a>
                                 <?php else: ?>
@@ -599,7 +599,7 @@
                                                     <span class="font-semibold text-slate-700"><?= esc((string) ($stay['city'] ?? 'Hotel')) ?></span>
                                                     <span class="text-slate-400">·</span>
                                                     <?php if (!empty($stay['id']) && $canViewHotel): ?>
-                                                        <a href="<?= site_url('/hotels/' . (int) $stay['id']) ?>" class="text-slate-600 underline decoration-slate-300 decoration-dotted underline-offset-2 hover:text-emerald-700 hover:decoration-emerald-500" title="Open hotel profile"><?= esc((string) ($stay['name'] ?? 'Hotel pending')) ?></a>
+                                                        <a href="<?= site_url('/admin/hotels/' . (int) $stay['id']) ?>" class="text-slate-600 underline decoration-slate-300 decoration-dotted underline-offset-2 hover:text-emerald-700 hover:decoration-emerald-500" title="Open hotel profile"><?= esc((string) ($stay['name'] ?? 'Hotel pending')) ?></a>
                                                     <?php else: ?>
                                                         <span class="text-slate-600"><?= esc((string) ($stay['name'] ?? 'Hotel pending')) ?></span>
                                                     <?php endif; ?>

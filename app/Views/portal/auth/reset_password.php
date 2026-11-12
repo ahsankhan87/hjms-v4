@@ -18,7 +18,7 @@ $companyName = trim((string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD
             <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><?= esc($success) ?></div>
         <?php endif; ?>
 
-        <form method="post" action="<?= site_url('/reset-password') ?>" class="mt-6 space-y-4">
+        <form method="post" action="<?= site_url('/admin/reset-password') ?>" class="mt-6 space-y-4">
             <?= csrf_field() ?>
             <div>
                 <label class="block text-sm font-medium text-slate-700">Reset Token</label>
@@ -35,7 +35,7 @@ $companyName = trim((string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD
             <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300">Reset Password</button>
         </form>
 
-        <p class="mt-5 text-sm text-slate-600"><a href="<?= site_url('/login') ?>" class="underline">Back to login</a></p>
+        <p class="mt-5 text-sm text-slate-600"><a href="<?= site_url('/admin/login') ?>" class="underline">Back to login</a></p>
     </div>
 </main>
 <?php $this->endSection() ?>

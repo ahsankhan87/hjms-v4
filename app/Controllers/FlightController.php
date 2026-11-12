@@ -56,7 +56,7 @@ class FlightController extends BaseController
         $row = $model->find($id);
 
         if (empty($row)) {
-            return redirect()->to('/flights')->with('error', 'Flight not found.');
+            return redirect()->to('/admin/flights')->with('error', 'Flight not found.');
         }
 
         $db = db_connect();
@@ -116,30 +116,30 @@ class FlightController extends BaseController
         $returnPayload = $this->extractFlightPayloadByPrefix('return_');
 
         if (! $this->validateData($outboundPayload, $this->flightRules(true))) {
-            return redirect()->to('/flights/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/flights/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         if (! $this->validateData($returnPayload, $this->flightRules(true))) {
-            return redirect()->to('/flights/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/flights/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $outboundFileData = $this->handleTicketUploadByField('outbound_ticket_file');
             if (isset($outboundFileData['error'])) {
-                return redirect()->to('/flights/add')->withInput()->with('error', $outboundFileData['error']);
+                return redirect()->to('/admin/flights/add')->withInput()->with('error', $outboundFileData['error']);
             }
 
             $returnFileData = $this->handleTicketUploadByField('return_ticket_file');
             if (isset($returnFileData['error'])) {
-                return redirect()->to('/flights/add')->withInput()->with('error', $returnFileData['error']);
+                return redirect()->to('/admin/flights/add')->withInput()->with('error', $returnFileData['error']);
             }
 
             $model = new FlightModel();
             $model->insert($this->buildCombinedFlightData($outboundPayload, $outboundFileData, $returnPayload, $returnFileData, true));
 
-            return redirect()->to('/flights')->with('success', 'Departure and arrival flight details saved successfully.');
+            return redirect()->to('/admin/flights')->with('success', 'Departure and arrival flight details saved successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/flights/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/flights/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -150,26 +150,26 @@ class FlightController extends BaseController
         $returnPayload = $this->extractFlightPayloadByPrefix('return_');
 
         if ($flightId < 1) {
-            return redirect()->to('/flights')->withInput()->with('error', 'Valid flight ID is required.');
+            return redirect()->to('/admin/flights')->withInput()->with('error', 'Valid flight ID is required.');
         }
 
         if (! $this->validateData($outboundPayload, $this->flightRules(true))) {
-            return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/flights/' . $flightId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         if (! $this->validateData($returnPayload, $this->flightRules(true))) {
-            return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/flights/' . $flightId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $outboundFileData = $this->handleTicketUploadByField('outbound_ticket_file');
             if (isset($outboundFileData['error'])) {
-                return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('error', $outboundFileData['error']);
+                return redirect()->to('/admin/flights/' . $flightId . '/edit')->withInput()->with('error', $outboundFileData['error']);
             }
 
             $returnFileData = $this->handleTicketUploadByField('return_ticket_file');
             if (isset($returnFileData['error'])) {
-                return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('error', $returnFileData['error']);
+                return redirect()->to('/admin/flights/' . $flightId . '/edit')->withInput()->with('error', $returnFileData['error']);
             }
 
             $model = new FlightModel();
@@ -191,9 +191,9 @@ class FlightController extends BaseController
 
             $model->update($flightId, $updateData);
 
-            return redirect()->to('/flights')->with('success', 'Flight updated successfully.');
+            return redirect()->to('/admin/flights')->with('success', 'Flight updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/flights/' . $flightId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/flights/' . $flightId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -202,7 +202,7 @@ class FlightController extends BaseController
         $flightId = (int) $this->request->getPost('flight_id');
 
         if ($flightId < 1) {
-            return redirect()->to('/flights')->with('error', 'Valid flight ID is required for delete.');
+            return redirect()->to('/admin/flights')->with('error', 'Valid flight ID is required for delete.');
         }
 
         try {
@@ -213,12 +213,12 @@ class FlightController extends BaseController
             $deleted = $model->delete($flightId);
 
             if (! $deleted) {
-                return redirect()->to('/flights')->with('error', 'Flight not found or already removed.');
+                return redirect()->to('/admin/flights')->with('error', 'Flight not found or already removed.');
             }
 
-            return redirect()->to('/flights')->with('success', 'Flight deleted successfully.');
+            return redirect()->to('/admin/flights')->with('success', 'Flight deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/flights')->with('error', $e->getMessage());
+            return redirect()->to('/admin/flights')->with('error', $e->getMessage());
         }
     }
 
@@ -237,13 +237,13 @@ class FlightController extends BaseController
             'departure_at' => 'permit_empty|valid_date[Y-m-d H:i:s]',
             'arrival_at'   => 'permit_empty|valid_date[Y-m-d H:i:s]',
         ])) {
-            return redirect()->to('/flights/' . $payload['flight_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/flights/' . $payload['flight_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $flight = (new FlightModel())->find($payload['flight_id']);
             if (empty($flight)) {
-                return redirect()->to('/flights')->with('error', 'Flight not found for package assignment.');
+                return redirect()->to('/admin/flights')->with('error', 'Flight not found for package assignment.');
             }
 
             $model = new PackageFlightModel();
@@ -257,9 +257,9 @@ class FlightController extends BaseController
                 'created_at'    => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/flights/' . $payload['flight_id'] . '/edit')->with('success', 'Package assigned to flight successfully.');
+            return redirect()->to('/admin/flights/' . $payload['flight_id'] . '/edit')->with('success', 'Package assigned to flight successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/flights/' . $payload['flight_id'] . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/flights/' . $payload['flight_id'] . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -269,7 +269,7 @@ class FlightController extends BaseController
         $flightId = (int) $this->request->getPost('flight_id');
 
         if ($linkId < 1 || $flightId < 1) {
-            return redirect()->to('/flights')->with('error', 'Valid assignment and flight IDs are required for delete.');
+            return redirect()->to('/admin/flights')->with('error', 'Valid assignment and flight IDs are required for delete.');
         }
 
         try {
@@ -277,12 +277,12 @@ class FlightController extends BaseController
             $deleted = $model->delete($linkId);
 
             if (! $deleted) {
-                return redirect()->to('/flights/' . $flightId . '/edit')->with('error', 'Package assignment not found or already removed.');
+                return redirect()->to('/admin/flights/' . $flightId . '/edit')->with('error', 'Package assignment not found or already removed.');
             }
 
-            return redirect()->to('/flights/' . $flightId . '/edit')->with('success', 'Package assignment deleted successfully.');
+            return redirect()->to('/admin/flights/' . $flightId . '/edit')->with('success', 'Package assignment deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/flights/' . $flightId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/flights/' . $flightId . '/edit')->with('error', $e->getMessage());
         }
     }
 

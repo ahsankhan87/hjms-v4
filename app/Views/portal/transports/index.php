@@ -13,7 +13,7 @@
                     <h3 class="text-sm font-semibold text-slate-800">Transport Providers</h3>
                     <p class="text-xs text-slate-500">Manage transport resources and routing details.</p>
                 </div>
-                <a href="<?= site_url('/transports/add') ?>" class="btn btn-md btn-primary">
+                <a href="<?= site_url('/admin/transports/add') ?>" class="btn btn-md btn-primary">
                     <i class="fa-solid fa-plus"></i><span>Add Transport Provider</span>
                 </a>
             </div>
@@ -50,10 +50,10 @@
                                 <td class="px-3 py-2"><?= esc((int) ($row['seat_capacity'] ?? 0)) ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= site_url('/transports/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Transport">
+                                        <a href="<?= site_url('/admin/transports/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Transport">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <form method="post" action="<?= site_url('/transports/delete') ?>" class="inline">
+                                        <form method="post" action="<?= site_url('/admin/transports/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="transport_id" value="<?= esc($row['id']) ?>">
                                             <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this transport provider?')" title="Delete Transport">

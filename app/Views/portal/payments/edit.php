@@ -38,7 +38,7 @@ $isVoided = $status === 'voided';
     <!-- Page Header -->
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-            <a href="<?= site_url('/payments') ?>" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50">
+            <a href="<?= site_url('/admin/payments') ?>" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div>
@@ -51,10 +51,10 @@ $isVoided = $status === 'voided';
             </div>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/view') ?>" class="btn btn-sm btn-secondary">
+            <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/view') ?>" class="btn btn-sm btn-secondary">
                 <i class="fa-solid fa-eye"></i><span>View</span>
             </a>
-            <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/receipt') ?>" target="_blank" class="btn btn-sm btn-secondary">
+            <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/receipt') ?>" target="_blank" class="btn btn-sm btn-secondary">
                 <i class="fa-solid fa-receipt"></i><span>Receipt</span>
             </a>
         </div>
@@ -72,7 +72,7 @@ $isVoided = $status === 'voided';
                     <p class="text-xs text-slate-500 mt-0.5">Leave a field blank to keep its current value unchanged</p>
                 </div>
 
-                <form method="post" action="<?= site_url('/payments/update') ?>" enctype="multipart/form-data" class="p-6 space-y-5">
+                <form method="post" action="<?= site_url('/admin/payments/update') ?>" enctype="multipart/form-data" class="p-6 space-y-5">
                     <?= csrf_field() ?>
                     <input type="hidden" name="payment_id" value="<?= esc((string) ($payment['id'] ?? '')) ?>">
 
@@ -175,7 +175,7 @@ $isVoided = $status === 'voided';
                         <?php if (!empty($payment['receipt_attachment_path'])): ?>
                             <p class="mt-2 text-xs text-slate-500">
                                 Current:
-                                <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>" class="font-semibold text-sky-600 hover:underline">
+                                <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>" class="font-semibold text-sky-600 hover:underline">
                                     <?= esc((string) ($payment['receipt_attachment_name'] ?? 'View Attachment')) ?>
                                 </a>
                             </p>
@@ -188,7 +188,7 @@ $isVoided = $status === 'voided';
                         <button type="submit" class="btn btn-md btn-primary">
                             <i class="fa-solid fa-floppy-disk"></i><span>Update Payment</span>
                         </button>
-                        <a href="<?= site_url('/payments') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                        <a href="<?= site_url('/admin/payments') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     </div>
                 </form>
             </div>
@@ -200,7 +200,7 @@ $isVoided = $status === 'voided';
                         <h3 class="font-semibold text-rose-800">Danger Zone</h3>
                         <p class="text-xs text-rose-600 mt-0.5">Void this payment permanently. This action cannot be reversed.</p>
                     </div>
-                    <form method="post" action="<?= site_url('/payments/delete') ?>" class="p-6">
+                    <form method="post" action="<?= site_url('/admin/payments/delete') ?>" class="p-6">
                         <?= csrf_field() ?>
                         <input type="hidden" name="payment_id" value="<?= esc((string) ($payment['id'] ?? '')) ?>">
                         <div class="flex flex-wrap items-end gap-4">
@@ -306,7 +306,7 @@ $isVoided = $status === 'voided';
                     </div>
 
                     <?php if ((int) ($payment['agent_id'] ?? 0) > 0): ?>
-                        <a href="<?= site_url('/agents/' . (int) $payment['agent_id'] . '/ledger') ?>" class="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline">
+                        <a href="<?= site_url('/admin/agents/' . (int) $payment['agent_id'] . '/ledger') ?>" class="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline">
                             <i class="fa-solid fa-book-open"></i> Open Agent Ledger
                         </a>
                     <?php endif; ?>

@@ -9,7 +9,7 @@
     <section class="space-y-3">
         <div class="list-toolbar">
             <div class="flex space-x-3">
-                <a href="<?= site_url('/flights') ?>" class="btn btn-md btn-secondary">
+                <a href="<?= site_url('/admin/flights') ?>" class="btn btn-md btn-secondary">
                     <i class="fa-solid fa-arrow-left"></i><span>Back to Flights</span>
                 </a>
             </div>

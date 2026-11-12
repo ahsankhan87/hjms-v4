@@ -37,16 +37,16 @@ $creditNotePaths = [
                 <p class="text-xs text-slate-500">Visa, ticket, hotel, transport, package and general sales in one entry.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a href="<?= site_url('/reports/sale-components') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-chart-simple"></i><span>Components Report</span></a>
-                <a href="<?= site_url('/sales-categories') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-tags"></i><span>Manage Categories</span></a>
-                <a href="<?= site_url('/sales/credit-notes') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-file-invoice-dollar"></i><span>Credit Notes</span></a>
-                <a href="<?= site_url('/sales/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>New Sale</span></a>
+                <a href="<?= site_url('/admin/reports/sale-components') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-chart-simple"></i><span>Components Report</span></a>
+                <a href="<?= site_url('/admin/sales-categories') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-tags"></i><span>Manage Categories</span></a>
+                <a href="<?= site_url('/admin/sales/credit-notes') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-file-invoice-dollar"></i><span>Credit Notes</span></a>
+                <a href="<?= site_url('/admin/sales/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>New Sale</span></a>
             </div>
         </div>
     </article>
 
     <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form method="get" action="<?= site_url('/sales') ?>" class="grid gap-3 md:grid-cols-6">
+        <form method="get" action="<?= site_url('/admin/sales') ?>" class="grid gap-3 md:grid-cols-6">
             <div>
                 <label class="mb-1 block text-xs font-semibold text-slate-600">From Date</label>
                 <input type="date" name="from_date" value="<?= esc((string) ($filters['from_date'] ?? '')) ?>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -92,7 +92,7 @@ $creditNotePaths = [
             </div>
             <div class="md:col-span-6 flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-md btn-primary"><i class="fa-solid fa-filter"></i><span>Apply Filters</span></button>
-                <a href="<?= site_url('/sales') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-rotate-right"></i><span>Reset</span></a>
+                <a href="<?= site_url('/admin/sales') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-rotate-right"></i><span>Reset</span></a>
                 <div class="ml-auto rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Total (PKR): <?= esc(number_format((float) ($totalAmountPkr ?? 0), 2)) ?></div>
             </div>
         </form>
@@ -132,7 +132,7 @@ $creditNotePaths = [
                         $itemAttachments = (array) ($row['item_attachments'] ?? []);
                         ?>
                         <tr class="border-t border-slate-100">
-                            <td class="px-3 py-2"><a href="<?= site_url('/sales/' . (int) $row['id']) ?>" class="font-semibold text-emerald-700 hover:underline"><?= esc((string) (($row['invoice_no'] ?? '') !== '' ? $row['invoice_no'] : ('#' . $row['id']))) ?></a></td>
+                            <td class="px-3 py-2"><a href="<?= site_url('/admin/sales/' . (int) $row['id']) ?>" class="font-semibold text-emerald-700 hover:underline"><?= esc((string) (($row['invoice_no'] ?? '') !== '' ? $row['invoice_no'] : ('#' . $row['id']))) ?></a></td>
                             <td class="px-3 py-2 text-slate-700"><?= esc((string) ($row['sale_date'] ?? '-')) ?></td>
                             <td class="px-3 py-2 text-slate-600"><?= esc((string) ($row['pax_display'] ?? '-')) ?></td>
                             <td class="px-3 py-2">
@@ -181,13 +181,13 @@ $creditNotePaths = [
                                                 <i class="fa-solid fa-file-circle-plus w-3 text-sky-600"></i>Create credit note
                                             </a>
                                         <?php endif; ?>
-                                        <a href="<?= site_url('/sales/' . (int) $row['id']) ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/sales/' . (int) $row['id']) ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-eye w-3 text-slate-500"></i>View sale
                                         </a>
-                                        <a href="<?= site_url('/sales/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/sales/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-pen w-3 text-emerald-600"></i>Edit sale
                                         </a>
-                                        <form method="post" action="<?= site_url('/sales/delete') ?>" onsubmit="return confirm('Delete this sale?');">
+                                        <form method="post" action="<?= site_url('/admin/sales/delete') ?>" onsubmit="return confirm('Delete this sale?');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="sale_id" value="<?= esc((string) $row['id']) ?>">
                                             <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-rose-600 hover:bg-rose-50">

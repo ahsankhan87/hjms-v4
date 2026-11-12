@@ -19,7 +19,7 @@
                     <h3 class="text-sm font-semibold text-slate-800">Agents</h3>
                     <p class="text-xs text-slate-500">Manage agency profiles, commissions, and ledger access.</p>
                 </div>
-                <a href="<?= site_url('/agents/add') ?>" class="btn btn-md btn-primary">
+                <a href="<?= site_url('/admin/agents/add') ?>" class="btn btn-md btn-primary">
                     <i class="fa-solid fa-plus"></i><span>Add Agent</span>
                 </a>
             </div>
@@ -95,13 +95,13 @@
                                     </td>
                                     <td>
                                         <div class="flex space-x-2">
-                                            <a href="<?= site_url('/agents/' . (int) $row['id'] . '/ledger') ?>" class="icon-btn" title="Ledger">
+                                            <a href="<?= site_url('/admin/agents/' . (int) $row['id'] . '/ledger') ?>" class="icon-btn" title="Ledger">
                                                 <i class="fa-solid fa-book"></i>
                                             </a>
-                                            <a href="<?= site_url('/agents/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="View / Edit">
+                                            <a href="<?= site_url('/admin/agents/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="View / Edit">
                                                 <i class="fa-solid fa-pen"></i>
                                             </a>
-                                            <form method="post" action="<?= site_url('/agents/delete') ?>" class="inline">
+                                            <form method="post" action="<?= site_url('/admin/agents/delete') ?>" class="inline">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="agent_id" value="<?= esc($row['id']) ?>">
                                                 <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this agent?')" title="Delete">

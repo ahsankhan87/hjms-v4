@@ -14,10 +14,10 @@
                     <p class="text-xs text-slate-500">Manage pilgrim records and booking linkage.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="<?= site_url('/pilgrims/add') ?>" class="btn btn-md btn-primary">
+                    <a href="<?= site_url('/admin/pilgrims/add') ?>" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-user-plus"></i><span>Add Pilgrim</span>
                     </a>
-                    <a href="<?= site_url('/pilgrims/import') ?>" class="btn btn-md btn-secondary">
+                    <a href="<?= site_url('/admin/pilgrims/import') ?>" class="btn btn-md btn-secondary">
                         <i class="fa-solid fa-upload"></i><span>Import CSV</span>
                     </a>
                 </div>
@@ -93,7 +93,7 @@
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id']) ?>" class="font-semibold text-slate-800 hover:text-sky-600 hover:underline"><?= esc((string) ($pilgrim['full_name'] ?? '-')) ?></a>
+                                    <a href="<?= site_url('/admin/pilgrims/' . (int) $pilgrim['id']) ?>" class="font-semibold text-slate-800 hover:text-sky-600 hover:underline"><?= esc((string) ($pilgrim['full_name'] ?? '-')) ?></a>
                                 </td>
                                 <td><?= esc($dobDisplay) ?></td>
                                 <td>
@@ -123,13 +123,13 @@
                                 <td><?= esc($pilgrim['phone'] ?? '-') ?></td>
                                 <td>
                                     <div class="flex items-center gap-1">
-                                        <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id']) ?>" class="icon-btn" title="View">
+                                        <a href="<?= site_url('/admin/pilgrims/' . (int) $pilgrim['id']) ?>" class="icon-btn" title="View">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
-                                        <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id'] . '/edit') ?>" class="icon-btn" title="Edit">
+                                        <a href="<?= site_url('/admin/pilgrims/' . (int) $pilgrim['id'] . '/edit') ?>" class="icon-btn" title="Edit">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <form method="post" action="<?= site_url('/pilgrims/delete') ?>" class="inline">
+                                        <form method="post" action="<?= site_url('/admin/pilgrims/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="pilgrim_id" value="<?= esc($pilgrim['id']) ?>">
                                             <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this pilgrim?')" title="Delete">

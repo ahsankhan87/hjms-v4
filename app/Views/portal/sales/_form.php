@@ -15,7 +15,7 @@
 $row = $row ?? [];
 $saleItems = $saleItems ?? ['visa' => [], 'ticket' => [], 'hotel' => [], 'transport' => [], 'package' => [], 'general' => []];
 $isEdit = ! empty($row);
-$formAction = $isEdit ? site_url('/sales/update') : site_url('/sales');
+$formAction = $isEdit ? site_url('/admin/sales/update') : site_url('/admin/sales');
 
 $visaItem = $saleItems['visa'] ?? [];
 $ticketItem = $saleItems['ticket'] ?? [];
@@ -659,7 +659,7 @@ foreach ($transports as $transport) {
         </article>
 
         <div class="flex flex-wrap items-center justify-end gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
-            <a href="<?= site_url('/sales') ?>" class="btn btn-md btn-secondary">Cancel</a>
+            <a href="<?= site_url('/admin/sales') ?>" class="btn btn-md btn-secondary">Cancel</a>
             <button type="submit" class="btn btn-md btn-primary">
                 <i class="fa-solid fa-check"></i><span><?= $isEdit ? 'Update Sale' : 'Save Sale' ?></span>
             </button>
@@ -677,7 +677,7 @@ foreach ($transports as $transport) {
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <form id="quick-add-pilgrim-form" method="post" action="<?= site_url('/bookings/pilgrims/quick-create') ?>" class="grid gap-3 p-4 md:grid-cols-2">
+            <form id="quick-add-pilgrim-form" method="post" action="<?= site_url('/admin/bookings/pilgrims/quick-create') ?>" class="grid gap-3 p-4 md:grid-cols-2">
                 <?= csrf_field() ?>
                 <div id="quick-add-pilgrim-errors" class="hidden rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 md:col-span-2"></div>
                 <label class="block text-xs font-medium text-slate-600">First Name <span class="text-rose-500">*</span>

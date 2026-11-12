@@ -29,11 +29,11 @@
                 <p class="mt-1 text-xs text-slate-500">Packages are automatically moved here after departure date or can be archived manually.</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="<?= site_url('/packages') ?>" class="btn btn-md btn-outline inline-flex items-center justify-center gap-2">
+                <a href="<?= site_url('/admin/packages') ?>" class="btn btn-md btn-outline inline-flex items-center justify-center gap-2">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Back To Active Packages</span>
                 </a>
-                <a href="<?= site_url('/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
+                <a href="<?= site_url('/admin/packages/add') ?>" class="btn btn-md btn-primary inline-flex items-center justify-center gap-2">
                     <i class="fa-solid fa-plus"></i>
                     <span>Create New Package</span>
                 </a>
@@ -75,7 +75,7 @@
                                 <td class="px-3 py-2 text-slate-600"><?= esc((string) ($row['arrival_date'] ?? '-')) ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center justify-end gap-2">
-                                        <form method="post" action="<?= site_url('/packages/status') ?>" onsubmit="return confirm('Reactivate this package?');">
+                                        <form method="post" action="<?= site_url('/admin/packages/status') ?>" onsubmit="return confirm('Reactivate this package?');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="package_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
                                             <input type="hidden" name="is_active" value="1">
@@ -86,12 +86,12 @@
                                             </button>
                                         </form>
 
-                                        <a href="<?= site_url('/packages/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50" title="Manage Package">
+                                        <a href="<?= site_url('/admin/packages/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50" title="Manage Package">
                                             <i class="fa-solid fa-gear"></i>
                                             <span>Manage</span>
                                         </a>
 
-                                        <form method="post" action="<?= site_url('/packages/delete') ?>" onsubmit="return confirm('Delete this package permanently?');">
+                                        <form method="post" action="<?= site_url('/admin/packages/delete') ?>" onsubmit="return confirm('Delete this package permanently?');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="package_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
                                             <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100" title="Delete Package">

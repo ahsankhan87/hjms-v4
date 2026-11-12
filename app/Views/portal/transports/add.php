@@ -13,7 +13,7 @@
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-4">
-            <form method="post" action="<?= site_url('/transports') ?>" class="space-y-3">
+            <form method="post" action="<?= site_url('/admin/transports') ?>" class="space-y-3">
                 <?= csrf_field() ?>
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
@@ -51,7 +51,7 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/transports') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                    <a href="<?= site_url('/admin/transports') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-check"></i><span>Create Transport</span>
                     </button>

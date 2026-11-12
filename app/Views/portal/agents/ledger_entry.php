@@ -15,7 +15,7 @@
                         <h2 class="mt-1 text-xl font-semibold">Post Manual Entry</h2>
                         <p class="mt-1 text-xs text-emerald-100">Add debit, credit, or adjustment entries in a controlled separate workflow.</p>
                     </div>
-                    <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="inline-flex items-center gap-2 rounded-lg border border-white/40 bg-white/10 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/20">
+                    <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="inline-flex items-center gap-2 rounded-lg border border-white/40 bg-white/10 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/20">
                         <i class="fa-solid fa-arrow-left text-[11px]"></i>
                         Back to Ledger
                     </a>
@@ -42,7 +42,7 @@
             </div>
 
             <div class="border-t border-slate-200 px-4 py-4 sm:px-6">
-                <form method="post" action="<?= site_url('/agents/ledger') ?>" class="space-y-4">
+                <form method="post" action="<?= site_url('/admin/agents/ledger') ?>" class="space-y-4">
                     <?= csrf_field() ?>
                     <input type="hidden" name="agent_id" value="<?= esc((string) ($agent['id'] ?? 0)) ?>">
 
@@ -78,7 +78,7 @@
                             <i class="fa-solid fa-check text-[11px]"></i>
                             Post Entry
                         </button>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
                             Cancel
                         </a>
                     </div>

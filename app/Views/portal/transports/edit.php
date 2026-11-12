@@ -9,7 +9,7 @@
     <section class="grid gap-3 lg:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
             <h3 class="text-sm font-semibold text-slate-800">Edit Transport</h3>
-            <form method="post" action="<?= site_url('/transports/update') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/transports/update') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="transport_id" value="<?= esc($row['id']) ?>">
                 <div class="grid gap-3 sm:grid-cols-2">
@@ -49,7 +49,7 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/transports') ?>" class="btn btn-md btn-secondary">Back</a>
+                    <a href="<?= site_url('/admin/transports') ?>" class="btn btn-md btn-secondary">Back</a>
                     <button type="submit" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-check"></i><span>Update Transport</span>
                     </button>
@@ -59,7 +59,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-sm font-semibold text-slate-800">Delete Transport</h3>
-            <form method="post" action="<?= site_url('/transports/delete') ?>" class="mt-4">
+            <form method="post" action="<?= site_url('/admin/transports/delete') ?>" class="mt-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="transport_id" value="<?= esc($row['id']) ?>">
                 <button type="submit" class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this transport provider?')">
@@ -108,7 +108,7 @@
                 <p class="text-xs text-slate-500 mb-3">Create route legs here. Packages only link this transport.</p>
                 <p class="text-sm font-medium text-slate-700 mb-4">Compact Route: <?= esc((string) (($compactRoute ?? '') !== '' ? $compactRoute : '-')) ?></p>
 
-                <form method="post" action="<?= site_url('/transports/legs/create') ?>" class="grid gap-3 md:grid-cols-5">
+                <form method="post" action="<?= site_url('/admin/transports/legs/create') ?>" class="grid gap-3 md:grid-cols-5">
                     <?= csrf_field() ?>
                     <input type="hidden" name="transport_id" value="<?= esc((string) $row['id']) ?>">
                     <input name="from_code" placeholder="From (e.g. JED)" maxlength="20" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -144,21 +144,21 @@
                                         <td class="px-3 py-2"><?= esc((string) ($leg['ziarat_site'] ?? '')) ?></td>
                                         <td class="px-3 py-2">
                                             <div class="flex items-center gap-1">
-                                                <form method="post" action="<?= site_url('/transports/legs/move') ?>">
+                                                <form method="post" action="<?= site_url('/admin/transports/legs/move') ?>">
                                                     <?= csrf_field() ?>
                                                     <input type="hidden" name="transport_id" value="<?= esc((string) $row['id']) ?>">
                                                     <input type="hidden" name="transport_leg_id" value="<?= esc((string) $leg['id']) ?>">
                                                     <input type="hidden" name="direction" value="up">
                                                     <button type="submit" class="btn btn-sm btn-secondary">↑</button>
                                                 </form>
-                                                <form method="post" action="<?= site_url('/transports/legs/move') ?>">
+                                                <form method="post" action="<?= site_url('/admin/transports/legs/move') ?>">
                                                     <?= csrf_field() ?>
                                                     <input type="hidden" name="transport_id" value="<?= esc((string) $row['id']) ?>">
                                                     <input type="hidden" name="transport_leg_id" value="<?= esc((string) $leg['id']) ?>">
                                                     <input type="hidden" name="direction" value="down">
                                                     <button type="submit" class="btn btn-sm btn-secondary">↓</button>
                                                 </form>
-                                                <form method="post" action="<?= site_url('/transports/legs/delete') ?>">
+                                                <form method="post" action="<?= site_url('/admin/transports/legs/delete') ?>">
                                                     <?= csrf_field() ?>
                                                     <input type="hidden" name="transport_id" value="<?= esc((string) $row['id']) ?>">
                                                     <input type="hidden" name="transport_leg_id" value="<?= esc((string) $leg['id']) ?>">

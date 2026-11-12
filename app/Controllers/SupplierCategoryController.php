@@ -68,7 +68,7 @@ class SupplierCategoryController extends BaseController
     {
         $row = (new SupplierCategoryModel())->find($id);
         if (empty($row)) {
-            return redirect()->to('/supplier-categories')->with('error', 'Supplier category not found.');
+            return redirect()->to('/admin/supplier-categories')->with('error', 'Supplier category not found.');
         }
 
         return view('portal/supplier_categories/edit', [
@@ -88,12 +88,12 @@ class SupplierCategoryController extends BaseController
         $payload = $this->extractCategoryPayload();
 
         if (! $this->validateData($payload, $this->categoryRules())) {
-            return redirect()->to('/supplier-categories/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/supplier-categories/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $model = new SupplierCategoryModel();
         if ($model->where('name', $payload['name'])->first() !== null) {
-            return redirect()->to('/supplier-categories/add')->withInput()->with('error', 'Supplier category already exists.');
+            return redirect()->to('/admin/supplier-categories/add')->withInput()->with('error', 'Supplier category already exists.');
         }
 
         try {
@@ -105,9 +105,9 @@ class SupplierCategoryController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/supplier-categories')->with('success', 'Supplier category added successfully.');
+            return redirect()->to('/admin/supplier-categories')->with('success', 'Supplier category added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/supplier-categories/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/supplier-categories/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -115,22 +115,22 @@ class SupplierCategoryController extends BaseController
     {
         $categoryId = (int) $this->request->getPost('category_id');
         if ($categoryId < 1) {
-            return redirect()->to('/supplier-categories')->with('error', 'Valid supplier category ID is required.');
+            return redirect()->to('/admin/supplier-categories')->with('error', 'Valid supplier category ID is required.');
         }
 
         $payload = $this->extractCategoryPayload();
 
         if (! $this->validateData($payload, $this->categoryRules())) {
-            return redirect()->to('/supplier-categories/' . $categoryId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/supplier-categories/' . $categoryId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $model = new SupplierCategoryModel();
         if (empty($model->find($categoryId))) {
-            return redirect()->to('/supplier-categories')->with('error', 'Supplier category not found.');
+            return redirect()->to('/admin/supplier-categories')->with('error', 'Supplier category not found.');
         }
 
         if ($model->where('name', $payload['name'])->where('id !=', $categoryId)->first() !== null) {
-            return redirect()->to('/supplier-categories/' . $categoryId . '/edit')->withInput()->with('error', 'Supplier category already exists.');
+            return redirect()->to('/admin/supplier-categories/' . $categoryId . '/edit')->withInput()->with('error', 'Supplier category already exists.');
         }
 
         try {
@@ -141,9 +141,9 @@ class SupplierCategoryController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/supplier-categories')->with('success', 'Supplier category updated successfully.');
+            return redirect()->to('/admin/supplier-categories')->with('success', 'Supplier category updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/supplier-categories/' . $categoryId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/supplier-categories/' . $categoryId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -151,7 +151,7 @@ class SupplierCategoryController extends BaseController
     {
         $categoryId = (int) $this->request->getPost('category_id');
         if ($categoryId < 1) {
-            return redirect()->to('/supplier-categories')->with('error', 'Valid supplier category ID is required for delete.');
+            return redirect()->to('/admin/supplier-categories')->with('error', 'Valid supplier category ID is required for delete.');
         }
 
         try {
@@ -159,15 +159,15 @@ class SupplierCategoryController extends BaseController
             if ($db->tableExists('supplier_ledger_entries') && $db->fieldExists('category_id', 'supplier_ledger_entries')) {
                 $inUse = $db->table('supplier_ledger_entries')->where('category_id', $categoryId)->countAllResults();
                 if ($inUse > 0) {
-                    return redirect()->to('/supplier-categories')->with('error', 'This category is used by ' . $inUse . ' ledger entr' . ($inUse === 1 ? 'y' : 'ies') . ' and cannot be deleted.');
+                    return redirect()->to('/admin/supplier-categories')->with('error', 'This category is used by ' . $inUse . ' ledger entr' . ($inUse === 1 ? 'y' : 'ies') . ' and cannot be deleted.');
                 }
             }
 
             (new SupplierCategoryModel())->delete($categoryId);
 
-            return redirect()->to('/supplier-categories')->with('success', 'Supplier category deleted successfully.');
+            return redirect()->to('/admin/supplier-categories')->with('success', 'Supplier category deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/supplier-categories')->with('error', $e->getMessage());
+            return redirect()->to('/admin/supplier-categories')->with('error', $e->getMessage());
         }
     }
 

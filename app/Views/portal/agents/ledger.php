@@ -15,23 +15,23 @@
                         <p class="text-[11px] text-slate-200"><?= !empty($agent['code']) ? 'Code: ' . esc((string) $agent['code']) : '' ?></p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <a href="<?= site_url('/agents') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
+                        <a href="<?= site_url('/admin/agents') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
                             <i class="fa-solid fa-arrow-left text-[11px]"></i>
                             Back to Agents
                         </a>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
                             <i class="fa-solid fa-print text-[11px]"></i>
                             Print
                         </a>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/print?autoprint=1&from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/print?autoprint=1&from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
                             <i class="fa-solid fa-file-pdf text-[11px]"></i>
                             Export PDF
                         </a>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/manual-entry') ?>" class="inline-flex items-center gap-2 rounded-lg bg-emerald-400 px-2.5 py-1.5 text-xs font-semibold text-emerald-950 transition hover:bg-emerald-300">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/manual-entry') ?>" class="inline-flex items-center gap-2 rounded-lg bg-emerald-400 px-2.5 py-1.5 text-xs font-semibold text-emerald-950 transition hover:bg-emerald-300">
                             <i class="fa-solid fa-plus text-[11px]"></i>
                             Post Manual Entry
                         </a>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" class="inline-flex items-center gap-2 rounded-lg border border-sky-300/60 bg-sky-100/10 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-100/20">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" class="inline-flex items-center gap-2 rounded-lg border border-sky-300/60 bg-sky-100/10 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-100/20">
                             <i class="fa-solid fa-table-cells-large text-[11px]"></i>
                             Ledger 2
                         </a>
@@ -40,7 +40,7 @@
             </div>
 
             <div class="border-t border-slate-200 px-4 py-3 sm:px-6">
-                <form method="get" action="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="grid gap-2 md:grid-cols-6">
+                <form method="get" action="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="grid gap-2 md:grid-cols-6">
                     <div>
                         <label for="from" class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">From Date</label>
                         <input id="from" type="date" name="from" value="<?= esc((string) ($filterFrom ?? '')) ?>" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
@@ -54,7 +54,7 @@
                             <i class="fa-solid fa-filter text-[11px]"></i>
                             Apply Filter
                         </button>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
                             <i class="fa-solid fa-rotate-left text-[11px]"></i>
                             Reset
                         </a>
@@ -99,11 +99,11 @@
                                     <td class="px-3 py-2.5"><?= esc((string) ($row['description'] ?? '-')) ?></td>
                                     <td class="whitespace-nowrap px-3 py-2.5">
                                         <?php if ($referenceType === 'booking' && $referenceId > 0): ?>
-                                            <a class="text-sky-700 hover:underline" href="<?= site_url('/bookings/' . $referenceId) ?>">Booking #<?= esc((string) $referenceId) ?></a>
+                                            <a class="text-sky-700 hover:underline" href="<?= site_url('/admin/bookings/' . $referenceId) ?>">Booking #<?= esc((string) $referenceId) ?></a>
                                         <?php elseif ($referenceType === 'payment' && $referenceId > 0): ?>
-                                            <a class="text-sky-700 hover:underline" href="<?= site_url('/payments/' . $referenceId . '/receipt') ?>" target="_blank">Payment #<?= esc((string) $referenceId) ?></a>
+                                            <a class="text-sky-700 hover:underline" href="<?= site_url('/admin/payments/' . $referenceId . '/receipt') ?>" target="_blank">Payment #<?= esc((string) $referenceId) ?></a>
                                         <?php elseif ($referenceType === 'sale' && $referenceId > 0): ?>
-                                            <a class="text-sky-700 hover:underline" href="<?= site_url('/sales/' . $referenceId . '/edit') ?>">Sale #<?= esc((string) $referenceId) ?></a>
+                                            <a class="text-sky-700 hover:underline" href="<?= site_url('/admin/sales/' . $referenceId . '/edit') ?>">Sale #<?= esc((string) $referenceId) ?></a>
                                         <?php elseif ($referenceType === 'credit_note' && $referenceId > 0): ?>
                                             <span class="text-slate-700">Credit Note #<?= esc((string) $referenceId) ?></span>
                                         <?php else: ?>
@@ -148,7 +148,7 @@
             <h3 class="text-lg font-semibold text-slate-900">Delete Ledger Entry</h3>
             <p class="mt-1 text-sm text-slate-500">This will permanently remove the entry and recalculate balances.</p>
         </div>
-        <form method="post" action="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/delete-entry') ?>" class="p-6 space-y-4">
+        <form method="post" action="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/delete-entry') ?>" class="p-6 space-y-4">
             <?= csrf_field() ?>
             <input type="hidden" id="delete-ledger-id" name="ledger_id" value="">
             <div class="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">

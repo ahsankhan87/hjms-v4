@@ -12,7 +12,7 @@
     </article>
 
     <article class="rounded-xl border border-slate-200 bg-white p-4">
-        <form method="post" action="<?= site_url('/expenses/update') ?>" class="space-y-3">
+        <form method="post" action="<?= site_url('/admin/expenses/update') ?>" class="space-y-3">
             <?= csrf_field() ?>
             <input type="hidden" name="expense_id" value="<?= esc((string) $row['id']) ?>">
             <div class="grid gap-3 md:grid-cols-2">
@@ -72,7 +72,7 @@
                 <textarea name="note" rows="3" placeholder="Optional internal note" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('note', (string) ($row['note'] ?? ''))) ?></textarea>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                <a href="<?= site_url('/expenses') ?>" class="btn btn-md btn-secondary">Back</a>
+                <a href="<?= site_url('/admin/expenses') ?>" class="btn btn-md btn-secondary">Back</a>
                 <button type="submit" class="btn btn-md btn-primary"><i class="fa-solid fa-check"></i><span>Update Expense</span></button>
             </div>
         </form>

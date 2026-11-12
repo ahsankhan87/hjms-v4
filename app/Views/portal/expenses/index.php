@@ -13,14 +13,14 @@
                 <p class="text-xs text-slate-500">Track payments and operational outflows for the active season.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a href="<?= site_url('/expense-categories') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-tags"></i><span>Manage Categories</span></a>
-                <a href="<?= site_url('/expenses/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Expense</span></a>
+                <a href="<?= site_url('/admin/expense-categories') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-tags"></i><span>Manage Categories</span></a>
+                <a href="<?= site_url('/admin/expenses/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Expense</span></a>
             </div>
         </div>
     </article>
 
     <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form method="get" action="<?= site_url('/expenses') ?>" class="grid gap-3 md:grid-cols-5">
+        <form method="get" action="<?= site_url('/admin/expenses') ?>" class="grid gap-3 md:grid-cols-5">
             <div>
                 <label class="mb-1 block text-xs font-semibold text-slate-600">From Date</label>
                 <input type="date" name="from_date" value="<?= esc((string) ($filters['from_date'] ?? '')) ?>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -58,7 +58,7 @@
             </div>
             <div class="md:col-span-5 flex flex-wrap gap-2">
                 <button type="submit" class="btn btn-md btn-primary"><i class="fa-solid fa-filter"></i><span>Apply Filters</span></button>
-                <a href="<?= site_url('/expenses') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-rotate-right"></i><span>Reset</span></a>
+                <a href="<?= site_url('/admin/expenses') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-rotate-right"></i><span>Reset</span></a>
                 <div class="ml-auto rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Total: PKR <?= esc(number_format((float) ($totalAmount ?? 0), 2)) ?></div>
             </div>
         </form>
@@ -146,8 +146,8 @@
                             </td>
                             <td class="px-3 py-2">
                                 <div class="flex items-center gap-2">
-                                    <a href="<?= site_url('/expenses/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Expense"><i class="fa-solid fa-pen"></i></a>
-                                    <form method="post" action="<?= site_url('/expenses/delete') ?>" class="inline">
+                                    <a href="<?= site_url('/admin/expenses/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Expense"><i class="fa-solid fa-pen"></i></a>
+                                    <form method="post" action="<?= site_url('/admin/expenses/delete') ?>" class="inline">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="expense_id" value="<?= esc((string) $row['id']) ?>">
                                         <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this expense?')" title="Delete Expense"><i class="fa-solid fa-trash"></i></button>

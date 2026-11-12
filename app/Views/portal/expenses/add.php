@@ -13,7 +13,7 @@
 
     <article class="rounded-xl border border-slate-200 bg-white p-4">
         <?php if (empty($categories)): ?><div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">Create an expense category first before posting expenses.</div><?php endif; ?>
-        <form method="post" action="<?= site_url('/expenses') ?>" class="space-y-3">
+        <form method="post" action="<?= site_url('/admin/expenses') ?>" class="space-y-3">
             <?= csrf_field() ?>
             <div class="grid gap-3 md:grid-cols-2">
                 <div>
@@ -70,7 +70,7 @@
                 <textarea name="note" rows="3" placeholder="Optional internal note" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc(old('note')) ?></textarea>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                <a href="<?= site_url('/expenses') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                <a href="<?= site_url('/admin/expenses') ?>" class="btn btn-md btn-secondary">Cancel</a>
                 <button type="submit" class="btn btn-md btn-primary" <?= empty($categories) ? 'disabled' : '' ?>><i class="fa-solid fa-check"></i><span>Create Expense</span></button>
             </div>
         </form>

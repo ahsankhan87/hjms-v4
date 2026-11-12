@@ -12,7 +12,7 @@
                 <h1 class="text-base font-semibold text-slate-800">Main Company Profile</h1>
                 <p class="mt-1 text-xs text-slate-500">Manage company branding and identity used across receipts, vouchers, and print templates.</p>
             </div>
-            <a href="<?= site_url('/packages') ?>" class="btn btn-md btn-outline inline-flex items-center gap-2">
+            <a href="<?= site_url('/admin/packages') ?>" class="btn btn-md btn-outline inline-flex items-center gap-2">
                 <i class="fa-solid fa-box-open"></i>
                 <span>Package Voucher Settings</span>
             </a>
@@ -21,7 +21,7 @@
 
     <section class="grid gap-4 xl:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-4 xl:col-span-2">
-            <form method="post" action="<?= site_url('/main-company/update') ?>" enctype="multipart/form-data" class="space-y-4">
+            <form method="post" action="<?= site_url('/admin/main-company/update') ?>" enctype="multipart/form-data" class="space-y-4">
                 <?= csrf_field() ?>
 
                 <div class="rounded-xl border border-slate-200 p-3">

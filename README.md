@@ -59,3 +59,26 @@ Additionally, make sure that the following extensions are enabled in your PHP:
 - json (enabled by default - don't turn it off)
 - [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
 - [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+
+## Frontend Customer Portal (B2C + B2B)
+
+This project now includes a separate customer-facing frontend layer that is isolated from admin routes.
+
+- Frontend routes: `/frontend/*`
+- Frontend APIs: `/api/frontend/*`
+- Admin routes remain unchanged.
+
+### Customer features
+
+- Public homepage with Hajj/Umrah and travel service discovery
+- Package, flight, hotel, and transport listing/detail pages
+- B2C and B2B authentication (session-based)
+- Booking checkout flow into existing `bookings` table
+- Customer dashboard with booking summaries
+
+### Frontend stack
+
+- CodeIgniter 4 controllers + views
+- Existing MySQL schema reused (no admin schema rewrite)
+- Tailwind CSS via local compiled stylesheet: `assets/css/tailwind.local.css`
+- Alpine.js (no jQuery usage in frontend pages)

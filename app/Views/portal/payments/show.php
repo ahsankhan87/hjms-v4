@@ -37,7 +37,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
     <!-- Page Header -->
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-            <a href="<?= site_url('/payments') ?>" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50">
+            <a href="<?= site_url('/admin/payments') ?>" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div>
@@ -56,7 +56,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
 
         <div class="flex flex-wrap gap-2">
             <?php if ($status === 'pending' && $canApprovePayments): ?>
-                <form method="post" action="<?= site_url('/payments/approve') ?>">
+                <form method="post" action="<?= site_url('/admin/payments/approve') ?>">
                     <?= csrf_field() ?>
                     <input type="hidden" name="payment_id" value="<?= esc((string) ($payment['id'] ?? '')) ?>">
                     <button type="submit" onclick="return confirm('Approve this payment?');" class="btn btn-sm btn-primary">
@@ -65,11 +65,11 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                 </form>
             <?php endif; ?>
             <?php if (!$isVoided): ?>
-                <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/edit') ?>" class="btn btn-sm btn-secondary">
+                <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/edit') ?>" class="btn btn-sm btn-secondary">
                     <i class="fa-solid fa-pen"></i><span>Edit</span>
                 </a>
             <?php endif; ?>
-            <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/receipt') ?>" target="_blank" class="btn btn-sm btn-secondary">
+            <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/receipt') ?>" target="_blank" class="btn btn-sm btn-secondary">
                 <i class="fa-solid fa-receipt"></i><span>Receipt</span>
             </a>
             <?php if (!$isVoided): ?>
@@ -126,7 +126,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                     <div class="grid grid-cols-2 gap-2 px-6 py-3.5">
                         <dt class="text-sm text-slate-500">Booking</dt>
                         <dd class="text-sm font-semibold">
-                            <a href="<?= site_url('/bookings/' . (int) ($payment['booking_id'] ?? 0) . '/edit') ?>"
+                            <a href="<?= site_url('/admin/bookings/' . (int) ($payment['booking_id'] ?? 0) . '/edit') ?>"
                                 class="text-sky-600 hover:underline">
                                 <?= esc($payment['booking_no'] ?? ('Booking #' . ($payment['booking_id'] ?? '?'))) ?>
                             </a>
@@ -175,7 +175,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                         <div class="grid grid-cols-2 gap-2 px-6 py-3.5">
                             <dt class="text-sm text-slate-500">Receipt Attachment</dt>
                             <dd class="text-sm">
-                                <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>" class="font-semibold text-sky-600 hover:underline">
+                                <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>" class="font-semibold text-sky-600 hover:underline">
                                     <?= esc((string) ($payment['receipt_attachment_name'] ?? 'View Attachment')) ?>
                                 </a>
                             </dd>
@@ -246,7 +246,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                     </div>
 
                     <?php if ((int) ($payment['agent_id'] ?? 0) > 0): ?>
-                        <a href="<?= site_url('/agents/' . (int) $payment['agent_id'] . '/ledger') ?>" class="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline">
+                        <a href="<?= site_url('/admin/agents/' . (int) $payment['agent_id'] . '/ledger') ?>" class="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:underline">
                             <i class="fa-solid fa-book-open"></i> View Agent Ledger
                         </a>
                     <?php endif; ?>
@@ -260,25 +260,25 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                 </div>
                 <div class="p-3 space-y-0.5">
                     <?php if (!$isVoided): ?>
-                        <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/edit') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                        <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/edit') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                             <i class="fa-solid fa-pen w-5 text-center text-slate-400"></i>Edit This Payment
                         </a>
                     <?php endif; ?>
-                    <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/receipt') ?>" target="_blank" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/receipt') ?>" target="_blank" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                         <i class="fa-solid fa-file-lines w-5 text-center text-slate-400"></i>Print Receipt
                     </a>
-                    <a href="<?= site_url('/bookings/' . (int) ($payment['booking_id'] ?? 0) . '/edit') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <a href="<?= site_url('/admin/bookings/' . (int) ($payment['booking_id'] ?? 0) . '/edit') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                         <i class="fa-solid fa-calendar-check w-5 text-center text-slate-400"></i>View Booking
                     </a>
-                    <a href="<?= site_url('/bookings/' . (int) ($payment['booking_id'] ?? 0) . '/voucher') ?>" target="_blank" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <a href="<?= site_url('/admin/bookings/' . (int) ($payment['booking_id'] ?? 0) . '/voucher') ?>" target="_blank" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                         <i class="fa-solid fa-ticket w-5 text-center text-slate-400"></i>Print Voucher
                     </a>
                     <?php if ((int) ($payment['agent_id'] ?? 0) > 0): ?>
-                        <a href="<?= site_url('/agents/' . (int) $payment['agent_id'] . '/ledger') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                        <a href="<?= site_url('/admin/agents/' . (int) $payment['agent_id'] . '/ledger') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                             <i class="fa-solid fa-book-open w-5 text-center text-slate-400"></i>Agent Ledger
                         </a>
                     <?php endif; ?>
-                    <a href="<?= site_url('/payments/create') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                    <a href="<?= site_url('/admin/payments/create') ?>" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
                         <i class="fa-solid fa-plus w-5 text-center text-slate-400"></i>Post New Payment
                     </a>
                 </div>
@@ -296,7 +296,7 @@ $paidPct       = $bookingTotal > 0 ? min(100, ($paidAmount / $bookingTotal) * 10
                 <h3 class="text-lg font-semibold text-slate-900">Void Payment</h3>
                 <p class="mt-1 text-sm text-slate-500">This will permanently mark the payment as voided.</p>
             </div>
-            <form method="post" action="<?= site_url('/payments/delete') ?>" class="p-6 space-y-4">
+            <form method="post" action="<?= site_url('/admin/payments/delete') ?>" class="p-6 space-y-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="payment_id" value="<?= esc((string) ($payment['id'] ?? '')) ?>">
 

@@ -11,7 +11,7 @@
     </article>
 
     <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <form method="get" action="<?= site_url('/audit') ?>" class="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <form method="get" action="<?= site_url('/admin/audit') ?>" class="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
             <div>
                 <label class="mb-1 block text-xs font-medium text-slate-600">User</label>
                 <select name="user_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -50,7 +50,7 @@
             </div>
             <div class="md:col-span-3 lg:col-span-6 flex gap-2">
                 <button type="submit" class="btn btn-md btn-primary"><i class="fa-solid fa-filter"></i><span>Apply Filter</span></button>
-                <a href="<?= site_url('/audit') ?>" class="btn btn-md btn-secondary">Reset</a>
+                <a href="<?= site_url('/admin/audit') ?>" class="btn btn-md btn-secondary">Reset</a>
             </div>
         </form>
     </section>

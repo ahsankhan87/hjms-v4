@@ -25,6 +25,7 @@ class BookingModel extends SeasonScopedModel
         'price_locked_at',
         'total_pilgrims',
         'remarks',
+        'frontend_user_id',
         'created_by',
         'created_at',
         'updated_at',

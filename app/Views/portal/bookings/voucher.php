@@ -418,7 +418,7 @@
     ?>
     <div class="actions">
         <?php if (empty($publicView)): ?>
-            <a class="btn secondary" href="<?= site_url('/bookings') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
+            <a class="btn secondary" href="<?= site_url('/admin/bookings') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
         <?php endif; ?>
         <button type="button" class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Voucher</button>
         <button type="button" class="btn" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> Save as PDF</button>

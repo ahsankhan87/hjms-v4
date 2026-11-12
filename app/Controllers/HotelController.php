@@ -55,7 +55,7 @@ class HotelController extends BaseController
 
         $row = $hotelModel->find($id);
         if (empty($row)) {
-            return redirect()->to('/hotels')->with('error', 'Hotel not found.');
+            return redirect()->to('/admin/hotels')->with('error', 'Hotel not found.');
         }
 
         $rooms = $roomModel->where('hotel_id', $id)->orderBy('id', 'DESC')->findAll();
@@ -84,7 +84,7 @@ class HotelController extends BaseController
 
         $row = $hotelModel->find($id);
         if (empty($row)) {
-            return redirect()->to('/hotels')->with('error', 'Hotel not found.');
+            return redirect()->to('/admin/hotels')->with('error', 'Hotel not found.');
         }
 
         $rooms = $roomModel->where('hotel_id', $id)->orderBy('room_type', 'ASC')->findAll();
@@ -186,7 +186,7 @@ class HotelController extends BaseController
 
         $imageData = $this->handleHotelImageUploads();
         if (! empty($imageData['error'])) {
-            return redirect()->to('/hotels/add')->withInput()->with('error', (string) $imageData['error']);
+            return redirect()->to('/admin/hotels/add')->withInput()->with('error', (string) $imageData['error']);
         }
 
         $uploadedImages = is_array($imageData['images'] ?? null) ? $imageData['images'] : [];
@@ -202,7 +202,7 @@ class HotelController extends BaseController
             'youtube_url' => 'permit_empty|valid_url_strict|max_length[255]',
             'map_url'     => 'permit_empty|valid_url_strict|max_length[255]',
         ])) {
-            return redirect()->to('/hotels/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/hotels/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $coverImageUrl = $payload['image_url'];
@@ -230,9 +230,9 @@ class HotelController extends BaseController
             $createdHotelId = (int) $model->getInsertID();
             (new HotelRateService())->syncTierRates($createdHotelId, (array) ($this->request->getPost('rates') ?? []));
 
-            return redirect()->to('/hotels')->with('success', 'Hotel created successfully.');
+            return redirect()->to('/admin/hotels')->with('success', 'Hotel created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/hotels/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/hotels/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -253,18 +253,18 @@ class HotelController extends BaseController
         ];
 
         if ($hotelId < 1) {
-            return redirect()->to('/hotels')->withInput()->with('error', 'Valid hotel ID is required.');
+            return redirect()->to('/admin/hotels')->withInput()->with('error', 'Valid hotel ID is required.');
         }
 
         $model = new HotelModel();
         $existing = $model->find($hotelId);
         if (! is_array($existing)) {
-            return redirect()->to('/hotels')->with('error', 'Hotel not found.');
+            return redirect()->to('/admin/hotels')->with('error', 'Hotel not found.');
         }
 
         $imageData = $this->handleHotelImageUploads();
         if (! empty($imageData['error'])) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->withInput()->with('error', (string) $imageData['error']);
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->withInput()->with('error', (string) $imageData['error']);
         }
 
         $uploadedImages = is_array($imageData['images'] ?? null) ? $imageData['images'] : [];
@@ -280,7 +280,7 @@ class HotelController extends BaseController
             'youtube_url' => 'permit_empty|valid_url_strict|max_length[255]',
             'map_url'     => 'permit_empty|valid_url_strict|max_length[255]',
         ])) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -313,9 +313,9 @@ class HotelController extends BaseController
 
             (new HotelRateService())->syncTierRates($hotelId, (array) ($this->request->getPost('rates') ?? []));
 
-            return redirect()->to('/hotels')->with('success', 'Hotel updated successfully.');
+            return redirect()->to('/admin/hotels')->with('success', 'Hotel updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -325,14 +325,14 @@ class HotelController extends BaseController
         $imageUrl = trim((string) $this->request->getPost('image_url'));
 
         if ($hotelId < 1 || $imageUrl === '') {
-            return redirect()->to('/hotels')->with('error', 'Valid hotel and image are required.');
+            return redirect()->to('/admin/hotels')->with('error', 'Valid hotel and image are required.');
         }
 
         try {
             $model = new HotelModel();
             $row = $model->find($hotelId);
             if (! is_array($row)) {
-                return redirect()->to('/hotels')->with('error', 'Hotel not found.');
+                return redirect()->to('/admin/hotels')->with('error', 'Hotel not found.');
             }
 
             $gallery = $this->parseHotelGallery($row['image_gallery'] ?? null);
@@ -351,9 +351,9 @@ class HotelController extends BaseController
 
             $this->deleteHotelImageFile($imageUrl);
 
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->with('success', 'Image removed from gallery.');
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->with('success', 'Image removed from gallery.');
         } catch (\Throwable $e) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -362,7 +362,7 @@ class HotelController extends BaseController
         $hotelId = (int) $this->request->getPost('hotel_id');
 
         if ($hotelId < 1) {
-            return redirect()->to('/hotels')->with('error', 'Valid hotel ID is required for delete.');
+            return redirect()->to('/admin/hotels')->with('error', 'Valid hotel ID is required for delete.');
         }
 
         try {
@@ -373,12 +373,12 @@ class HotelController extends BaseController
             $deleted = $hotelModel->delete($hotelId);
 
             if (! $deleted) {
-                return redirect()->to('/hotels')->with('error', 'Hotel not found or already removed.');
+                return redirect()->to('/admin/hotels')->with('error', 'Hotel not found or already removed.');
             }
 
-            return redirect()->to('/hotels')->with('success', 'Hotel deleted successfully.');
+            return redirect()->to('/admin/hotels')->with('success', 'Hotel deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/hotels')->with('error', $e->getMessage());
+            return redirect()->to('/admin/hotels')->with('error', $e->getMessage());
         }
     }
 
@@ -401,14 +401,14 @@ class HotelController extends BaseController
             'total_rooms'     => 'required|integer|greater_than_equal_to[0]',
             'allocated_rooms' => 'permit_empty|integer|greater_than_equal_to[0]',
         ])) {
-            return redirect()->to('/hotels/' . $payload['hotel_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/hotels/' . $payload['hotel_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $totalRooms = (int) $payload['total_rooms'];
         $allocatedRooms = $payload['allocated_rooms'] !== '' ? (int) $payload['allocated_rooms'] : 0;
 
         if ($allocatedRooms > $totalRooms) {
-            return redirect()->to('/hotels/' . $payload['hotel_id'] . '/edit')->withInput()->with('error', 'Allocated rooms cannot be greater than total rooms.');
+            return redirect()->to('/admin/hotels/' . $payload['hotel_id'] . '/edit')->withInput()->with('error', 'Allocated rooms cannot be greater than total rooms.');
         }
 
         try {
@@ -426,9 +426,9 @@ class HotelController extends BaseController
 
             (new RoomAllocationService())->sync((int) $payload['hotel_id']);
 
-            return redirect()->to('/hotels/' . $payload['hotel_id'] . '/edit')->with('success', 'Room type added successfully.');
+            return redirect()->to('/admin/hotels/' . $payload['hotel_id'] . '/edit')->with('success', 'Room type added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/hotels/' . $payload['hotel_id'] . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/hotels/' . $payload['hotel_id'] . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -446,7 +446,7 @@ class HotelController extends BaseController
         ];
 
         if ($roomId < 1 || $hotelId < 1) {
-            return redirect()->to('/hotels')->with('error', 'Valid room and hotel IDs are required.');
+            return redirect()->to('/admin/hotels')->with('error', 'Valid room and hotel IDs are required.');
         }
 
         if (! $this->validateData($payload, [
@@ -456,14 +456,14 @@ class HotelController extends BaseController
             'total_rooms'     => 'required|integer|greater_than_equal_to[0]',
             'allocated_rooms' => 'required|integer|greater_than_equal_to[0]',
         ])) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $totalRooms = (int) $payload['total_rooms'];
         $allocatedRooms = (int) $payload['allocated_rooms'];
 
         if ($allocatedRooms > $totalRooms) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->withInput()->with('error', 'Allocated rooms cannot be greater than total rooms.');
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->withInput()->with('error', 'Allocated rooms cannot be greater than total rooms.');
         }
 
         try {
@@ -479,9 +479,9 @@ class HotelController extends BaseController
 
             (new RoomAllocationService())->sync($hotelId);
 
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->with('success', 'Room allocation updated successfully.');
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->with('success', 'Room allocation updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -491,7 +491,7 @@ class HotelController extends BaseController
         $hotelId = (int) $this->request->getPost('hotel_id');
 
         if ($roomId < 1 || $hotelId < 1) {
-            return redirect()->to('/hotels')->with('error', 'Valid room and hotel IDs are required for delete.');
+            return redirect()->to('/admin/hotels')->with('error', 'Valid room and hotel IDs are required for delete.');
         }
 
         try {
@@ -499,14 +499,14 @@ class HotelController extends BaseController
             $deleted = $roomModel->delete($roomId);
 
             if (! $deleted) {
-                return redirect()->to('/hotels/' . $hotelId . '/edit')->with('error', 'Room type not found or already removed.');
+                return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->with('error', 'Room type not found or already removed.');
             }
 
             (new RoomAllocationService())->sync($hotelId);
 
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->with('success', 'Room type deleted successfully.');
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->with('success', 'Room type deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/hotels/' . $hotelId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/hotels/' . $hotelId . '/edit')->with('error', $e->getMessage());
         }
     }
 

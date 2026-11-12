@@ -41,13 +41,13 @@ class PackageController extends BaseController
             ]);
         }
 
-        return redirect()->to('/packages')->with('error', 'Linked agent users can only view active packages.');
+        return redirect()->to('/admin/packages')->with('error', 'Linked agent users can only view active packages.');
     }
 
     public function index()
     {
         if ($this->activeSeasonId() === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $autoInactivated = $this->autoDeactivateDepartedPackages();
@@ -86,7 +86,7 @@ class PackageController extends BaseController
     public function printList()
     {
         if ($this->activeSeasonId() === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $filters = $this->collectPackageListFiltersFromRequest();
@@ -108,7 +108,7 @@ class PackageController extends BaseController
             return $this->denyPackageManagement();
         }
         if ($this->activeSeasonId() === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $this->autoDeactivateDepartedPackages();
@@ -145,7 +145,7 @@ class PackageController extends BaseController
             'is_active' => 'required|in_list[0,1]',
             'redirect_to' => 'permit_empty|max_length[120]',
         ])) {
-            return redirect()->to('/packages')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/packages')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $redirectTo = '/packages';
@@ -202,10 +202,10 @@ class PackageController extends BaseController
     {
         $package = (new PackageModel())->where('id', $packageId)->where('season_id', $this->activeSeasonId())->first();
         if (empty($package)) {
-            return redirect()->to('/packages')->with('error', 'Selected package not found.');
+            return redirect()->to('/admin/packages')->with('error', 'Selected package not found.');
         }
 
-        return redirect()->to('/bookings?package_id=' . $packageId);
+        return redirect()->to('/admin/bookings?package_id=' . $packageId);
     }
 
     private function buildPackageCards(array $rows): array
@@ -666,7 +666,7 @@ class PackageController extends BaseController
         }
 
         if ($this->activeSeasonId() === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         return view('portal/packages/add', $this->packageFormViewData(null) + [
@@ -689,7 +689,7 @@ class PackageController extends BaseController
             ->first();
 
         if (empty($row)) {
-            return redirect()->to('/packages')->with('error', 'Package not found.');
+            return redirect()->to('/admin/packages')->with('error', 'Package not found.');
         }
 
         return view('portal/packages/edit', $this->packageFormViewData($row) + [
@@ -712,7 +712,7 @@ class PackageController extends BaseController
 
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $packageId = $packageId !== null ? (int) $packageId : (int) $this->request->getPost('package_id');
@@ -949,7 +949,7 @@ class PackageController extends BaseController
         (new PackagePricingService($db))->recalculatePackage($packageId);
         (new RoomAllocationService($db))->sync();
 
-        return redirect()->to('/packages')->with(
+        return redirect()->to('/admin/packages')->with(
             'success',
             $isEdit ? 'Package updated successfully.' : 'Package created successfully.'
         );
@@ -1598,7 +1598,7 @@ class PackageController extends BaseController
 
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         // Normalize datetime-local (Y-m-dTH:i) â†’ Y-m-d H:i:s for DB
@@ -1650,7 +1650,7 @@ class PackageController extends BaseController
                 'regex_match' => 'Package code cannot contain spaces. Please use dashes or underscores (e.g. UMR-APR-2026).',
             ],
         ])) {
-            return redirect()->to('/packages/add')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/packages/add')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -1662,13 +1662,13 @@ class PackageController extends BaseController
             $defaultShirkaCompanyId = null;
             if ($payload['default_shirka_company_id'] !== '') {
                 if (! company_table_ready()) {
-                    return redirect()->to('/packages/add')->withInput()->with('error', 'Shirka company table is not available.');
+                    return redirect()->to('/admin/packages/add')->withInput()->with('error', 'Shirka company table is not available.');
                 }
 
                 $defaultShirkaCompanyId = (int) $payload['default_shirka_company_id'];
                 $companyRow = $db->table('companies')->select('id')->where('id', $defaultShirkaCompanyId)->get()->getRowArray();
                 if (empty($companyRow)) {
-                    return redirect()->to('/packages/add')->withInput()->with('error', 'Selected default shirka company was not found.');
+                    return redirect()->to('/admin/packages/add')->withInput()->with('error', 'Selected default shirka company was not found.');
                 }
             }
 
@@ -1698,9 +1698,9 @@ class PackageController extends BaseController
             ]);
 
 
-            return redirect()->to('/packages')->with('success', 'Package created successfully.');
+            return redirect()->to('/admin/packages')->with('success', 'Package created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/packages/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -1713,7 +1713,7 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         // Normalize datetime-local (Y-m-dTH:i) â†’ Y-m-d H:i:s for DB
         $normDatetime = static function (string $v): string {
@@ -1746,7 +1746,7 @@ class PackageController extends BaseController
         ];
 
         if ($packageId < 1) {
-            return redirect()->to('/packages')->withInput()->with('error', 'Valid package ID is required.');
+            return redirect()->to('/admin/packages')->withInput()->with('error', 'Valid package ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -1776,7 +1776,7 @@ class PackageController extends BaseController
                 'regex_match' => 'Package code cannot contain spaces. Please use dashes or underscores (e.g. UMR-APR-2026).',
             ],
         ])) {
-            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $data = array_filter($payload, static function ($value) {
@@ -1784,7 +1784,7 @@ class PackageController extends BaseController
         });
 
         if ($data === []) {
-            return redirect()->to('/packages')->withInput()->with('error', 'Provide at least one field to update for package.');
+            return redirect()->to('/admin/packages')->withInput()->with('error', 'Provide at least one field to update for package.');
         }
 
         if (isset($data['duration_days'])) {
@@ -1798,7 +1798,7 @@ class PackageController extends BaseController
             $model = new PackageModel();
             $existing = $model->where('id', $packageId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/packages')->with('error', 'Package not found in active season.');
+                return redirect()->to('/admin/packages')->with('error', 'Package not found in active season.');
             }
 
             if (isset($data['default_shirka_company_id'])) {
@@ -1806,12 +1806,12 @@ class PackageController extends BaseController
                     $data['default_shirka_company_id'] = null;
                 } else {
                     if (! company_table_ready()) {
-                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Shirka company table is not available.');
+                        return redirect()->to('/admin/packages/' . $packageId . '/edit')->withInput()->with('error', 'Shirka company table is not available.');
                     }
                     $shirkaId = (int) $data['default_shirka_company_id'];
                     $companyRow = db_connect()->table('companies')->select('id')->where('id', $shirkaId)->get()->getRowArray();
                     if (empty($companyRow)) {
-                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Selected default shirka company was not found.');
+                        return redirect()->to('/admin/packages/' . $packageId . '/edit')->withInput()->with('error', 'Selected default shirka company was not found.');
                     }
                     $data['default_shirka_company_id'] = $shirkaId;
                 }
@@ -1852,19 +1852,19 @@ class PackageController extends BaseController
                 if ($effectiveIncludeHotel === 1) {
                     $hotelCount = $dbCheck->table('package_hotels')->where('package_id', $packageId)->countAllResults();
                     if ($hotelCount < 1) {
-                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes hotel accommodation but no hotel is linked. Please attach a hotel or uncheck "Hotel Accommodation" in Package Includes.');
+                        return redirect()->to('/admin/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes hotel accommodation but no hotel is linked. Please attach a hotel or uncheck "Hotel Accommodation" in Package Includes.');
                     }
                 }
                 if ($effectiveIncludeTicket === 1) {
                     $flightCount = $dbCheck->table('package_flights')->where('package_id', $packageId)->countAllResults();
                     if ($flightCount < 1) {
-                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes flights but no flight is linked. Please attach flights or uncheck "Flight / Ticket" in Package Includes.');
+                        return redirect()->to('/admin/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes flights but no flight is linked. Please attach flights or uncheck "Flight / Ticket" in Package Includes.');
                     }
                 }
                 if ($effectiveIncludeTransport === 1) {
                     $transportCount = $dbCheck->table('package_transports')->where('package_id', $packageId)->countAllResults();
                     if ($transportCount < 1) {
-                        return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes transport but no transport is linked. Please attach a transport or uncheck "Transport" in Package Includes.');
+                        return redirect()->to('/admin/packages/' . $packageId . '/edit')->withInput()->with('error', 'Package includes transport but no transport is linked. Please attach a transport or uncheck "Transport" in Package Includes.');
                     }
                 }
             }
@@ -1875,9 +1875,9 @@ class PackageController extends BaseController
 
             (new PackagePricingService())->recalculatePackage($packageId);
 
-            return redirect()->to('/packages')->with('success', 'Package updated successfully.');
+            return redirect()->to('/admin/packages')->with('success', 'Package updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -1890,22 +1890,22 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($packageId < 1) {
-            return redirect()->to('/packages')->with('error', 'Valid package ID is required for delete.');
+            return redirect()->to('/admin/packages')->with('error', 'Valid package ID is required for delete.');
         }
 
         try {
             $model = new PackageModel();
             $existing = $model->where('id', $packageId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/packages')->with('error', 'Package not found in active season.');
+                return redirect()->to('/admin/packages')->with('error', 'Package not found in active season.');
             }
             $deleted = $model->delete($packageId);
 
             if (! $deleted) {
-                return redirect()->to('/packages')->with('error', 'Package not found or already removed.');
+                return redirect()->to('/admin/packages')->with('error', 'Package not found or already removed.');
             }
 
             if ($this->packageHotelStayTableExists()) {
@@ -1914,9 +1914,9 @@ class PackageController extends BaseController
 
             (new RoomAllocationService())->sync();
 
-            return redirect()->to('/packages')->with('success', 'Package deleted successfully.');
+            return redirect()->to('/admin/packages')->with('success', 'Package deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/packages')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages')->with('error', $e->getMessage());
         }
     }
 
@@ -1943,7 +1943,7 @@ class PackageController extends BaseController
             'supplier_id' => 'permit_empty|integer',
             'description' => 'permit_empty',
         ])) {
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -1958,9 +1958,9 @@ class PackageController extends BaseController
                 'created_at'  => date('Y-m-d H:i:s'),
             ]);
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Package cost added successfully.');
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('success', 'Package cost added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -1999,7 +1999,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#hotel-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#hotel-section')
                 ->withInput()
                 ->with('open_quick_modal', 'hotel')
                 ->with('errors', $this->validator->getErrors());
@@ -2035,7 +2035,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#hotel-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#hotel-section')
                 ->with('quick_hotel_created_id', $createdId)
                 ->with('success', 'Hotel created. You can now attach it to this package.');
         } catch (\Throwable $e) {
@@ -2050,7 +2050,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#hotel-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#hotel-section')
                 ->withInput()
                 ->with('open_quick_modal', 'hotel')
                 ->with('error', $e->getMessage());
@@ -2110,7 +2110,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#flight-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#flight-section')
                 ->withInput()
                 ->with('open_quick_modal', 'flight')
                 ->with('errors', $this->validator->getErrors());
@@ -2165,7 +2165,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#flight-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#flight-section')
                 ->with('quick_flight_created_id', $createdId)
                 ->with('success', 'Flight created. You can now attach it to this package.');
         } catch (\Throwable $e) {
@@ -2180,7 +2180,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#flight-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#flight-section')
                 ->withInput()
                 ->with('open_quick_modal', 'flight')
                 ->with('error', $e->getMessage());
@@ -2224,7 +2224,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#transport-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#transport-section')
                 ->withInput()
                 ->with('open_quick_modal', 'transport')
                 ->with('errors', $this->validator->getErrors());
@@ -2265,7 +2265,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#transport-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#transport-section')
                 ->with('quick_transport_created_id', $createdId)
                 ->with('success', 'Transport created. You can now attach it to this package.');
         } catch (\Throwable $e) {
@@ -2280,7 +2280,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit#transport-section')
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit#transport-section')
                 ->withInput()
                 ->with('open_quick_modal', 'transport')
                 ->with('error', $e->getMessage());
@@ -2297,18 +2297,18 @@ class PackageController extends BaseController
         $packageId = (int) $this->request->getPost('package_id');
 
         if ($costId < 1 || $packageId < 1) {
-            return redirect()->to('/packages')->with('error', 'Valid package cost and package IDs are required for delete.');
+            return redirect()->to('/admin/packages')->with('error', 'Valid package cost and package IDs are required for delete.');
         }
 
         try {
             $deleted = (new PackageCostModel())->delete($costId);
             if (! $deleted) {
-                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package cost not found or already removed.');
+                return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', 'Package cost not found or already removed.');
             }
 
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package cost deleted successfully.');
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('success', 'Package cost deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -2357,7 +2357,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -2380,7 +2380,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected hotel not found.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected hotel not found.');
             }
 
             $package = (new PackageModel())->find($payload['package_id']);
@@ -2396,7 +2396,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages')->with('error', 'Package not found.');
+                return redirect()->to('/admin/packages')->with('error', 'Package not found.');
             }
 
             $stayWindow = $this->packageStayWindow($package);
@@ -2415,7 +2415,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package departure/arrival dates are required before hotel allocation.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package departure/arrival dates are required before hotel allocation.');
             }
 
             $expectedCheckIn = $this->lastPackageStayCheckout($payload['package_id'], $db);
@@ -2434,7 +2434,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package hotel duration is already fully allocated.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Package hotel duration is already fully allocated.');
             }
 
             $checkInDate = $payload['check_in_date'] !== '' ? $payload['check_in_date'] : $expectedCheckIn;
@@ -2452,7 +2452,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Next hotel check-in must be ' . $expectedCheckIn . ' to maintain sequence.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Next hotel check-in must be ' . $expectedCheckIn . ' to maintain sequence.');
             }
 
             if ($checkOutDate === '' && $payload['stay_distribution'] !== '') {
@@ -2475,7 +2475,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-in and check-out dates are required.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-in and check-out dates are required.');
             }
 
             if (strtotime($checkOutDate) <= strtotime($checkInDate)) {
@@ -2490,7 +2490,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out date must be after check-in date.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out date must be after check-in date.');
             }
 
             if (strtotime($checkOutDate) > strtotime($packageStayEnd)) {
@@ -2505,7 +2505,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out cannot exceed package stay end date (' . $packageStayEnd . ').');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Check-out cannot exceed package stay end date (' . $packageStayEnd . ').');
             }
 
             $hotelModel = new PackageHotelModel();
@@ -2529,7 +2529,7 @@ class PackageController extends BaseController
                             ]);
                         }
 
-                        return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Pricing is required the first time a hotel is attached to a package.');
+                        return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Pricing is required the first time a hotel is attached to a package.');
                     }
                 }
 
@@ -2545,7 +2545,7 @@ class PackageController extends BaseController
                         ]);
                     }
 
-                    return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Total seats are required the first time a hotel is attached to a package.');
+                    return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Total seats are required the first time a hotel is attached to a package.');
                 }
 
                 $hotelModel->insert([
@@ -2588,7 +2588,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Unable to save the package hotel profile.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('error', 'Unable to save the package hotel profile.');
             }
 
             $createdStayId = null;
@@ -2632,7 +2632,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', empty($hotelProfile) ? 'Hotel pricing and stay added successfully.' : 'Hotel stay added using existing package pricing.');
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('success', empty($hotelProfile) ? 'Hotel pricing and stay added successfully.' : 'Hotel stay added using existing package pricing.');
         } catch (\Throwable $e) {
             if ($isAjax) {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -2645,7 +2645,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -2671,7 +2671,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages')->with('error', 'Valid package hotel and package IDs are required for delete.');
+            return redirect()->to('/admin/packages')->with('error', 'Valid package hotel and package IDs are required for delete.');
         }
 
         try {
@@ -2710,7 +2710,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package hotel attachment not found or already removed.');
+                return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', 'Package hotel attachment not found or already removed.');
             }
 
             $summary = (new PackagePricingService())->recalculatePackage($packageId);
@@ -2728,7 +2728,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package hotel attachment deleted successfully.');
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('success', 'Package hotel attachment deleted successfully.');
         } catch (\Throwable $e) {
             if ($isAjax) {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -2741,7 +2741,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -2774,7 +2774,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -2793,7 +2793,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected flight was not found.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected flight was not found.');
             }
 
             $packageFlightModel = new PackageFlightModel();
@@ -2844,7 +2844,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Flight attached to package successfully.');
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('success', 'Flight attached to package successfully.');
         } catch (\Throwable $e) {
             if ($isAjax) {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -2857,7 +2857,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -2883,7 +2883,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages')->with('error', 'Valid package flight and package IDs are required for delete.');
+            return redirect()->to('/admin/packages')->with('error', 'Valid package flight and package IDs are required for delete.');
         }
 
         try {
@@ -2900,7 +2900,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package flight attachment not found or already removed.');
+                return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', 'Package flight attachment not found or already removed.');
             }
 
             $summary = (new PackagePricingService())->recalculatePackage($packageId);
@@ -2918,7 +2918,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package flight attachment deleted successfully.');
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('success', 'Package flight attachment deleted successfully.');
         } catch (\Throwable $e) {
             if ($isAjax) {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -2931,7 +2931,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -2966,7 +2966,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -2983,7 +2983,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected transport not found.');
+                return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('error', 'Selected transport not found.');
             }
 
             $seatCapacity = $payload['seat_capacity'] !== '' ? (int) $payload['seat_capacity'] : (int) ($transport['seat_capacity'] ?? 0);
@@ -3021,7 +3021,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('success', 'Transport attached to package successfully.');
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('success', 'Transport attached to package successfully.');
         } catch (\Throwable $e) {
             if ($isAjax) {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -3034,7 +3034,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $payload['package_id'] . '/edit')->with('error', $e->getMessage());
         }
     }
 
@@ -3060,7 +3060,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages')->with('error', 'Valid package transport and package IDs are required for delete.');
+            return redirect()->to('/admin/packages')->with('error', 'Valid package transport and package IDs are required for delete.');
         }
 
         try {
@@ -3077,7 +3077,7 @@ class PackageController extends BaseController
                     ]);
                 }
 
-                return redirect()->to('/packages/' . $packageId . '/edit')->with('error', 'Package transport attachment not found or already removed.');
+                return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', 'Package transport attachment not found or already removed.');
             }
 
             $summary = (new PackagePricingService())->recalculatePackage($packageId);
@@ -3095,7 +3095,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('success', 'Package transport attachment deleted successfully.');
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('success', 'Package transport attachment deleted successfully.');
         } catch (\Throwable $e) {
             if ($isAjax) {
                 return $this->response->setStatusCode(500)->setJSON([
@@ -3108,7 +3108,7 @@ class PackageController extends BaseController
                 ]);
             }
 
-            return redirect()->to('/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
+            return redirect()->to('/admin/packages/' . $packageId . '/edit')->with('error', $e->getMessage());
         }
     }
 

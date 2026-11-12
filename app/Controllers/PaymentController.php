@@ -14,7 +14,7 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $filters = [
@@ -195,7 +195,7 @@ class PaymentController extends BaseController
         $linkedAgentId = $this->linkedAgentId();
         $canApprovePayments = $this->canApprovePayments();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -219,18 +219,18 @@ class PaymentController extends BaseController
             'gateway_reference' => 'permit_empty|max_length[120]',
             'note'              => 'permit_empty|max_length[5000]',
         ])) {
-            return redirect()->to('/payments/create')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/payments/create')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
             $amount = (float) $payload['amount'];
             if ($amount <= 0) {
-                return redirect()->to('/payments/create')->withInput()->with('error', 'Amount must be greater than zero.');
+                return redirect()->to('/admin/payments/create')->withInput()->with('error', 'Amount must be greater than zero.');
             }
 
             $paymentDate = $this->normalizePaymentDate($payload['payment_date']);
             if ($paymentDate === null) {
-                return redirect()->to('/payments/create')->withInput()->with('error', 'Invalid payment date/time format.');
+                return redirect()->to('/admin/payments/create')->withInput()->with('error', 'Invalid payment date/time format.');
             }
 
             $paymentNo = $this->generateUniquePaymentNo();
@@ -244,21 +244,21 @@ class PaymentController extends BaseController
             }
             $booking = $bookingQuery->get()->getRowArray();
             if (empty($booking)) {
-                return redirect()->to('/payments/create')->withInput()->with('error', 'Selected booking is not in active season.');
+                return redirect()->to('/admin/payments/create')->withInput()->with('error', 'Selected booking is not in active season.');
             }
 
             $financials = $this->getBookingFinancials((int) $payload['booking_id'], $seasonId, null);
             if ($payload['payment_type'] === 'payment' && (float) ($financials['total_amount'] ?? 0) > 0) {
                 $outstanding = max(0, (float) ($financials['total_amount'] ?? 0) - (float) ($financials['paid_amount'] ?? 0));
                 if ($amount > $outstanding + 0.01) {
-                    return redirect()->to('/payments/create')->withInput()->with('error', 'Payment amount exceeds booking outstanding amount.');
+                    return redirect()->to('/admin/payments/create')->withInput()->with('error', 'Payment amount exceeds booking outstanding amount.');
                 }
             }
 
             if ($payload['payment_type'] === 'refund') {
                 $paidAmount = (float) ($financials['paid_amount'] ?? 0);
                 if ($amount > $paidAmount + 0.01) {
-                    return redirect()->to('/payments/create')->withInput()->with('error', 'Refund amount cannot exceed paid amount for this booking.');
+                    return redirect()->to('/admin/payments/create')->withInput()->with('error', 'Refund amount cannot exceed paid amount for this booking.');
                 }
             }
 
@@ -290,12 +290,12 @@ class PaymentController extends BaseController
                 $this->syncBookingStatusByPayments((int) $payload['booking_id'], $seasonId);
                 (new AgentLedgerService())->syncBookingLedger((int) $payload['booking_id'], $seasonId);
 
-                return redirect()->to('/payments')->with('success', 'Payment posted successfully.');
+                return redirect()->to('/admin/payments')->with('success', 'Payment posted successfully.');
             }
 
-            return redirect()->to('/payments')->with('success', 'Payment submitted and is pending super admin approval.');
+            return redirect()->to('/admin/payments')->with('success', 'Payment submitted and is pending super admin approval.');
         } catch (\Throwable $e) {
-            return redirect()->to('/payments/create')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/payments/create')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -305,7 +305,7 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         $payload = [
             'booking_id'        => (string) $this->request->getPost('booking_id'),
@@ -322,7 +322,7 @@ class PaymentController extends BaseController
         $editUrl = $paymentId > 0 ? "/payments/{$paymentId}/edit" : '/payments';
 
         if ($paymentId < 1) {
-            return redirect()->to('/payments')->with('error', 'Valid payment ID is required.');
+            return redirect()->to('/admin/payments')->with('error', 'Valid payment ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -369,14 +369,14 @@ class PaymentController extends BaseController
         }
 
         if ($data === []) {
-            return redirect()->to('/payments')->withInput()->with('error', 'Provide at least one field to update for payment.');
+            return redirect()->to('/admin/payments')->withInput()->with('error', 'Provide at least one field to update for payment.');
         }
 
         try {
             $model = new PaymentModel();
             $existing = $model->where('id', $paymentId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
             }
 
             if (isset($data['status']) && (string) $data['status'] === 'posted' && ! $this->canApprovePayments()) {
@@ -392,7 +392,7 @@ class PaymentController extends BaseController
                     ->get()
                     ->getRowArray();
                 if (empty($ownedBooking)) {
-                    return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                    return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
                 }
             }
 
@@ -406,7 +406,7 @@ class PaymentController extends BaseController
                 }
                 $booking = $bookingQuery->get()->getRowArray();
                 if (empty($booking)) {
-                    return redirect()->to('/payments')->withInput()->with('error', 'Selected booking is not in active season.');
+                    return redirect()->to('/admin/payments')->withInput()->with('error', 'Selected booking is not in active season.');
                 }
             }
 
@@ -423,7 +423,7 @@ class PaymentController extends BaseController
             if (isset($data['payment_date'])) {
                 $normalizedDate = $this->normalizePaymentDate((string) $data['payment_date']);
                 if ($normalizedDate === null) {
-                    return redirect()->to('/payments')->withInput()->with('error', 'Invalid payment date/time format.');
+                    return redirect()->to('/admin/payments')->withInput()->with('error', 'Invalid payment date/time format.');
                 }
                 $data['payment_date'] = $normalizedDate;
             }
@@ -481,17 +481,17 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($paymentId < 1) {
-            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for delete.');
+            return redirect()->to('/admin/payments')->with('error', 'Valid payment ID is required for delete.');
         }
 
         try {
             $model = new PaymentModel();
             $existing = $model->where('id', $paymentId)->where('season_id', $seasonId)->first();
             if (empty($existing)) {
-                return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
             }
 
             if ($linkedAgentId !== null) {
@@ -503,12 +503,12 @@ class PaymentController extends BaseController
                     ->get()
                     ->getRowArray();
                 if (empty($ownedBooking)) {
-                    return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                    return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
                 }
             }
 
             if ((string) ($existing['status'] ?? '') === 'voided') {
-                return redirect()->to('/payments')->with('error', 'Payment is already voided.');
+                return redirect()->to('/admin/payments')->with('error', 'Payment is already voided.');
             }
 
             $auditNote = 'Voided on ' . date('Y-m-d H:i:s');
@@ -527,9 +527,9 @@ class PaymentController extends BaseController
             $this->syncBookingStatusByPayments((int) $existing['booking_id'], $seasonId);
             (new AgentLedgerService())->syncBookingLedger((int) $existing['booking_id'], $seasonId);
 
-            return redirect()->to('/payments')->with('success', 'Payment voided successfully.');
+            return redirect()->to('/admin/payments')->with('success', 'Payment voided successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/payments')->with('error', $e->getMessage());
+            return redirect()->to('/admin/payments')->with('error', $e->getMessage());
         }
     }
 
@@ -539,20 +539,20 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if (! $this->canApprovePayments()) {
-            return redirect()->to('/payments')->with('error', 'Only super admin can approve payments.');
+            return redirect()->to('/admin/payments')->with('error', 'Only super admin can approve payments.');
         }
         if ($paymentId < 1) {
-            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for approval.');
+            return redirect()->to('/admin/payments')->with('error', 'Valid payment ID is required for approval.');
         }
 
         try {
             $model = new PaymentModel();
             $payment = $model->where('id', $paymentId)->where('season_id', $seasonId)->first();
             if (empty($payment)) {
-                return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
             }
 
             if ($linkedAgentId !== null) {
@@ -564,36 +564,36 @@ class PaymentController extends BaseController
                     ->get()
                     ->getRowArray();
                 if (empty($ownedBooking)) {
-                    return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+                    return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
                 }
             }
 
             $status = (string) ($payment['status'] ?? 'pending');
             if ($status === 'posted') {
-                return redirect()->to('/payments')->with('success', 'Payment is already approved and posted.');
+                return redirect()->to('/admin/payments')->with('success', 'Payment is already approved and posted.');
             }
             if ($status === 'voided') {
-                return redirect()->to('/payments')->with('error', 'Voided payment cannot be approved.');
+                return redirect()->to('/admin/payments')->with('error', 'Voided payment cannot be approved.');
             }
 
             $bookingId = (int) ($payment['booking_id'] ?? 0);
             $amount = (float) ($payment['amount'] ?? 0);
             $paymentType = (string) ($payment['payment_type'] ?? 'payment');
             if ($amount <= 0) {
-                return redirect()->to('/payments')->with('error', 'Payment amount must be greater than zero.');
+                return redirect()->to('/admin/payments')->with('error', 'Payment amount must be greater than zero.');
             }
 
             $financials = $this->getBookingFinancials($bookingId, $seasonId, null);
             if ($paymentType === 'payment' && (float) ($financials['total_amount'] ?? 0) > 0) {
                 $outstanding = max(0, (float) ($financials['total_amount'] ?? 0) - (float) ($financials['paid_amount'] ?? 0));
                 if ($amount > $outstanding + 0.01) {
-                    return redirect()->to('/payments')->with('error', 'Approval failed: payment amount exceeds booking outstanding amount.');
+                    return redirect()->to('/admin/payments')->with('error', 'Approval failed: payment amount exceeds booking outstanding amount.');
                 }
             }
             if ($paymentType === 'refund') {
                 $paidAmount = (float) ($financials['paid_amount'] ?? 0);
                 if ($amount > $paidAmount + 0.01) {
-                    return redirect()->to('/payments')->with('error', 'Approval failed: refund amount cannot exceed paid amount for this booking.');
+                    return redirect()->to('/admin/payments')->with('error', 'Approval failed: refund amount cannot exceed paid amount for this booking.');
                 }
             }
 
@@ -606,9 +606,9 @@ class PaymentController extends BaseController
             $this->syncBookingStatusByPayments($bookingId, $seasonId);
             (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
 
-            return redirect()->to('/payments')->with('success', 'Payment approved and posted successfully.');
+            return redirect()->to('/admin/payments')->with('success', 'Payment approved and posted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/payments')->with('error', $e->getMessage());
+            return redirect()->to('/admin/payments')->with('error', $e->getMessage());
         }
     }
 
@@ -621,7 +621,7 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();
@@ -643,10 +643,10 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($paymentId < 1) {
-            return redirect()->to('/payments')->with('error', 'Invalid payment ID.');
+            return redirect()->to('/admin/payments')->with('error', 'Invalid payment ID.');
         }
 
         $db = db_connect();
@@ -664,7 +664,7 @@ class PaymentController extends BaseController
         $payment = $paymentQuery->get()->getRowArray();
 
         if (empty($payment)) {
-            return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+            return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
         }
 
         $bookings  = $this->buildBookingsList($db, $seasonId, $linkedAgentId);
@@ -689,10 +689,10 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($paymentId < 1) {
-            return redirect()->to('/payments')->with('error', 'Invalid payment ID.');
+            return redirect()->to('/admin/payments')->with('error', 'Invalid payment ID.');
         }
 
         $db = db_connect();
@@ -711,7 +711,7 @@ class PaymentController extends BaseController
         $payment = $paymentQuery->get()->getRowArray();
 
         if (empty($payment)) {
-            return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+            return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
         }
 
         $financials = $this->getBookingFinancials((int) ($payment['booking_id'] ?? 0), $seasonId, null);
@@ -773,10 +773,10 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($paymentId < 1) {
-            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for receipt.');
+            return redirect()->to('/admin/payments')->with('error', 'Valid payment ID is required for receipt.');
         }
 
         $db = db_connect();
@@ -795,7 +795,7 @@ class PaymentController extends BaseController
         $payment = $paymentQuery->get()->getRowArray();
 
         if (empty($payment)) {
-            return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+            return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
         }
 
         $paidAmount = (float) ($db->table('payments')
@@ -823,10 +823,10 @@ class PaymentController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($paymentId < 1) {
-            return redirect()->to('/payments')->with('error', 'Valid payment ID is required for attachment.');
+            return redirect()->to('/admin/payments')->with('error', 'Valid payment ID is required for attachment.');
         }
 
         $db = db_connect();
@@ -842,17 +842,17 @@ class PaymentController extends BaseController
 
         $payment = $query->get()->getRowArray();
         if (empty($payment)) {
-            return redirect()->to('/payments')->with('error', 'Payment not found in active season.');
+            return redirect()->to('/admin/payments')->with('error', 'Payment not found in active season.');
         }
 
         $relativePath = trim((string) ($payment['receipt_attachment_path'] ?? ''));
         if ($relativePath === '') {
-            return redirect()->to('/payments/' . $paymentId . '/view')->with('error', 'No receipt attachment found for this payment.');
+            return redirect()->to('/admin/payments/' . $paymentId . '/view')->with('error', 'No receipt attachment found for this payment.');
         }
 
         $absolutePath = asset_upload_file($relativePath, 'payments');
         if ($absolutePath === '' || ! is_file($absolutePath)) {
-            return redirect()->to('/payments/' . $paymentId . '/view')->with('error', 'Receipt attachment file is missing from storage.');
+            return redirect()->to('/admin/payments/' . $paymentId . '/view')->with('error', 'Receipt attachment file is missing from storage.');
         }
 
         $downloadName = trim((string) ($payment['receipt_attachment_name'] ?? ''));

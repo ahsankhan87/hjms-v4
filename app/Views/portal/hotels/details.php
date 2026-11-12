@@ -12,10 +12,10 @@
                 <p class="mt-1 text-xs text-slate-500"><?= esc((string) ($row['city'] ?? '-')) ?> • <?= esc((string) ($row['star_rating'] ?? '-')) ?> Star</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="<?= site_url('/hotels/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="btn btn-md btn-secondary">
+                <a href="<?= site_url('/admin/hotels/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="btn btn-md btn-secondary">
                     <i class="fa-solid fa-pen"></i><span>Edit</span>
                 </a>
-                <a href="<?= site_url('/hotels') ?>" class="btn btn-md btn-primary">
+                <a href="<?= site_url('/admin/hotels') ?>" class="btn btn-md btn-primary">
                     <i class="fa-solid fa-arrow-left"></i><span>Back</span>
                 </a>
             </div>

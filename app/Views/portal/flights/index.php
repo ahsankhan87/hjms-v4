@@ -51,10 +51,10 @@
                     <p class="text-xs text-slate-500">Manage departures, fares, and package links.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="<?= site_url('/flights/add') ?>" class="btn btn-md btn-primary">
+                    <a href="<?= site_url('/admin/flights/add') ?>" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-plus"></i><span>Add Flight</span>
                     </a>
-                    <a href="<?= site_url('/flights/departure-batches') ?>" class="btn btn-md btn-secondary">
+                    <a href="<?= site_url('/admin/flights/departure-batches') ?>" class="btn btn-md btn-secondary">
                         <i class="fa-solid fa-layer-group"></i><span>Departure Batch View</span>
                     </a>
                 </div>
@@ -107,10 +107,10 @@
                                 <td class="px-3 py-2"><?= esc((int) ($row['package_links'] ?? 0)) ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= site_url('/flights/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Flight">
+                                        <a href="<?= site_url('/admin/flights/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Flight">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <form method="post" action="<?= site_url('/flights/delete') ?>" class="inline">
+                                        <form method="post" action="<?= site_url('/admin/flights/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="flight_id" value="<?= esc($row['id']) ?>">
                                             <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this flight?')" title="Delete Flight">

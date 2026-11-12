@@ -17,17 +17,17 @@
                 <a href="<?= base_url('assets/samples/mofa_pilgrims_sample.csv') ?>" class="btn btn-sm btn-secondary" download>
                     <i class="fa-solid fa-download"></i><span>Download Sample CSV</span>
                 </a>
-                <a href="<?= site_url('/pilgrims') ?>" class="btn btn-sm btn-secondary">Back to Pilgrims</a>
+                <a href="<?= site_url('/admin/pilgrims') ?>" class="btn btn-sm btn-secondary">Back to Pilgrims</a>
             </div>
 
-            <form method="post" action="<?= site_url('/pilgrims/import') ?>" enctype="multipart/form-data" class="space-y-4">
+            <form method="post" action="<?= site_url('/admin/pilgrims/import') ?>" enctype="multipart/form-data" class="space-y-4">
                 <?= csrf_field() ?>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">MOFA CSV File</label>
                     <input type="file" name="mofa_csv" accept=".csv" required class="w-full border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/pilgrims') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                    <a href="<?= site_url('/admin/pilgrims') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-file-arrow-up"></i><span>Import CSV</span>
                     </button>

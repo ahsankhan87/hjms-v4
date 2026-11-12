@@ -29,7 +29,7 @@
     <section class="grid gap-3 lg:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
             <h3 class="text-sm font-semibold text-slate-800">Edit Flight</h3>
-            <form method="post" action="<?= site_url('/flights/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-4">
+            <form method="post" action="<?= site_url('/admin/flights/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="flight_id" value="<?= esc($row['id']) ?>">
                 <section class="rounded-lg border border-slate-200 p-3">
@@ -183,7 +183,7 @@
                     </div>
                 </section>
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/flights') ?>" class="btn btn-md btn-secondary">Back</a>
+                    <a href="<?= site_url('/admin/flights') ?>" class="btn btn-md btn-secondary">Back</a>
                     <button type="submit" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-check"></i><span>Update Flight</span>
                     </button>
@@ -193,7 +193,7 @@
 
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2 overflow-auto">
             <h3 class="text-sm font-semibold text-slate-800">Package Assignment (Departure Batch)</h3>
-            <form method="post" action="<?= site_url('/flights/packages') ?>" class="mt-4 grid gap-3 md:grid-cols-4">
+            <form method="post" action="<?= site_url('/admin/flights/packages') ?>" class="mt-4 grid gap-3 md:grid-cols-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="flight_id" value="<?= esc($row['id']) ?>">
                 <div>
@@ -248,7 +248,7 @@
                                     <td class="px-3 py-2"><?= esc($link['departure_at'] ?? '-') ?></td>
                                     <td class="px-3 py-2"><?= esc($link['arrival_at'] ?? '-') ?></td>
                                     <td class="px-3 py-2">
-                                        <form method="post" action="<?= site_url('/flights/packages/delete') ?>" class="inline">
+                                        <form method="post" action="<?= site_url('/admin/flights/packages/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="flight_id" value="<?= esc($row['id']) ?>">
                                             <input type="hidden" name="link_id" value="<?= esc($link['id']) ?>">

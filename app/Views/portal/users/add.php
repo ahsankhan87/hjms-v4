@@ -13,7 +13,7 @@
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-4">
-            <form method="post" action="<?= site_url('/users') ?>" class="space-y-3">
+            <form method="post" action="<?= site_url('/admin/users') ?>" class="space-y-3">
                 <?= csrf_field() ?>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-slate-600">Name</label>
@@ -54,7 +54,7 @@
                     <p class="mt-1 text-[11px] text-slate-500">Linked users are restricted to their own agent data.</p>
                 </div>
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/users') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                    <a href="<?= site_url('/admin/users') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     <button class="btn btn-md btn-primary" type="submit"><i class="fa-solid fa-check"></i><span>Create User</span></button>
                 </div>
             </form>

@@ -13,7 +13,7 @@
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-4">
-            <form method="post" action="<?= site_url('/suppliers/update') ?>" class="space-y-3">
+            <form method="post" action="<?= site_url('/admin/suppliers/update') ?>" class="space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="supplier_id" value="<?= esc((string) $row['id']) ?>">
                 <div>
@@ -64,7 +64,7 @@
                     </select>
                 </div>
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/suppliers') ?>" class="btn btn-md btn-secondary">Back</a>
+                    <a href="<?= site_url('/admin/suppliers') ?>" class="btn btn-md btn-secondary">Back</a>
                     <button type="submit" class="btn btn-md btn-primary"><i class="fa-solid fa-check"></i><span>Update Supplier</span></button>
                 </div>
             </form>

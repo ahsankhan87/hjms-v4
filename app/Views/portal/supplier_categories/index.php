@@ -13,8 +13,8 @@
                 <p class="text-xs text-slate-500">Manage the category list used on supplier ledger entries.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <a href="<?= site_url('/suppliers') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-arrow-left"></i><span>Back to Suppliers</span></a>
-                <a href="<?= site_url('/supplier-categories/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Category</span></a>
+                <a href="<?= site_url('/admin/suppliers') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-arrow-left"></i><span>Back to Suppliers</span></a>
+                <a href="<?= site_url('/admin/supplier-categories/add') ?>" class="btn btn-md btn-primary"><i class="fa-solid fa-plus"></i><span>Add Category</span></a>
             </div>
         </div>
     </article>
@@ -45,8 +45,8 @@
                             <td class="px-3 py-2"><span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold <?= ((int) ($row['is_active'] ?? 0) === 1) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' ?>"><?= ((int) ($row['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive' ?></span></td>
                             <td class="px-3 py-2">
                                 <div class="flex items-center gap-2">
-                                    <a href="<?= site_url('/supplier-categories/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Category"><i class="fa-solid fa-pen"></i></a>
-                                    <form method="post" action="<?= site_url('/supplier-categories/delete') ?>" class="inline">
+                                    <a href="<?= site_url('/admin/supplier-categories/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Category"><i class="fa-solid fa-pen"></i></a>
+                                    <form method="post" action="<?= site_url('/admin/supplier-categories/delete') ?>" class="inline">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="category_id" value="<?= esc((string) $row['id']) ?>">
                                         <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this supplier category?')" title="Delete Category"><i class="fa-solid fa-trash"></i></button>

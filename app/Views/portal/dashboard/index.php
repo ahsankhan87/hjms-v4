@@ -3,7 +3,7 @@
 <?php $this->section('main') ?>
 <main class="space-y-6">
     <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <a href="<?= site_url('/pilgrims') ?>" class="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500">
+        <a href="<?= site_url('/admin/pilgrims') ?>" class="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
             <div class="flex items-center justify-between mb-4">
                 <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -20,7 +20,7 @@
         </article>
         </a>
 
-        <a href="<?= site_url('/bookings') ?>" class="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+        <a href="<?= site_url('/admin/bookings') ?>" class="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
         <article class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
             <div class="flex items-center justify-between mb-4">
                 <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">

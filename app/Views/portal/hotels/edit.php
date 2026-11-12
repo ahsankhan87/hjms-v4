@@ -9,7 +9,7 @@
     <section class="grid gap-3 lg:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
             <h3 class="text-sm font-semibold text-slate-800">Edit Hotel</h3>
-            <form method="post" action="<?= site_url('/hotels/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/hotels/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
 
@@ -92,7 +92,7 @@
                 </div>
 
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/hotels') ?>" class="btn btn-md btn-secondary">Back</a>
+                    <a href="<?= site_url('/admin/hotels') ?>" class="btn btn-md btn-secondary">Back</a>
                     <button type="submit" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-check"></i><span>Update Hotel</span>
                     </button>
@@ -102,7 +102,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-sm font-semibold text-slate-800">Delete Hotel</h3>
-            <form method="post" action="<?= site_url('/hotels/delete') ?>" class="mt-4">
+            <form method="post" action="<?= site_url('/admin/hotels/delete') ?>" class="mt-4">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                 <button type="submit" class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this hotel and all room types?')">
@@ -110,7 +110,7 @@
                 </button>
             </form>
 
-            <form id="galleryDeleteForm" method="post" action="<?= site_url('/hotels/gallery/delete') ?>" class="hidden">
+            <form id="galleryDeleteForm" method="post" action="<?= site_url('/admin/hotels/gallery/delete') ?>" class="hidden">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                 <input type="hidden" name="image_url" id="galleryDeleteImageUrl" value="">
@@ -120,7 +120,7 @@
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2 overflow-auto">
             <h3 class="text-sm font-semibold text-slate-800">Room Types & Allocation</h3>
 
-            <form method="post" action="<?= site_url('/hotels/rooms') ?>" class="mt-4 grid gap-3 md:grid-cols-6">
+            <form method="post" action="<?= site_url('/admin/hotels/rooms') ?>" class="mt-4 grid gap-3 md:grid-cols-6">
                 <?= csrf_field() ?>
                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                 <div>
@@ -159,7 +159,7 @@
                     <?php foreach ($rooms as $room): ?>
                         <?php $available = max(0, (int) $room['total_rooms'] - (int) $room['allocated_rooms']); ?>
                         <div class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-2">
-                            <form method="post" action="<?= site_url('/hotels/rooms/update') ?>" class="grid flex-1 gap-2 md:grid-cols-12 md:items-end">
+                            <form method="post" action="<?= site_url('/admin/hotels/rooms/update') ?>" class="grid flex-1 gap-2 md:grid-cols-12 md:items-end">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                                 <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">
@@ -193,7 +193,7 @@
                                     </button>
                                 </div>
                             </form>
-                            <form method="post" action="<?= site_url('/hotels/rooms/delete') ?>" class="pb-0.5">
+                            <form method="post" action="<?= site_url('/admin/hotels/rooms/delete') ?>" class="pb-0.5">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                                 <input type="hidden" name="room_id" value="<?= esc($room['id']) ?>">

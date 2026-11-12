@@ -29,7 +29,7 @@
                     <p class="text-xs text-slate-500 mt-0.5">All fields marked <span class="text-rose-500">*</span> are required</p>
                 </div>
 
-                <form method="post" action="<?= site_url('/payments') ?>" enctype="multipart/form-data" class="p-6 space-y-5">
+                <form method="post" action="<?= site_url('/admin/payments') ?>" enctype="multipart/form-data" class="p-6 space-y-5">
                     <?= csrf_field() ?>
 
                     <!-- Booking -->
@@ -135,7 +135,7 @@
                         <button type="submit" class="btn btn-md btn-primary">
                             <i class="fa-solid fa-check"></i><span><?= $isSuperAdmin ? 'Post Payment' : 'Submit for Approval' ?></span>
                         </button>
-                        <a href="<?= site_url('/payments') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                        <a href="<?= site_url('/admin/payments') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     </div>
                 </form>
             </div>
@@ -256,7 +256,7 @@
 
                 var ledgerLink = document.getElementById('snap-ledger-link');
                 if (selected && Number(selected.agent_id || 0) > 0) {
-                    ledgerLink.href = '<?= site_url('/agents') ?>/' + selected.agent_id + '/ledger';
+                    ledgerLink.href = '<?= site_url('/admin/agents') ?>/' + selected.agent_id + '/ledger';
                     ledgerLink.classList.remove('hidden');
                 } else {
                     ledgerLink.classList.add('hidden');

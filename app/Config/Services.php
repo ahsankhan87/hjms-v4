@@ -36,4 +36,13 @@ class Services extends BaseService
 
         return new \App\Services\AuditLogService();
     }
+
+    public static function frontendAuthService(bool $getShared = true): \App\Services\Frontend\FrontendAuthService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('frontendAuthService');
+        }
+
+        return new \App\Services\Frontend\FrontendAuthService();
+    }
 }

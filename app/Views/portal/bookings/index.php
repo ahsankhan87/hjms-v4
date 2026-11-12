@@ -5,6 +5,7 @@
 $canApproveBookings = function_exists('auth_can') && auth_can('bookings.approve');
 $statusMap = [
     'draft'     => ['bg' => 'bg-slate-100',   'text' => 'text-slate-600'],
+    'pending'   => ['bg' => 'bg-amber-100',   'text' => 'text-amber-700'],
     'confirmed' => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-700'],
     'cancelled' => ['bg' => 'bg-rose-100',    'text' => 'text-rose-700'],
 ];
@@ -46,10 +47,10 @@ $pricingModeMap = [
                 <p class="mt-0.5 text-xs text-slate-500"><?= count($rows) ?> booking<?= count($rows) !== 1 ? 's' : '' ?> in active season</p>
             </div>
             <div class="flex items-center gap-2">
-                <a href="<?= site_url('/hotels/rooming-list') ?>" class="btn btn-sm btn-secondary">
+                <a href="<?= site_url('/admin/hotels/rooming-list') ?>" class="btn btn-sm btn-secondary">
                     <i class="fa-solid fa-bed mr-1"></i>Rooming List
                 </a>
-                <a href="<?= site_url('/bookings/add') ?>" class="btn btn-sm btn-primary">
+                <a href="<?= site_url('/admin/bookings/add') ?>" class="btn btn-sm btn-primary">
                     <i class="fa-solid fa-plus mr-1"></i>Add Booking
                 </a>
             </div>
@@ -88,7 +89,7 @@ $pricingModeMap = [
                         ?>
                         <tr class="group hover:bg-slate-50 transition-colors">
                             <td class="px-4 py-3">
-                                <a href="<?= site_url('/bookings/' . (int) $row['id']) ?>" class="font-mono text-xs font-semibold text-sky-600 hover:underline">
+                                <a href="<?= site_url('/admin/bookings/' . (int) $row['id']) ?>" class="font-mono text-xs font-semibold text-sky-600 hover:underline">
                                     <?= esc($row['booking_no']) ?>
                                 </a>
                             </td>
@@ -142,11 +143,11 @@ $pricingModeMap = [
                                         Actions <i class="fa-solid fa-chevron-down text-xs leading-none transition-transform duration-200 js-action-arrow"></i>
                                     </button>
                                     <div class="js-action-menu hidden w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                                        <a href="<?= site_url('/bookings/' . (int) $row['id']) ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/bookings/' . (int) $row['id']) ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-eye text-slate-400"></i> View
                                         </a>
-                                        <?php if ((string) $status === 'draft' && $canApproveBookings): ?>
-                                            <form method="post" action="<?= site_url('/bookings/approve') ?>" class="block">
+                                        <?php if (in_array((string) $status, ['draft', 'pending'], true) && $canApproveBookings): ?>
+                                            <form method="post" action="<?= site_url('/admin/bookings/approve') ?>" class="block">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="booking_id" value="<?= esc((string) ((int) $row['id'])) ?>">
                                                 <button type="submit" onclick="return confirm('Approve this booking?');" class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">
@@ -154,11 +155,11 @@ $pricingModeMap = [
                                                 </button>
                                             </form>
                                         <?php endif; ?>
-                                        <a href="<?= site_url('/bookings/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/bookings/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-pen-to-square text-slate-400"></i> Edit
                                         </a>
                                         <?php if ($canPrintVoucher): ?>
-                                            <a href="<?= site_url('/bookings/' . (int) $row['id'] . '/voucher') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <a href="<?= site_url('/admin/bookings/' . (int) $row['id'] . '/voucher') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                                 <i class="fa-solid fa-file-lines text-slate-400"></i> Voucher
                                             </a>
                                         <?php endif; ?>
@@ -197,7 +198,7 @@ $pricingModeMap = [
             <h3 class="text-lg font-semibold text-slate-900">Delete Booking</h3>
             <p class="mt-1 text-sm text-slate-500">This will permanently remove the booking.</p>
         </div>
-        <form method="post" action="<?= site_url('/bookings/delete') ?>" class="p-6 space-y-4">
+        <form method="post" action="<?= site_url('/admin/bookings/delete') ?>" class="p-6 space-y-4">
             <?= csrf_field() ?>
             <input type="hidden" id="delete-modal-booking-id" name="booking_id" value="">
             <div class="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">

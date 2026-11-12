@@ -20,7 +20,7 @@
         </div>
     <?php endif; ?>
 
-    <form method="post" action="<?= site_url('/bookings') ?>">
+    <form method="post" action="<?= site_url('/admin/bookings') ?>">
         <?= csrf_field() ?>
         <input type="hidden" name="return_url" value="/bookings/add">
 
@@ -174,7 +174,7 @@
             <button type="submit" id="submit-btn" class="btn btn-md btn-primary px-8">
                 <i class="fa-solid fa-floppy-disk mr-2"></i>Create Booking
             </button>
-            <a href="<?= site_url('/bookings') ?>" class="btn btn-md btn-secondary">Cancel</a>
+            <a href="<?= site_url('/admin/bookings') ?>" class="btn btn-md btn-secondary">Cancel</a>
         </div>
     </form>
 </main>
@@ -190,7 +190,7 @@
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
-        <form id="quick-add-pilgrim-form" method="post" action="<?= site_url('/bookings/pilgrims/quick-create') ?>" class="grid gap-3 p-4 md:grid-cols-2">
+        <form id="quick-add-pilgrim-form" method="post" action="<?= site_url('/admin/bookings/pilgrims/quick-create') ?>" class="grid gap-3 p-4 md:grid-cols-2">
             <?= csrf_field() ?>
             <div id="quick-add-pilgrim-errors" class="hidden rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 md:col-span-2"></div>
             <label class="block text-xs font-medium text-slate-600">First Name <span class="text-rose-500">*</span>

@@ -11,7 +11,7 @@ class DashboardController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();

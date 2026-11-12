@@ -23,7 +23,7 @@ class SalesController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $filters = [
@@ -129,7 +129,7 @@ class SalesController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         return view('portal/sales/add', $this->saleFormData($seasonId, [
@@ -143,12 +143,12 @@ class SalesController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $row = (new SalesModel())->where('season_id', $seasonId)->find($id);
         if (empty($row)) {
-            return redirect()->to('/sales')->with('error', 'Sale not found.');
+            return redirect()->to('/admin/sales')->with('error', 'Sale not found.');
         }
 
         $items = $this->saleItems($id);
@@ -173,7 +173,7 @@ class SalesController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();
@@ -187,7 +187,7 @@ class SalesController extends BaseController
             ->getRowArray();
 
         if (empty($row)) {
-            return redirect()->to('/sales')->with('error', 'Sale not found.');
+            return redirect()->to('/admin/sales')->with('error', 'Sale not found.');
         }
 
         $items = $this->saleItems($id);
@@ -246,7 +246,7 @@ class SalesController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = $this->extractPayload();
@@ -254,7 +254,7 @@ class SalesController extends BaseController
         if ($error !== null) {
             $this->discardNewUploads($payload);
 
-            return redirect()->to('/sales/add')->withInput()->with($error['key'], $error['message']);
+            return redirect()->to('/admin/sales/add')->withInput()->with($error['key'], $error['message']);
         }
 
         $db = db_connect();
@@ -276,9 +276,9 @@ class SalesController extends BaseController
                 throw new \RuntimeException('Unable to create sale at the moment.');
             }
 
-            return redirect()->to('/sales')->with('success', 'Sale added successfully.');
+            return redirect()->to('/admin/sales')->with('success', 'Sale added successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/sales/add')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/sales/add')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -286,18 +286,18 @@ class SalesController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $saleId = (int) $this->request->getPost('sale_id');
         if ($saleId < 1) {
-            return redirect()->to('/sales')->with('error', 'Valid sale ID is required.');
+            return redirect()->to('/admin/sales')->with('error', 'Valid sale ID is required.');
         }
 
         $model = new SalesModel();
         $row = $model->where('season_id', $seasonId)->find($saleId);
         if (empty($row)) {
-            return redirect()->to('/sales')->with('error', 'Sale not found.');
+            return redirect()->to('/admin/sales')->with('error', 'Sale not found.');
         }
 
         $existingItems = $this->saleItems($saleId);
@@ -306,7 +306,7 @@ class SalesController extends BaseController
         if ($error !== null) {
             $this->discardNewUploads($payload);
 
-            return redirect()->to('/sales/' . $saleId . '/edit')->withInput()->with($error['key'], $error['message']);
+            return redirect()->to('/admin/sales/' . $saleId . '/edit')->withInput()->with($error['key'], $error['message']);
         }
 
         $db = db_connect();
@@ -335,9 +335,9 @@ class SalesController extends BaseController
                 throw new \RuntimeException('Unable to update sale at the moment.');
             }
 
-            return redirect()->to('/sales')->with('success', 'Sale updated successfully.');
+            return redirect()->to('/admin/sales')->with('success', 'Sale updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/sales/' . $saleId . '/edit')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/sales/' . $saleId . '/edit')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -345,18 +345,18 @@ class SalesController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $saleId = (int) $this->request->getPost('sale_id');
         if ($saleId < 1) {
-            return redirect()->to('/sales')->with('error', 'Valid sale ID is required.');
+            return redirect()->to('/admin/sales')->with('error', 'Valid sale ID is required.');
         }
 
         $model = new SalesModel();
         $row = $model->where('season_id', $seasonId)->find($saleId);
         if (empty($row)) {
-            return redirect()->to('/sales')->with('error', 'Sale not found.');
+            return redirect()->to('/admin/sales')->with('error', 'Sale not found.');
         }
 
         $items = $this->saleItems($saleId);
@@ -388,55 +388,55 @@ class SalesController extends BaseController
                 }
             }
 
-            return redirect()->to('/sales')->with('success', 'Sale deleted successfully.');
+            return redirect()->to('/admin/sales')->with('success', 'Sale deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/sales')->with('error', $e->getMessage());
+            return redirect()->to('/admin/sales')->with('error', $e->getMessage());
         }
     }
 
     public function hotelIndex()
     {
-        return redirect()->to('/sales?component=hotel');
+        return redirect()->to('/admin/sales?component=hotel');
     }
 
     public function ticketIndex()
     {
-        return redirect()->to('/sales?component=ticket');
+        return redirect()->to('/admin/sales?component=ticket');
     }
 
     public function packageIndex()
     {
-        return redirect()->to('/sales?component=package');
+        return redirect()->to('/admin/sales?component=package');
     }
 
     public function hotelAdd()
     {
-        return redirect()->to('/sales/add?type=hotel');
+        return redirect()->to('/admin/sales/add?type=hotel');
     }
 
     public function ticketAdd()
     {
-        return redirect()->to('/sales/add?type=ticket');
+        return redirect()->to('/admin/sales/add?type=ticket');
     }
 
     public function packageAdd()
     {
-        return redirect()->to('/sales/add?type=package');
+        return redirect()->to('/admin/sales/add?type=package');
     }
 
     public function hotelEdit(int $id)
     {
-        return redirect()->to('/sales/' . $id . '/edit');
+        return redirect()->to('/admin/sales/' . $id . '/edit');
     }
 
     public function ticketEdit(int $id)
     {
-        return redirect()->to('/sales/' . $id . '/edit');
+        return redirect()->to('/admin/sales/' . $id . '/edit');
     }
 
     public function packageEdit(int $id)
     {
-        return redirect()->to('/sales/' . $id . '/edit');
+        return redirect()->to('/admin/sales/' . $id . '/edit');
     }
 
     private function saleFormData(int $seasonId, array $extra = []): array

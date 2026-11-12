@@ -50,7 +50,7 @@ class CompanyController extends BaseController
             'saudi_partner' => 'permit_empty|max_length[255]',
             'is_active' => 'required|in_list[0,1]',
         ])) {
-            return redirect()->to('/companies')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/companies')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -84,9 +84,9 @@ class CompanyController extends BaseController
                 throw new \RuntimeException('Failed to create company.');
             }
 
-            return redirect()->to('/companies')->with('success', 'Company created successfully.');
+            return redirect()->to('/admin/companies')->with('success', 'Company created successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/companies')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/companies')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -107,7 +107,7 @@ class CompanyController extends BaseController
         ];
 
         if ($companyId < 1) {
-            return redirect()->to('/companies')->withInput()->with('error', 'Valid company ID is required.');
+            return redirect()->to('/admin/companies')->withInput()->with('error', 'Valid company ID is required.');
         }
 
         if (! $this->validateData($payload, [
@@ -122,7 +122,7 @@ class CompanyController extends BaseController
             'saudi_partner' => 'permit_empty|max_length[255]',
             'is_active' => 'permit_empty|in_list[0,1]',
         ])) {
-            return redirect()->to('/companies')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/companies')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $data = [];
@@ -139,7 +139,7 @@ class CompanyController extends BaseController
             $logoFile = $this->request->getFile('logo_file');
             $hasLogoUpload = $logoFile !== null && $logoFile->getError() !== UPLOAD_ERR_NO_FILE;
             if (! $hasLogoUpload && ! $removeLogo) {
-                return redirect()->to('/companies')->withInput()->with('error', 'Provide at least one field to update for company.');
+                return redirect()->to('/admin/companies')->withInput()->with('error', 'Provide at least one field to update for company.');
             }
         }
 
@@ -154,7 +154,7 @@ class CompanyController extends BaseController
 
             $existing = $model->where('id', $companyId)->first();
             if ($existing === null) {
-                return redirect()->to('/companies')->with('error', 'Company not found.');
+                return redirect()->to('/admin/companies')->with('error', 'Company not found.');
             }
 
             if ($logoPath !== null) {
@@ -176,9 +176,9 @@ class CompanyController extends BaseController
                 throw new \RuntimeException('Failed to update company.');
             }
 
-            return redirect()->to('/companies')->with('success', 'Company updated successfully.');
+            return redirect()->to('/admin/companies')->with('success', 'Company updated successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/companies')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/companies')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -186,7 +186,7 @@ class CompanyController extends BaseController
     {
         $companyId = (int) $this->request->getPost('company_id');
         if ($companyId < 1) {
-            return redirect()->to('/companies')->with('error', 'Valid company ID is required for delete.');
+            return redirect()->to('/admin/companies')->with('error', 'Valid company ID is required for delete.');
         }
 
         try {
@@ -194,7 +194,7 @@ class CompanyController extends BaseController
             $existing = $model->where('id', $companyId)->first();
 
             if ($existing === null) {
-                return redirect()->to('/companies')->with('error', 'Company not found or already removed.');
+                return redirect()->to('/admin/companies')->with('error', 'Company not found or already removed.');
             }
 
             $model->delete($companyId);
@@ -209,9 +209,9 @@ class CompanyController extends BaseController
                 }
             }
 
-            return redirect()->to('/companies')->with('success', 'Company deleted successfully.');
+            return redirect()->to('/admin/companies')->with('success', 'Company deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/companies')->with('error', $e->getMessage());
+            return redirect()->to('/admin/companies')->with('error', $e->getMessage());
         }
     }
 

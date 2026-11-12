@@ -184,7 +184,7 @@
 <body>
     <div class="actions">
         <button class="btn" onclick="window.print()">Print / Save PDF</button>
-        <a class="btn alt" href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>">Back to Ledger 2</a>
+        <a class="btn alt" href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>">Back to Ledger 2</a>
     </div>
 
     <main class="sheet">

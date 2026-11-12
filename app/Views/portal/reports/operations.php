@@ -14,13 +14,13 @@
                 <h1 class="text-base font-semibold text-slate-900">Operations Reports</h1>
                 <p class="text-xs text-slate-500">Booking pipeline, visa flow, and pilgrim composition.</p>
             </div>
-            <a href="<?= site_url('/reports') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+            <a href="<?= site_url('/admin/reports') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
                 <i class="fa-solid fa-arrow-left text-[10px]"></i>
                 Back to Reports
             </a>
         </div>
 
-        <form method="get" action="<?= site_url('/reports/operations') ?>" class="mt-3 grid gap-2 md:grid-cols-4">
+        <form method="get" action="<?= site_url('/admin/reports/operations') ?>" class="mt-3 grid gap-2 md:grid-cols-4">
             <div>
                 <label for="from_date" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">From Date</label>
                 <input id="from_date" type="date" name="from_date" value="<?= esc((string) ($filters['from_date'] ?? '')) ?>" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
@@ -34,7 +34,7 @@
                     <i class="fa-solid fa-filter text-[10px]"></i>
                     Apply Filter
                 </button>
-                <a href="<?= site_url('/reports/operations') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                <a href="<?= site_url('/admin/reports/operations') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
                     <i class="fa-solid fa-rotate-left text-[10px]"></i>
                     Reset
                 </a>

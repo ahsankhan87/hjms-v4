@@ -16,7 +16,7 @@
                     <h1 class="text-lg font-semibold">KSA Status Snapshot</h1>
                     <p class="text-xs text-sky-100">Date-wise movement and in-country occupancy estimate.</p>
                 </div>
-                <a href="<?= site_url('/reports') ?>" class="inline-flex items-center gap-2 rounded-lg border border-sky-200/40 bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-white/20">
+                <a href="<?= site_url('/admin/reports') ?>" class="inline-flex items-center gap-2 rounded-lg border border-sky-200/40 bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-white/20">
                     <i class="fa-solid fa-arrow-left text-[10px]"></i>
                     Back to Reports
                 </a>
@@ -24,7 +24,7 @@
         </div>
 
         <div class="border-t border-slate-200 px-4 py-3 sm:px-5">
-            <form method="get" action="<?= site_url('/reports/ksa-status') ?>" class="flex flex-wrap items-end gap-2">
+            <form method="get" action="<?= site_url('/admin/reports/ksa-status') ?>" class="flex flex-wrap items-end gap-2">
                 <div>
                     <label for="status_date" class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">KSA Status On</label>
                     <div class="flex items-center gap-2 rounded-lg border border-slate-300 px-2.5 py-1.5">

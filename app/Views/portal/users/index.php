@@ -12,7 +12,7 @@
                     <h3 class="text-sm font-semibold text-slate-800">Users</h3>
                     <p class="text-xs text-slate-500">Manage user accounts, roles, and status.</p>
                 </div>
-                <a href="<?= site_url('/users/add') ?>" class="btn btn-md btn-primary">
+                <a href="<?= site_url('/admin/users/add') ?>" class="btn btn-md btn-primary">
                     <i class="fa-solid fa-plus"></i><span>Add User</span>
                 </a>
             </div>
@@ -59,10 +59,10 @@
                                 <td class="px-3 py-2"><?= esc($row['created_at'] ?: '-') ?></td>
                                 <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= site_url('/users/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit User">
+                                        <a href="<?= site_url('/admin/users/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit User">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <form method="post" action="<?= site_url('/users/delete') ?>" class="inline">
+                                        <form method="post" action="<?= site_url('/admin/users/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="user_id" value="<?= esc($row['id']) ?>">
                                             <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this user?')" title="Delete User">

@@ -54,13 +54,13 @@ class AgentController extends BaseController
     {
         $linkedAgentId = $this->linkedAgentId();
         if ($linkedAgentId !== null && $id !== $linkedAgentId) {
-            return redirect()->to('/unauthorized')->with('error', 'You can only access your own agent record.');
+            return redirect()->to('/admin/unauthorized')->with('error', 'You can only access your own agent record.');
         }
 
         $model = new AgentModel();
         $row = $model->find($id);
         if (empty($row)) {
-            return redirect()->to('/agents')->with('error', 'Agent not found.');
+            return redirect()->to('/admin/agents')->with('error', 'Agent not found.');
         }
 
         $db = db_connect();
@@ -87,7 +87,7 @@ class AgentController extends BaseController
 
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
-            return redirect()->to('/agents')->with('error', 'Agent not found.');
+            return redirect()->to('/admin/agents')->with('error', 'Agent not found.');
         }
 
         $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
@@ -125,7 +125,7 @@ class AgentController extends BaseController
 
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
-            return redirect()->to('/agents')->with('error', 'Agent not found.');
+            return redirect()->to('/admin/agents')->with('error', 'Agent not found.');
         }
 
         $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
@@ -157,7 +157,7 @@ class AgentController extends BaseController
 
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
-            return redirect()->to('/agents')->with('error', 'Agent not found.');
+            return redirect()->to('/admin/agents')->with('error', 'Agent not found.');
         }
 
         $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
@@ -197,7 +197,7 @@ class AgentController extends BaseController
 
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
-            return redirect()->to('/agents')->with('error', 'Agent not found.');
+            return redirect()->to('/admin/agents')->with('error', 'Agent not found.');
         }
 
         $fromDate = $this->normalizeDateFilter((string) $this->request->getGet('from'));
@@ -233,7 +233,7 @@ class AgentController extends BaseController
 
         $agent = (new AgentModel())->find($id);
         if (empty($agent)) {
-            return redirect()->to('/agents')->with('error', 'Agent not found.');
+            return redirect()->to('/admin/agents')->with('error', 'Agent not found.');
         }
 
         $ledgerService = new AgentLedgerService();
@@ -289,7 +289,7 @@ class AgentController extends BaseController
             'amount' => 'required|decimal',
             'description' => 'permit_empty|max_length[255]',
         ])) {
-            return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger/manual-entry')->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->to('/admin/agents/' . $payload['agent_id'] . '/ledger/manual-entry')->withInput()->with('errors', $this->validator->getErrors());
         }
 
         try {
@@ -297,9 +297,9 @@ class AgentController extends BaseController
             $ledgerService->createManualEntry($payload);
             $ledgerService->recalculateAgentBalance((int) $payload['agent_id']);
 
-            return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
+            return redirect()->to('/admin/agents/' . $payload['agent_id'] . '/ledger')->with('success', 'Ledger entry posted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/agents/' . $payload['agent_id'] . '/ledger/manual-entry')->withInput()->with('error', $e->getMessage());
+            return redirect()->to('/admin/agents/' . $payload['agent_id'] . '/ledger/manual-entry')->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -314,25 +314,25 @@ class AgentController extends BaseController
         }
 
         if ($ledgerId < 1) {
-            return redirect()->to('/agents')->with('error', 'Invalid ledger entry ID.');
+            return redirect()->to('/admin/agents')->with('error', 'Invalid ledger entry ID.');
         }
 
         if ($agentId < 1) {
-            return redirect()->to('/agents')->with('error', 'Invalid agent ID.');
+            return redirect()->to('/admin/agents')->with('error', 'Invalid agent ID.');
         }
 
         try {
             $agent = (new AgentModel())->find($agentId);
             if (empty($agent)) {
-                return redirect()->to('/agents')->with('error', 'Agent not found.');
+                return redirect()->to('/admin/agents')->with('error', 'Agent not found.');
             }
 
             $ledgerService = new AgentLedgerService();
             $ledgerService->deleteLedgerEntry($ledgerId);
 
-            return redirect()->to('/agents/' . $agentId . '/ledger')->with('success', 'Ledger entry deleted successfully.');
+            return redirect()->to('/admin/agents/' . $agentId . '/ledger')->with('success', 'Ledger entry deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/agents/' . $agentId . '/ledger')->with('error', $e->getMessage());
+            return redirect()->to('/admin/agents/' . $agentId . '/ledger')->with('error', $e->getMessage());
         }
     }
 
@@ -1066,7 +1066,7 @@ class AgentController extends BaseController
 
             $model->update($agentId, ['code' => $code]);
 
-            return redirect()->to('/agents')->with('success', 'Agent created successfully.');
+            return redirect()->to('/admin/agents')->with('success', 'Agent created successfully.');
         } catch (\Throwable $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
@@ -1108,7 +1108,7 @@ class AgentController extends BaseController
         $model = new AgentModel();
         $existing = $model->find($agentId);
         if (empty($existing)) {
-            return redirect()->to('/agents')->withInput()->with('error', 'Agent not found.');
+            return redirect()->to('/admin/agents')->withInput()->with('error', 'Agent not found.');
         }
 
         $data = array_filter($payload, static function ($value) {
@@ -1142,7 +1142,7 @@ class AgentController extends BaseController
         try {
             $model->update($agentId, $data + ['updated_at' => date('Y-m-d H:i:s')]);
 
-            return redirect()->to('/agents')->with('success', 'Agent updated successfully.');
+            return redirect()->to('/admin/agents')->with('success', 'Agent updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
@@ -1152,30 +1152,30 @@ class AgentController extends BaseController
     {
         $agentId = (int) $this->request->getPost('agent_id');
         if ($agentId < 1) {
-            return redirect()->to('/agents')->with('error', 'Valid agent ID is required for delete.');
+            return redirect()->to('/admin/agents')->with('error', 'Valid agent ID is required for delete.');
         }
 
         try {
             $model = new AgentModel();
             $existing = $model->find($agentId);
             if (empty($existing)) {
-                return redirect()->to('/agents')->with('error', 'Agent not found or already removed.');
+                return redirect()->to('/admin/agents')->with('error', 'Agent not found or already removed.');
             }
 
             $bookingCount = db_connect()->table('bookings')->where('agent_id', $agentId)->countAllResults();
             if ($bookingCount > 0) {
-                return redirect()->to('/agents')->with('error', 'Cannot delete this agent because it is linked to bookings.');
+                return redirect()->to('/admin/agents')->with('error', 'Cannot delete this agent because it is linked to bookings.');
             }
 
             $deleted = $model->delete($agentId);
 
             if (! $deleted) {
-                return redirect()->to('/agents')->with('error', 'Agent not found or already removed.');
+                return redirect()->to('/admin/agents')->with('error', 'Agent not found or already removed.');
             }
 
-            return redirect()->to('/agents')->with('success', 'Agent deleted successfully.');
+            return redirect()->to('/admin/agents')->with('success', 'Agent deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/agents')->with('error', $e->getMessage());
+            return redirect()->to('/admin/agents')->with('error', $e->getMessage());
         }
     }
 

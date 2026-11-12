@@ -12,7 +12,7 @@
     </article>
 
     <article class="rounded-xl border border-slate-200 bg-white p-4">
-        <form method="post" action="<?= site_url('/expense-categories/update') ?>" class="space-y-3">
+        <form method="post" action="<?= site_url('/admin/expense-categories/update') ?>" class="space-y-3">
             <?= csrf_field() ?>
             <input type="hidden" name="category_id" value="<?= esc((string) $row['id']) ?>">
             <div>
@@ -32,7 +32,7 @@
                 </select>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                <a href="<?= site_url('/expense-categories') ?>" class="btn btn-md btn-secondary">Back</a>
+                <a href="<?= site_url('/admin/expense-categories') ?>" class="btn btn-md btn-secondary">Back</a>
                 <button type="submit" class="btn btn-md btn-primary"><i class="fa-solid fa-check"></i><span>Update Category</span></button>
             </div>
         </form>

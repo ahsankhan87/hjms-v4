@@ -82,7 +82,7 @@ $field = static function (string $label, string $value, string $extra = ''): str
     <?php if (!empty($error)): ?><div class="no-print rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
 
     <nav class="no-print flex items-center gap-2 text-xs text-slate-500">
-        <a href="<?= site_url('/sales') ?>" class="hover:text-emerald-700"><i class="fa-solid fa-arrow-left mr-1"></i>Sales</a>
+        <a href="<?= site_url('/admin/sales') ?>" class="hover:text-emerald-700"><i class="fa-solid fa-arrow-left mr-1"></i>Sales</a>
         <span>/</span>
         <span class="font-medium text-slate-700"><?= esc((string) ($sale['invoice_no'] ?? '')) ?></span>
     </nav>
@@ -106,7 +106,7 @@ $field = static function (string $label, string $value, string $extra = ''): str
                 <div class="no-print flex flex-wrap items-center gap-2">
                     <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg bg-white/15 px-3.5 py-2 text-sm font-medium text-white ring-1 ring-white/30 transition hover:bg-white/25"><i class="fa-solid fa-print"></i>Print</button>
                     <?php if (auth_can('sales.edit')): ?>
-                        <a href="<?= site_url('/sales/' . (int) $sale['id'] . '/edit') ?>" class="inline-flex items-center gap-2 rounded-lg bg-white px-3.5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-50"><i class="fa-solid fa-pen"></i>Edit</a>
+                        <a href="<?= site_url('/admin/sales/' . (int) $sale['id'] . '/edit') ?>" class="inline-flex items-center gap-2 rounded-lg bg-white px-3.5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-50"><i class="fa-solid fa-pen"></i>Edit</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -244,7 +244,7 @@ $field = static function (string $label, string $value, string $extra = ''): str
                     </div>
                 </div>
                 <?php if ($isAgent && (int) ($sale['agent_id'] ?? 0) > 0 && auth_can('agents.view')): ?>
-                    <a href="<?= site_url('/agents/' . (int) $sale['agent_id'] . '/ledger') ?>" class="no-print mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:underline"><i class="fa-solid fa-book"></i>View agent ledger</a>
+                    <a href="<?= site_url('/admin/agents/' . (int) $sale['agent_id'] . '/ledger') ?>" class="no-print mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:underline"><i class="fa-solid fa-book"></i>View agent ledger</a>
                 <?php endif; ?>
             </section>
 
@@ -265,7 +265,7 @@ $field = static function (string $label, string $value, string $extra = ''): str
                                 <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600"><?= esc(strtoupper(substr($pName !== '' ? $pName : 'P', 0, 1))) ?></span>
                                 <div class="min-w-0 flex-1">
                                     <?php if (auth_can('pilgrims.view')): ?>
-                                        <a href="<?= site_url('/pilgrims/' . (int) $pilgrim['id']) ?>" class="block truncate text-sm font-semibold text-slate-800 hover:text-emerald-700"><?= esc($pName !== '' ? $pName : 'Pilgrim') ?></a>
+                                        <a href="<?= site_url('/admin/pilgrims/' . (int) $pilgrim['id']) ?>" class="block truncate text-sm font-semibold text-slate-800 hover:text-emerald-700"><?= esc($pName !== '' ? $pName : 'Pilgrim') ?></a>
                                     <?php else: ?>
                                         <span class="block truncate text-sm font-semibold text-slate-800"><?= esc($pName !== '' ? $pName : 'Pilgrim') ?></span>
                                     <?php endif; ?>

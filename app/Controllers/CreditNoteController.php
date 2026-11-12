@@ -93,7 +93,7 @@ class CreditNoteController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $filters = [
@@ -167,7 +167,7 @@ class CreditNoteController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $requestedSaleId = (int) $this->request->getGet('sale_id');
@@ -250,7 +250,7 @@ class CreditNoteController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $payload = [
@@ -378,7 +378,7 @@ class CreditNoteController extends BaseController
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $creditNoteId = (int) $this->request->getPost('credit_note_id');

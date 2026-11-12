@@ -14,6 +14,9 @@ use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\WebAuthFilter;
 use App\Filters\AuditLogFilter;
+use App\Filters\FrontendAuthFilter;
+use App\Filters\FrontendRoleFilter;
+use App\Filters\AgentFilter;
 
 class Filters extends BaseFilters
 {
@@ -38,6 +41,9 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'webauth'       => WebAuthFilter::class,
         'auditlog'      => AuditLogFilter::class,
+        'frontendauth'  => FrontendAuthFilter::class,
+        'frontendrole'  => FrontendRoleFilter::class,
+        'agent'         => AgentFilter::class,
     ];
 
     /**

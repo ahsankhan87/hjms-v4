@@ -102,7 +102,7 @@ $bookingStatusClasses = static function (string $status): string {
     <!-- Page Header -->
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-            <a href="<?= site_url('/pilgrims') ?>" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50" title="Back to Pilgrims">
+            <a href="<?= site_url('/admin/pilgrims') ?>" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50" title="Back to Pilgrims">
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div>
@@ -122,10 +122,10 @@ $bookingStatusClasses = static function (string $status): string {
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <a href="<?= site_url('/pilgrims/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="btn btn-sm btn-secondary">
+            <a href="<?= site_url('/admin/pilgrims/' . (int) ($row['id'] ?? 0) . '/edit') ?>" class="btn btn-sm btn-secondary">
                 <i class="fa-solid fa-pen"></i><span>Edit</span>
             </a>
-            <form method="post" action="<?= site_url('/pilgrims/delete') ?>" class="inline">
+            <form method="post" action="<?= site_url('/admin/pilgrims/delete') ?>" class="inline">
                 <?= csrf_field() ?>
                 <input type="hidden" name="pilgrim_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this pilgrim?');">
@@ -391,7 +391,7 @@ $bookingStatusClasses = static function (string $status): string {
                                             <p class="mt-0.5 text-xs text-slate-500">
                                                 <?php if ($seasonLabel !== ''): ?><span class="font-medium text-slate-600"><?= esc($seasonLabel) ?></span> &middot; <?php endif; ?>
                                                 Booking
-                                                <a href="<?= site_url('/bookings/' . (int) ($trip['id'] ?? 0) . '/edit') ?>" class="font-semibold text-sky-600 hover:underline"><?= esc((string) ($trip['booking_no'] ?? ('#' . ($trip['id'] ?? '')))) ?></a>
+                                                <a href="<?= site_url('/admin/bookings/' . (int) ($trip['id'] ?? 0) . '/edit') ?>" class="font-semibold text-sky-600 hover:underline"><?= esc((string) ($trip['booking_no'] ?? ('#' . ($trip['id'] ?? '')))) ?></a>
                                                 <?php if (!empty($trip['package_code'])): ?> &middot; <span class="font-mono"><?= esc((string) $trip['package_code']) ?></span><?php endif; ?>
                                             </p>
                                         </div>
@@ -464,7 +464,7 @@ $bookingStatusClasses = static function (string $status): string {
                             This pilgrim is availed<?= !empty($availedSource['label']) ? ' (<span class="font-semibold">' . esc((string) $availedSource['label']) . '</span>)' : '' ?>
                             in the active season, so they are hidden from booking &amp; sales lists.
                         </p>
-                        <form method="post" action="<?= site_url('/pilgrims/release') ?>">
+                        <form method="post" action="<?= site_url('/admin/pilgrims/release') ?>">
                             <?= csrf_field() ?>
                             <input type="hidden" name="pilgrim_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
                             <button type="submit" class="btn btn-sm btn-primary w-full" onclick="return confirm('Allow this pilgrim to be sold/booked again for a new trip?');">
@@ -624,7 +624,7 @@ $bookingStatusClasses = static function (string $status): string {
                         <?php foreach ($bookings as $booking): ?>
                             <li class="px-5 py-3">
                                 <div class="flex items-center justify-between gap-2">
-                                    <a href="<?= site_url('/bookings/' . (int) ($booking['id'] ?? 0) . '/edit') ?>" class="text-sm font-semibold text-sky-700 hover:underline">
+                                    <a href="<?= site_url('/admin/bookings/' . (int) ($booking['id'] ?? 0) . '/edit') ?>" class="text-sm font-semibold text-sky-700 hover:underline">
                                         <?= esc((string) ($booking['booking_no'] ?? ('Booking #' . ($booking['id'] ?? '')))) ?>
                                     </a>
                                     <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold <?= esc($bookingStatusClasses((string) ($booking['status'] ?? ''))) ?>">

@@ -14,10 +14,10 @@
                     <p class="text-xs text-slate-500">Manage hotel profiles, inventory, and media assets.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="<?= site_url('/hotels/add') ?>" class="btn btn-md btn-primary">
+                    <a href="<?= site_url('/admin/hotels/add') ?>" class="btn btn-md btn-primary">
                         <i class="fa-solid fa-plus"></i><span>Add Hotel</span>
                     </a>
-                    <a href="<?= site_url('/hotels/rooming-list') ?>" class="btn btn-md btn-secondary">
+                    <a href="<?= site_url('/admin/hotels/rooming-list') ?>" class="btn btn-md btn-secondary">
                         <i class="fa-solid fa-bed"></i><span>Rooming List Report</span>
                     </a>
                 </div>
@@ -90,9 +90,9 @@
                                 </td>
                                 <td class="px-3 py-2 align-top">
                                     <div class="flex flex-wrap gap-2">
-                                        <a href="<?= site_url('/hotels/' . (int) $row['id']) ?>" class="text-xs font-medium text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-eye mr-1"></i></a>
-                                        <a href="<?= site_url('/hotels/' . (int) $row['id'] . '/edit') ?>" class="text-xs font-medium text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i></a>
-                                        <form method="post" action="<?= site_url('/hotels/delete') ?>" class="inline">
+                                        <a href="<?= site_url('/admin/hotels/' . (int) $row['id']) ?>" class="text-xs font-medium text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-eye mr-1"></i></a>
+                                        <a href="<?= site_url('/admin/hotels/' . (int) $row['id'] . '/edit') ?>" class="text-xs font-medium text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1"></i></a>
+                                        <form method="post" action="<?= site_url('/admin/hotels/delete') ?>" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="hotel_id" value="<?= esc($row['id']) ?>">
                                             <button type="submit" class="text-xs font-medium text-rose-700 hover:bg-rose-100" onclick="return confirm('Delete this hotel and all room types?')"><i class="fa-solid fa-trash mr-1"></i></button>

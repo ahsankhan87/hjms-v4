@@ -703,37 +703,37 @@
                         <p class="sidebar-label text-xs font-semibold text-gray-400 uppercase tracking-wider">Main Menu</p>
                     </div>
                     <?php if ($canDashboard): ?>
-                        <a href="<?= site_url('/dashboard') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/dashboard') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
                             <i class="fa-solid fa-chart-line w-4"></i><span>Dashboard</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canPackages): ?>
-                        <a href="<?= site_url('/packages') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'packages' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/packages') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'packages' ? 'active' : '' ?>">
                             <i class="fa-solid fa-box-open w-4"></i><span>Packages</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canPilgrims): ?>
-                        <a href="<?= site_url('/pilgrims') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'pilgrims' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/pilgrims') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'pilgrims' ? 'active' : '' ?>">
                             <i class="fa-solid fa-users w-4"></i><span>Pilgrims</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canVisas): ?>
-                        <a href="<?= site_url('/visas') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'visas' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/visas') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'visas' ? 'active' : '' ?>">
                             <i class="fa-solid fa-passport w-4"></i><span>Visa Processing</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canFlights): ?>
-                        <a href="<?= site_url('/flights') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'flights' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/flights') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'flights' ? 'active' : '' ?>">
                             <i class="fa-solid fa-plane w-4"></i><span>Flights</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canHotels): ?>
-                        <a href="<?= site_url('/hotels') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'hotels' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/hotels') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'hotels' ? 'active' : '' ?>">
                             <i class="fa-solid fa-hotel w-4"></i><span>Hotels</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canTransports): ?>
-                        <a href="<?= site_url('/transports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'transports' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/transports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'transports' ? 'active' : '' ?>">
                             <i class="fa-solid fa-bus w-4"></i><span>Transport</span>
                         </a>
                     <?php endif; ?>
@@ -743,22 +743,22 @@
                             <p class="sidebar-label text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
                         </div>
                         <?php if ($canPayments): ?>
-                            <a href="<?= site_url('/payments') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'payments' ? 'active' : '' ?>">
+                            <a href="<?= site_url('/admin/payments') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'payments' ? 'active' : '' ?>">
                                 <i class="fa-solid fa-wallet w-4"></i><span>Payments</span>
                             </a>
                         <?php endif; ?>
                         <?php if ($canExpenses): ?>
-                            <a href="<?= site_url('/expenses') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'expenses' ? 'active' : '' ?>">
+                            <a href="<?= site_url('/admin/expenses') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'expenses' ? 'active' : '' ?>">
                                 <i class="fa-solid fa-receipt w-4"></i><span>Expenses</span>
                             </a>
                         <?php endif; ?>
                         <?php if ($canSales): ?>
-                            <a href="<?= site_url('/sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= in_array(($activePage ?? ''), ['sales', 'visa_sales', 'hotel_sales', 'ticket_sales', 'package_sales'], true) ? 'active' : '' ?>">
+                            <a href="<?= site_url('/admin/sales') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= in_array(($activePage ?? ''), ['sales', 'visa_sales', 'hotel_sales', 'ticket_sales', 'package_sales'], true) ? 'active' : '' ?>">
                                 <i class="fa-solid fa-receipt w-4"></i><span>Sale</span>
                             </a>
                         <?php endif; ?>
                         <?php if ($canSuppliers): ?>
-                            <a href="<?= site_url('/suppliers') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'suppliers' ? 'active' : '' ?>">
+                            <a href="<?= site_url('/admin/suppliers') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'suppliers' ? 'active' : '' ?>">
                                 <i class="fa-solid fa-handshake w-4"></i><span>Suppliers</span>
                             </a>
                         <?php endif; ?>
@@ -770,22 +770,22 @@
                         </div>
                     <?php endif; ?>
                     <?php if ($canBookings): ?>
-                        <a href="<?= site_url('/bookings') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'bookings' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/bookings') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'bookings' ? 'active' : '' ?>">
                             <i class="fa-solid fa-file-contract w-4"></i><span>Bookings</span>
                         </a>
                     <?php endif; ?>
                     <!-- <?php if ($canBranches): ?>
-                        <a href="<?= site_url('/branches') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'branches' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/branches') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'branches' ? 'active' : '' ?>">
                             <i class="fa-solid fa-code-branch w-4"></i><span>Branches</span>
                         </a>
                     <?php endif; ?> -->
                     <?php if ($canAgents): ?>
-                        <a href="<?= site_url('/agents') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'agents' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/agents') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'agents' ? 'active' : '' ?>">
                             <i class="fa-solid fa-user-tie w-4"></i><span>Agents</span>
                         </a>
                     <?php endif; ?>
                     <?php if ($canReports): ?>
-                        <a href="<?= site_url('/reports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'reports' ? 'active' : '' ?>">
+                        <a href="<?= site_url('/admin/reports') ?>" class="sidebar-item flex items-center gap-3 px-6 py-3 text-gray-700 <?= ($activePage ?? '') === 'reports' ? 'active' : '' ?>">
                             <i class="fa-solid fa-chart-pie w-4"></i><span>Reports</span>
                         </a>
                     <?php endif; ?>
@@ -811,7 +811,7 @@
 
                     <div class="flex items-center gap-3">
                         <?php if ($canSeasons && !empty($seasonRows)): ?>
-                            <form method="post" action="<?= site_url('/seasons/activate') ?>" class="hidden xl:flex items-center gap-2">
+                            <form method="post" action="<?= site_url('/admin/seasons/activate') ?>" class="hidden xl:flex items-center gap-2">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="_return" value="<?= current_url() ?>">
                                 <label class="text-xs font-medium text-slate-600">Season</label>
@@ -844,41 +844,41 @@
                                 </div>
                                 <div class="py-1">
                                     <?php if ($canUsers): ?>
-                                        <a href="<?= site_url('/users') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/users') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-user-gear w-4 text-slate-500"></i><span>Users</span>
                                         </a>
                                     <?php endif; ?>
                                     <?php if ($canCompanies): ?>
-                                        <a href="<?= site_url('/companies') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/companies') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-building w-4 text-slate-500"></i><span>Companies</span>
                                         </a>
                                     <?php endif; ?>
                                     <?php if ($canCompaniesManage): ?>
-                                        <a href="<?= site_url('/main-company') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/main-company') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-pen-to-square w-4 text-slate-500"></i><span>Profile Settings</span>
                                         </a>
-                                        <a href="<?= site_url('/main-company/settings') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/main-company/settings') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-sliders w-4 text-slate-500"></i><span>Voucher Settings</span>
                                         </a>
                                     <?php endif; ?>
                                     <?php if ($canAudit): ?>
-                                        <a href="<?= site_url('/audit') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/audit') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-shield-halved w-4 text-slate-500"></i><span>Audit Log</span>
                                         </a>
                                     <?php endif; ?>
                                     <?php if ($canRbacManage): ?>
-                                        <a href="<?= site_url('/rbac') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/rbac') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-user-shield w-4 text-slate-500"></i><span>Access Control</span>
                                         </a>
                                     <?php endif; ?>
                                     <?php if ($canSeasons): ?>
-                                        <a href="<?= site_url('/seasons') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/seasons') ?>" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-calendar-days w-4 text-slate-500"></i><span>Seasons</span>
                                         </a>
                                     <?php endif; ?>
                                 </div>
                                 <div class="border-t border-slate-100 p-1">
-                                    <form method="post" action="<?= site_url('/logout') ?>">
+                                    <form method="post" action="<?= site_url('/admin/logout') ?>">
                                         <?= csrf_field() ?>
                                         <button class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-rose-700 hover:bg-rose-50" type="submit">
                                             <i class="fa-solid fa-right-from-bracket w-4"></i><span>Logout</span>

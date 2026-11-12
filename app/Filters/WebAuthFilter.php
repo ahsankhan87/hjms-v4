@@ -11,7 +11,7 @@ class WebAuthFilter implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
         if (! session('is_logged_in') || ! session('user_id')) {
-            return redirect()->to('/login');
+            return redirect()->to('/admin/login');
         }
 
         if (function_exists('auth_is_super_admin') && auth_is_super_admin()) {
@@ -31,7 +31,7 @@ class WebAuthFilter implements FilterInterface
                 $allowed = in_array($required, $items, true);
 
                 if (! $allowed) {
-                    return redirect()->to('/unauthorized')
+                    return redirect()->to('/admin/unauthorized')
                         ->with('error', 'You do not have permission to access this section.');
                 }
             }

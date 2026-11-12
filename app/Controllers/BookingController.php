@@ -34,7 +34,7 @@ class BookingController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $bookingFields = $db->getFieldNames('bookings');
@@ -109,15 +109,15 @@ class BookingController extends BaseController
         $linkedAgentId = $this->linkedAgentId();
 
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         if (! function_exists('auth_can') || ! auth_can('bookings.approve')) {
-            return redirect()->to('/bookings')->with('error', 'You are not authorized to approve bookings.');
+            return redirect()->to('/admin/bookings')->with('error', 'You are not authorized to approve bookings.');
         }
 
         if ($bookingId < 1) {
-            return redirect()->to('/bookings')->with('error', 'Valid booking ID is required.');
+            return redirect()->to('/admin/bookings')->with('error', 'Valid booking ID is required.');
         }
 
         $db = db_connect();
@@ -129,28 +129,28 @@ class BookingController extends BaseController
             ->getRowArray();
 
         if (empty($booking)) {
-            return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
+            return redirect()->to('/admin/bookings')->with('error', 'Booking not found in active season.');
         }
 
         if ((string) ($booking['status'] ?? '') === 'cancelled') {
-            return redirect()->to('/bookings')->with('error', 'Cancelled booking cannot be approved.');
+            return redirect()->to('/admin/bookings')->with('error', 'Cancelled booking cannot be approved.');
         }
 
         if ((string) ($booking['status'] ?? '') === 'confirmed') {
-            return redirect()->to('/bookings')->with('success', 'Booking is already approved.');
+            return redirect()->to('/admin/bookings')->with('success', 'Booking is already approved.');
         }
 
         // Confirming the booking consumes seats from the package pool.
         $packageId = (int) ($booking['package_id'] ?? 0);
         $seatsLimit = $this->packageSeatLimit($packageId);
         if ($seatsLimit === null) {
-            return redirect()->to('/bookings')->with('error', 'No seats have been configured for this package. Please set total seats in Package Details before approving.');
+            return redirect()->to('/admin/bookings')->with('error', 'No seats have been configured for this package. Please set total seats in Package Details before approving.');
         }
 
         $pilgrimCount = (int) $db->table('booking_pilgrims')->where('booking_id', $bookingId)->countAllResults();
         $seatsLeft = max(0, $seatsLimit - $this->packageBookedSeats($packageId));
         if ($pilgrimCount > $seatsLeft) {
-            return redirect()->to('/bookings')->with(
+            return redirect()->to('/admin/bookings')->with(
                 'error',
                 "Only {$seatsLeft} seat(s) left on this package, but the booking has {$pilgrimCount} pilgrim(s). Increase the package seats or reduce the booking."
             );
@@ -164,14 +164,14 @@ class BookingController extends BaseController
         (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
         (new RoomAllocationService())->sync();
 
-        return redirect()->to('/bookings')->with('success', 'Booking approved successfully.');
+        return redirect()->to('/admin/bookings')->with('success', 'Booking approved successfully.');
     }
 
     public function add()
     {
         $seasonId = $this->activeSeasonId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         return view('portal/bookings/add', [
@@ -192,10 +192,10 @@ class BookingController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($id < 1) {
-            return redirect()->to('/bookings')->with('error', 'Invalid booking ID.');
+            return redirect()->to('/admin/bookings')->with('error', 'Invalid booking ID.');
         }
 
         $db = db_connect();
@@ -249,7 +249,7 @@ class BookingController extends BaseController
         $row = $rowQuery->get()->getRowArray();
 
         if (empty($row)) {
-            return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
+            return redirect()->to('/admin/bookings')->with('error', 'Booking not found in active season.');
         }
 
         $pilgrims = $db->table('booking_pilgrims bp')
@@ -286,7 +286,7 @@ class BookingController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $db = db_connect();
@@ -301,7 +301,7 @@ class BookingController extends BaseController
         $row = $rowQuery->get()->getRowArray();
 
         if (empty($row)) {
-            return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
+            return redirect()->to('/admin/bookings')->with('error', 'Booking not found in active season.');
         }
 
         $selectedPilgrimIds = array_map('intval', array_column(
@@ -329,7 +329,7 @@ class BookingController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         $pilgrimIds = (array) $this->request->getPost('pilgrim_ids');
@@ -479,7 +479,7 @@ class BookingController extends BaseController
             (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
             (new RoomAllocationService())->sync();
 
-            return redirect()->to('/bookings')->with('success', 'Booking created successfully.');
+            return redirect()->to('/admin/bookings')->with('success', 'Booking created successfully.');
         } catch (\Throwable $e) {
             return redirect()->to($returnUrl)->withInput()->with('error', $e->getMessage());
         }
@@ -492,7 +492,7 @@ class BookingController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         $postedPilgrims = $this->request->getPost('pilgrim_ids');
 
@@ -566,7 +566,7 @@ class BookingController extends BaseController
                 $existing = null;
             }
             if (empty($existing)) {
-                return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
+                return redirect()->to('/admin/bookings')->with('error', 'Booking not found in active season.');
             }
 
             if (isset($data['status']) && (string) $data['status'] === 'confirmed' && (string) ($existing['status'] ?? '') !== 'confirmed') {
@@ -720,7 +720,7 @@ class BookingController extends BaseController
             (new AgentLedgerService())->syncBookingLedger($bookingId, $seasonId);
             (new RoomAllocationService())->sync();
 
-            return redirect()->to('/bookings')->with('success', 'Booking updated successfully.');
+            return redirect()->to('/admin/bookings')->with('success', 'Booking updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->to($returnUrl)->withInput()->with('error', $e->getMessage());
         }
@@ -1142,10 +1142,10 @@ class BookingController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
         if ($bookingId < 1) {
-            return redirect()->to('/bookings')->with('error', 'Valid booking ID is required for delete.');
+            return redirect()->to('/admin/bookings')->with('error', 'Valid booking ID is required for delete.');
         }
 
         try {
@@ -1158,7 +1158,7 @@ class BookingController extends BaseController
                 $existing = null;
             }
             if (empty($existing)) {
-                return redirect()->to('/bookings')->with('error', 'Booking not found in active season.');
+                return redirect()->to('/admin/bookings')->with('error', 'Booking not found in active season.');
             }
 
             $db->transStart();
@@ -1173,9 +1173,9 @@ class BookingController extends BaseController
             (new AgentLedgerService())->removeBookingLedger($bookingId);
             (new RoomAllocationService())->sync();
 
-            return redirect()->to('/bookings')->with('success', 'Booking deleted successfully.');
+            return redirect()->to('/admin/bookings')->with('success', 'Booking deleted successfully.');
         } catch (\Throwable $e) {
-            return redirect()->to('/bookings')->with('error', $e->getMessage());
+            return redirect()->to('/admin/bookings')->with('error', $e->getMessage());
         }
     }
 
@@ -1184,11 +1184,11 @@ class BookingController extends BaseController
         $seasonId = $this->activeSeasonId();
         $linkedAgentId = $this->linkedAgentId();
         if ($seasonId === null) {
-            return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
+            return redirect()->to('/admin/seasons')->with('error', 'Please create and activate a season first.');
         }
 
         if ($bookingId < 1) {
-            return redirect()->to('/bookings')->with('error', 'Valid booking ID is required for voucher.');
+            return redirect()->to('/admin/bookings')->with('error', 'Valid booking ID is required for voucher.');
         }
 
         $db = db_connect();
@@ -1207,11 +1207,11 @@ class BookingController extends BaseController
         $booking = $bookingQuery->get()->getRowArray();
 
         if (empty($booking)) {
-            return redirect()->to('/bookings')->with('error', 'Booking not found.');
+            return redirect()->to('/admin/bookings')->with('error', 'Booking not found.');
         }
 
         if ((string) ($booking['status'] ?? '') === 'draft') {
-            return redirect()->to('/bookings')->with('error', 'Voucher is available after booking approval.');
+            return redirect()->to('/admin/bookings')->with('error', 'Voucher is available after booking approval.');
         }
 
         $firstPayment = $db->table('payments')
@@ -1224,11 +1224,11 @@ class BookingController extends BaseController
             ->getRowArray();
 
         if (empty($firstPayment)) {
-            return redirect()->to('/bookings')->with('error', 'Final voucher is available after payment is posted for this booking.');
+            return redirect()->to('/admin/bookings')->with('error', 'Final voucher is available after payment is posted for this booking.');
         }
 
         if (strtolower((string) ($firstPayment['status'] ?? 'pending')) !== 'posted') {
-            return redirect()->to('/bookings')->with('error', 'Final voucher is available only after the first payment is approved.');
+            return redirect()->to('/admin/bookings')->with('error', 'Final voucher is available only after the first payment is approved.');
         }
 
         $paymentRows = $db->table('payments')
@@ -1240,7 +1240,7 @@ class BookingController extends BaseController
             ->getResultArray();
 
         if ($paymentRows === []) {
-            return redirect()->to('/bookings')->with('error', 'Final voucher is available after payment is posted for this booking.');
+            return redirect()->to('/admin/bookings')->with('error', 'Final voucher is available after payment is posted for this booking.');
         }
 
         $totalPaid = 0.0;

@@ -15,7 +15,7 @@
         <div class="grid gap-3 lg:grid-cols-3">
             <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
                 <h2 class="text-sm font-semibold text-slate-900">Update User</h2>
-                <form method="post" action="<?= site_url('/users/update') ?>" class="mt-4 space-y-3">
+                <form method="post" action="<?= site_url('/admin/users/update') ?>" class="mt-4 space-y-3">
                     <?= csrf_field() ?>
                     <input type="hidden" name="user_id" value="<?= esc($row['id']) ?>">
                     <div>
@@ -59,7 +59,7 @@
                         <p class="mt-1 text-[11px] text-slate-500">Linked users are restricted to their own agent data.</p>
                     </div>
                     <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                        <a href="<?= site_url('/users') ?>" class="btn btn-md btn-secondary">Back</a>
+                        <a href="<?= site_url('/admin/users') ?>" class="btn btn-md btn-secondary">Back</a>
                         <button class="btn btn-md btn-primary" type="submit"><i class="fa-solid fa-check"></i><span>Update User</span></button>
                     </div>
                 </form>
@@ -67,7 +67,7 @@
                 <hr class="my-5 border-slate-200">
 
                 <h2 class="text-sm font-semibold text-slate-900">Delete User</h2>
-                <form method="post" action="<?= site_url('/users/delete') ?>" class="mt-4 space-y-3">
+                <form method="post" action="<?= site_url('/admin/users/delete') ?>" class="mt-4 space-y-3">
                     <?= csrf_field() ?>
                     <input type="hidden" name="user_id" value="<?= esc($row['id']) ?>">
                     <button class="btn btn-md btn-danger btn-block" onclick="return confirm('Delete this user?')"><i class="fa-solid fa-trash"></i><span>Delete User</span></button>

@@ -15,15 +15,15 @@
                         <p class="text-[11px] text-slate-200"><?= !empty($agent['code']) ? 'Code: ' . esc((string) $agent['code']) : '' ?></p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <a href="<?= site_url('/agents') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
+                        <a href="<?= site_url('/admin/agents') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
                             <i class="fa-solid fa-arrow-left text-[11px]"></i>
                             Back to Agents
                         </a>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
                             <i class="fa-solid fa-book text-[11px]"></i>
                             Ledger 1
                         </a>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? '')) . '&autoprint=1') ?>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? '')) . '&autoprint=1') ?>" target="_blank" class="inline-flex items-center gap-2 rounded-lg border border-slate-300/40 bg-slate-100/10 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-slate-100/20">
                             <i class="fa-solid fa-print text-[11px]"></i>
                             Print
                         </a>
@@ -32,7 +32,7 @@
             </div>
 
             <div class="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6">
-                <form method="get" action="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second') ?>" class="grid gap-2 md:grid-cols-6">
+                <form method="get" action="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second') ?>" class="grid gap-2 md:grid-cols-6">
                     <div>
                         <label for="from" class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-500">From Date</label>
                         <input id="from" type="date" name="from" value="<?= esc((string) ($filterFrom ?? '')) ?>" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200">
@@ -46,7 +46,7 @@
                             <i class="fa-solid fa-filter text-[11px]"></i>
                             Apply Filter
                         </button>
-                        <a href="<?= site_url('/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
+                        <a href="<?= site_url('/admin/agents/' . (int) ($agent['id'] ?? 0) . '/ledger/second') ?>" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100">
                             <i class="fa-solid fa-rotate-left text-[11px]"></i>
                             Reset
                         </a>

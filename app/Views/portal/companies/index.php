@@ -14,7 +14,7 @@
     <section class="grid gap-3 lg:grid-cols-3">
         <article class="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-1">
             <h3 class="text-sm font-semibold text-slate-800">Add Company</h3>
-            <form method="post" action="<?= site_url('/companies') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/companies') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input name="name" value="<?= esc(old('name')) ?>" required placeholder="Company Name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="tagline" value="<?= esc(old('tagline')) ?>" placeholder="Tagline" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -39,7 +39,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-sm font-semibold text-slate-800">Update Company</h3>
-            <form method="post" action="<?= site_url('/companies/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/companies/update') ?>" enctype="multipart/form-data" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="number" name="company_id" min="1" required placeholder="Company ID" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input name="name" placeholder="Name (optional)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -67,7 +67,7 @@
             <hr class="my-5 border-slate-200">
 
             <h3 class="text-sm font-semibold text-slate-800">Delete Company</h3>
-            <form method="post" action="<?= site_url('/companies/delete') ?>" class="mt-4 space-y-3">
+            <form method="post" action="<?= site_url('/admin/companies/delete') ?>" class="mt-4 space-y-3">
                 <?= csrf_field() ?>
                 <input type="number" name="company_id" min="1" required placeholder="Company ID" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <button type="submit" class="btn btn-md btn-danger btn-block"><i class="fa-solid fa-trash"></i><span>Delete Company</span></button>

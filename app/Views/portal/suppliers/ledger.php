@@ -90,10 +90,10 @@
                     <i class="fa-solid fa-rotate-left text-xs"></i><span class="text-xs">Reset</span>
                 </button>
                 <div class="flex-1"></div>
-                <a href="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="btn btn-secondary inline-flex items-center gap-1 px-2.5 py-1.5">
+                <a href="<?= site_url('/admin/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger/print?from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="btn btn-secondary inline-flex items-center gap-1 px-2.5 py-1.5">
                     <i class="fa-solid fa-print text-xs"></i><span class="text-xs">Print</span>
                 </a>
-                <a href="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger/print?autoprint=1&from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="btn btn-secondary inline-flex items-center gap-1 px-2.5 py-1.5">
+                <a href="<?= site_url('/admin/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger/print?autoprint=1&from=' . urlencode((string) ($filterFrom ?? '')) . '&to=' . urlencode((string) ($filterTo ?? ''))) ?>" target="_blank" class="btn btn-secondary inline-flex items-center gap-1 px-2.5 py-1.5">
                     <i class="fa-solid fa-file-pdf text-xs"></i><span class="text-xs">PDF</span>
                 </a>
                 <button id="addEntryBtn" class="btn btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold shadow-lg hover:shadow-xl transition-shadow">
@@ -158,7 +158,7 @@
                                     <td class="px-1.5 py-0.5 text-right font-semibold text-slate-700"><?= esc(number_format((float) ($row['sar_running_balance'] ?? 0), 2)) ?></td>
                                     <td class="px-1.5 py-0.5 text-center">
                                         <?php if (!empty($row['attachment'])): ?>
-                                            <a href="<?= site_url('/suppliers/attachment/download/' . esc((string) $row['attachment'])) ?>" class="inline-flex items-center gap-0.5 px-1 py-0.25 rounded bg-sky-100 text-sky-700 hover:bg-sky-200 transition-colors text-[8px] font-semibold">
+                                            <a href="<?= site_url('/admin/suppliers/attachment/download/' . esc((string) $row['attachment'])) ?>" class="inline-flex items-center gap-0.5 px-1 py-0.25 rounded bg-sky-100 text-sky-700 hover:bg-sky-200 transition-colors text-[8px] font-semibold">
                                                 <i class="fa-solid fa-download text-[7px]"></i>
                                             </a>
                                         <?php else: ?>
@@ -170,7 +170,7 @@
                                             <button type="button" class="icon-btn text-indigo-600 hover:bg-indigo-100" onclick="editLedgerEntry(<?= (int) ($row['id'] ?? 0) ?>, <?= esc(json_encode($row)) ?>)" title="Edit">
                                                 <i class="fa-solid fa-pen text-[9px]"></i>
                                             </button>
-                                            <form method="post" action="<?= site_url('/suppliers/ledger/delete') ?>" class="inline" onsubmit="return confirm('Delete this entry permanently?');">
+                                            <form method="post" action="<?= site_url('/admin/suppliers/ledger/delete') ?>" class="inline" onsubmit="return confirm('Delete this entry permanently?');">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="supplier_id" value="<?= esc((string) $supplier['id']) ?>">
                                                 <input type="hidden" name="entry_id" value="<?= esc((string) ($row['id'] ?? '0')) ?>">
@@ -224,7 +224,7 @@
         </div>
 
         <!-- Modal Body -->
-        <form id="entryForm" method="post" action="<?= site_url('/suppliers/ledger') ?>" enctype="multipart/form-data" class="p-4 space-y-3">
+        <form id="entryForm" method="post" action="<?= site_url('/admin/suppliers/ledger') ?>" enctype="multipart/form-data" class="p-4 space-y-3">
             <?= csrf_field() ?>
             <input type="hidden" name="supplier_id" value="<?= esc((string) $supplier['id']) ?>">
             <input type="hidden" id="isEditMode" value="0">
@@ -338,7 +338,7 @@
             document.getElementById('modalTitle').textContent = 'Add Ledger Entry';
             document.getElementById('submitText').textContent = 'Save Entry';
             document.getElementById('isEditMode').value = '0';
-            form.action = '<?= site_url('/suppliers/ledger') ?>';
+            form.action = '<?= site_url('/admin/suppliers/ledger') ?>';
             form.method = 'POST';
             form.enctype = 'multipart/form-data';
             document.getElementById('entryDate').value = new Date().toISOString().split('T')[0];
@@ -361,7 +361,7 @@
             document.getElementById('submitText').textContent = 'Update Entry';
             document.getElementById('isEditMode').value = '1';
             document.getElementById('editEntryId').value = entryData.id || entryId;
-            form.action = '<?= site_url('/suppliers/ledger/update') ?>';
+            form.action = '<?= site_url('/admin/suppliers/ledger/update') ?>';
 
             document.getElementById('entryDate').value = entryData.entry_date || '';
             document.getElementById('entryType').value = entryData.entry_type || 'bill';
@@ -383,7 +383,7 @@
 
             if (entryData.attachment) {
                 document.getElementById('currentAttachment').classList.remove('hidden');
-                document.getElementById('attachmentLink').href = '<?= site_url('/suppliers/attachment/download/') ?>' + encodeURIComponent(entryData.attachment);
+                document.getElementById('attachmentLink').href = '<?= site_url('/admin/suppliers/attachment/download/') ?>' + encodeURIComponent(entryData.attachment);
                 document.getElementById('removeAttachment').checked = false;
             } else {
                 document.getElementById('currentAttachment').classList.add('hidden');

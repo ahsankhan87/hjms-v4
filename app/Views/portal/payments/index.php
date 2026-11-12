@@ -1,4 +1,4 @@
-﻿<?php $this->extend('portal/layouts/app') ?>
+<?php $this->extend('portal/layouts/app') ?>
 
 <?php $this->section('main') ?>
 <?php $canApprovePayments = function_exists('auth_can') && auth_can('payments.approve'); ?>
@@ -30,14 +30,14 @@
             <h1 class="text-xl font-bold text-slate-900">Payment Desk</h1>
             <p class="text-sm text-slate-500">View, filter, and manage all payment transactions</p>
         </div>
-        <a href="<?= site_url('/payments/create') ?>" class="btn btn-md btn-primary">
+        <a href="<?= site_url('/admin/payments/create') ?>" class="btn btn-md btn-primary">
             <i class="fa-solid fa-plus"></i><span>Post New Payment</span>
         </a>
     </div>
 
     <!-- Filters -->
     <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <form method="get" action="<?= site_url('/payments') ?>" class="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
+        <form method="get" action="<?= site_url('/admin/payments') ?>" class="grid gap-4 md:grid-cols-4 lg:grid-cols-7">
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">From Date</label>
                 <input type="date" name="from_date" value="<?= esc((string) ($filters['from_date'] ?? '')) ?>"
@@ -101,7 +101,7 @@
                 <button type="submit" class="btn btn-md btn-primary">
                     <i class="fa-solid fa-filter"></i><span>Apply Filters</span>
                 </button>
-                <a href="<?= site_url('/payments') ?>" class="btn btn-md btn-secondary">
+                <a href="<?= site_url('/admin/payments') ?>" class="btn btn-md btn-secondary">
                     <i class="fa-solid fa-rotate-right"></i><span>Reset</span>
                 </a>
             </div>
@@ -152,12 +152,12 @@
                         ?>
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-4 py-3">
-                                <a href="<?= site_url('/payments/' . (int) $row['id'] . '/view') ?>" class="font-semibold text-sky-700 hover:underline">
+                                <a href="<?= site_url('/admin/payments/' . (int) $row['id'] . '/view') ?>" class="font-semibold text-sky-700 hover:underline">
                                     <?= esc($row['payment_no']) ?>
                                 </a>
                             </td>
                             <td class="px-4 py-3 text-slate-700"><?= esc((string) ($row['booking_no'] ?? ('#' . $row['booking_id']))) ?></td>
-                            <td class="px-4 py-3 text-slate-700"><?= esc((string) ($row['agent_name'] ?? 'â€”')) ?></td>
+                            <td class="px-4 py-3 text-slate-700"><?= esc((string) ($row['agent_name'] ?? '—')) ?></td>
                             <td class="px-4 py-3">
                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
                                     <?= $rowIsRefund ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700' ?>">
@@ -180,22 +180,22 @@
                                         Actions <i class="fa-solid fa-chevron-down text-xs leading-none transition-transform duration-200 js-action-arrow"></i>
                                     </button>
                                     <div class="js-action-menu hidden w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                                        <a href="<?= site_url('/payments/' . (int) $row['id'] . '/view') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/payments/' . (int) $row['id'] . '/view') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-eye text-slate-400"></i> View
                                         </a>
-                                        <a href="<?= site_url('/payments/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/payments/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-pen-to-square text-slate-400"></i> Edit
                                         </a>
-                                        <a href="<?= site_url('/payments/' . (int) $row['id'] . '/receipt') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        <a href="<?= site_url('/admin/payments/' . (int) $row['id'] . '/receipt') ?>" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                             <i class="fa-solid fa-receipt text-slate-400"></i> Receipt
                                         </a>
                                         <?php if (!empty($row['receipt_attachment_path'])): ?>
-                                            <a href="<?= site_url('/payments/' . (int) $row['id'] . '/attachment') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <a href="<?= site_url('/admin/payments/' . (int) $row['id'] . '/attachment') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                                 <i class="fa-solid fa-paperclip text-slate-400"></i> Attachment
                                             </a>
                                         <?php endif; ?>
                                         <?php if ($rowStatus === 'pending' && $canApprovePayments): ?>
-                                            <form method="post" action="<?= site_url('/payments/approve') ?>" class="block">
+                                            <form method="post" action="<?= site_url('/admin/payments/approve') ?>" class="block">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="payment_id" value="<?= esc((string) $row['id']) ?>">
                                                 <button type="submit" onclick="return confirm('Approve this payment?');" class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50">
@@ -204,7 +204,7 @@
                                             </form>
                                         <?php endif; ?>
                                         <?php if ((int) ($row['agent_id'] ?? 0) > 0): ?>
-                                            <a href="<?= site_url('/agents/' . (int) $row['agent_id'] . '/ledger') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                            <a href="<?= site_url('/admin/agents/' . (int) $row['agent_id'] . '/ledger') ?>" class="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                                 <i class="fa-solid fa-book-open text-slate-400"></i> Agent Ledger
                                             </a>
                                         <?php endif; ?>
@@ -235,7 +235,7 @@
             <h3 class="text-lg font-semibold text-slate-900">Void Payment</h3>
             <p class="mt-1 text-sm text-slate-500">This will permanently mark the payment as voided.</p>
         </div>
-        <form method="post" action="<?= site_url('/payments/delete') ?>" class="p-6 space-y-4">
+        <form method="post" action="<?= site_url('/admin/payments/delete') ?>" class="p-6 space-y-4">
             <?= csrf_field() ?>
             <input type="hidden" id="void-modal-payment-id" name="payment_id" value="">
             <div class="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
@@ -263,7 +263,7 @@
 
 <script>
     (function() {
-        // ── Dropdown toggles (fixed-position, escape overflow) ───────────
+        // ?? Dropdown toggles (fixed-position, escape overflow) ???????????
         var activeMenu = null;
         var activeBtn = null;
 
@@ -319,7 +319,7 @@
             if (activeMenu && activeBtn) positionMenu(activeBtn, activeMenu);
         });
 
-        // ── Void modal ───────────────────────────────────────────────────
+        // ?? Void modal ???????????????????????????????????????????????????
         var modal = document.getElementById('void-modal');
         var pidInput = document.getElementById('void-modal-payment-id');
         var pnoSpan = document.getElementById('void-modal-payment-no');

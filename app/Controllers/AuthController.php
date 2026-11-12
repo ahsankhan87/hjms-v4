@@ -10,12 +10,12 @@ class AuthController extends BaseController
     {
         if (session('is_logged_in')) {
             if (auth_is_super_admin() || auth_can('dashboard.view')) {
-                return redirect()->to('/dashboard');
+                return redirect()->to('/admin/dashboard');
             }
 
             service('authService')->logout();
 
-            return redirect()->to('/login')->with('error', 'Your session is missing required permissions. Please sign in again.');
+            return redirect()->to('/admin/login')->with('error', 'Your session is missing required permissions. Please sign in again.');
         }
 
         return view('portal/auth/index', [
@@ -52,7 +52,7 @@ class AuthController extends BaseController
         try {
             service('authService')->login($payload['email'], $payload['password']);
 
-            return redirect()->to('/dashboard');
+            return redirect()->to('/admin/dashboard');
         } catch (\DomainException $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
@@ -62,7 +62,7 @@ class AuthController extends BaseController
     {
         service('authService')->logout();
 
-        return redirect()->to('/login');
+        return redirect()->to('/admin/login');
     }
 
     public function forgotPasswordForm()
@@ -129,6 +129,6 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Reset token is invalid or expired.');
         }
 
-        return redirect()->to('/login')->with('success', 'Password reset complete. You can now sign in.');
+        return redirect()->to('/admin/login')->with('success', 'Password reset complete. You can now sign in.');
     }
 }

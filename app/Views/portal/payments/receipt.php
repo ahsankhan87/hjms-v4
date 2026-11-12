@@ -157,7 +157,7 @@
     ?>
 
     <div class="actions">
-        <a class="btn secondary" href="<?= site_url('/payments') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        <a class="btn secondary" href="<?= site_url('/admin/payments') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
         <button type="button" class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Receipt</button>
     </div>
 
@@ -237,7 +237,7 @@
                         <tr>
                             <th>Receipt Attachment</th>
                             <td>
-                                <a href="<?= site_url('/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>">
+                                <a href="<?= site_url('/admin/payments/' . (int) ($payment['id'] ?? 0) . '/attachment') ?>">
                                     <?= esc((string) ($payment['receipt_attachment_name'] ?? 'View Attachment')) ?>
                                 </a>
                             </td>

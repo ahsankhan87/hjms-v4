@@ -35,7 +35,7 @@ $companyName = trim((string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD
                 </div>
             <?php endif; ?>
 
-            <form method="post" action="<?= site_url('/login') ?>" class="mt-6 space-y-4">
+            <form method="post" action="<?= site_url('/admin/login') ?>" class="mt-6 space-y-4">
                 <?= csrf_field() ?>
                 <div>
                     <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
@@ -60,7 +60,7 @@ $companyName = trim((string) ($mainCompanyData['name'] ?? 'KARWAN-E-TAIF PVT LTD
             </form>
 
             <p class="mt-4 text-sm text-slate-600">
-                <a href="<?= site_url('/forgot-password') ?>" class="underline">Forgot password?</a>
+                <a href="<?= site_url('/admin/forgot-password') ?>" class="underline">Forgot password?</a>
             </p>
 
             <p class="mt-5 text-xs text-slate-500">Need API login? Endpoint available at /api/auth/login</p>

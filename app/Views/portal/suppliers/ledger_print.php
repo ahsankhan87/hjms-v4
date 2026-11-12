@@ -192,7 +192,7 @@
 
     <div class="actions">
         <button class="btn" onclick="window.print()">Print / Save PDF</button>
-        <a class="btn alt" href="<?= site_url('/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger') ?>">Back to Ledger</a>
+        <a class="btn alt" href="<?= site_url('/admin/suppliers/' . (int) ($supplier['id'] ?? 0) . '/ledger') ?>">Back to Ledger</a>
     </div>
 
     <main class="sheet">

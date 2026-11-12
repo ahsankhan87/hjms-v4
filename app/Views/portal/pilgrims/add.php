@@ -53,7 +53,7 @@
                 </div>
             </div>
 
-            <form id="createPilgrimForm" method="post" action="<?= site_url('/pilgrims') ?>" enctype="multipart/form-data" class="space-y-5">
+            <form id="createPilgrimForm" method="post" action="<?= site_url('/admin/pilgrims') ?>" enctype="multipart/form-data" class="space-y-5">
                 <?= csrf_field() ?>
 
                 <!-- Personal Information -->
@@ -200,7 +200,7 @@
 
 
                 <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                    <a href="<?= site_url('/pilgrims') ?>" class="btn btn-md btn-secondary">Cancel</a>
+                    <a href="<?= site_url('/admin/pilgrims') ?>" class="btn btn-md btn-secondary">Cancel</a>
                     <button class="btn btn-md btn-primary" type="submit">
                         <i class="fa-solid fa-check"></i><span>Create Pilgrim</span>
                     </button>

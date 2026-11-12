@@ -13,7 +13,7 @@
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-4">
-            <form method="post" action="<?= site_url('/pilgrims/update') ?>" enctype="multipart/form-data" class="space-y-5">
+            <form method="post" action="<?= site_url('/admin/pilgrims/update') ?>" enctype="multipart/form-data" class="space-y-5">
                 <?= csrf_field() ?>
                 <input type="hidden" name="pilgrim_id" value="<?= esc((string) ($row['id'] ?? '')) ?>">
 
@@ -192,14 +192,14 @@
                     <button
                         class="btn btn-md btn-danger"
                         type="submit"
-                        formaction="<?= site_url('/pilgrims/delete') ?>"
+                        formaction="<?= site_url('/admin/pilgrims/delete') ?>"
                         formmethod="post"
                         onclick="return confirm('Delete this pilgrim?');">
                         <i class="fa-solid fa-trash"></i><span>Delete</span>
                     </button>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <a href="<?= site_url('/pilgrims') ?>" class="btn btn-md btn-secondary">Back</a>
+                        <a href="<?= site_url('/admin/pilgrims') ?>" class="btn btn-md btn-secondary">Back</a>
                         <button class="btn btn-md btn-primary" type="submit">
                             <i class="fa-solid fa-check"></i><span>Update Pilgrim</span>
                         </button>
