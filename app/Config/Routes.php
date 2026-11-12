@@ -7,6 +7,7 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'AuthController::loginForm');
 $routes->get('packages/public', 'PackageController::publicIndex');
+$routes->get('v/(:segment)', 'VoucherController::show/$1');
 $routes->get('packages/register/(:num)', 'PackageController::register/$1');
 
 $routes->get('login', 'AuthController::loginForm');

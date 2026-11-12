@@ -23,7 +23,7 @@ class PackagePricingService
         }
 
         $package = $this->db->table('packages')
-            ->select('id, total_seats, include_hotel, include_ticket, include_transport, include_ziarat, ziarat_cost, purchase_price_visa, exchange_rate')
+            ->select('id, total_seats, include_hotel, include_ticket, include_transport, include_ziarat, ziarat_cost, purchase_price_visa, exchange_rate, profit_mode, profit_value')
             ->where('id', $packageId)
             ->get()
             ->getRowArray();
@@ -211,19 +211,36 @@ class PackagePricingService
         $flatExtras = $flightTotal + $sarExtrasPkr;
         $priceMap = [];
 
+        // Company profit is either a PKR amount per pilgrim or a percentage of the cost.
+        $profitMode = strtolower(trim((string) ($package['profit_mode'] ?? 'amount'))) === 'percent' ? 'percent' : 'amount';
+        $profitValue = max(0.0, (float) ($package['profit_value'] ?? 0));
+        $profitFor = static function (float $costPkr) use ($profitMode, $profitValue): float {
+            if ($costPkr <= 0 || $profitValue <= 0) {
+                return 0.0;
+            }
+
+            return round($profitMode === 'percent' ? ($costPkr * ($profitValue / 100)) : $profitValue, 2);
+        };
+        $profitMap = [];
+
         if ($mode === 'tiered') {
             foreach (self::TIERS as $tier) {
                 if (! array_key_exists($tier, $hotelTotals)) {
                     continue;
                 }
 
-                $priceMap[$tier] = round(((float) $hotelTotals[$tier] * $exchangeRate) + $flatExtras, 2);
+                $tierCost = (float) $hotelTotals[$tier] * $exchangeRate + $flatExtras;
+                $tierProfit = $profitFor($tierCost);
+                $profitMap[$tier] = $tierProfit;
+                $priceMap[$tier] = round($tierCost + $tierProfit, 2);
             }
         }
 
         $flatPrice = null;
         if ($mode === 'flat') {
-            $flatPrice = round($flatExtras, 2);
+            $flatProfit = $profitFor($flatExtras);
+            $profitMap['flat'] = $flatProfit;
+            $flatPrice = round($flatExtras + $flatProfit, 2);
         }
 
         // Seats are one pool per package regardless of mode/tier.
@@ -245,6 +262,9 @@ class PackagePricingService
             'ziarat_total' => round($ziaratTotal * $exchangeRate, 2),
             'price_map' => $priceMap,
             'flat_price' => $flatPrice,
+            'profit_mode' => $profitMode,
+            'profit_value' => round($profitValue, 2),
+            'profit_map' => $profitMap,
             'has_pricing' => $mode === 'flat' ? ($flatPrice !== null && $flatPrice > 0) : $priceMap !== [],
             'flat_seats_limit' => $flatSeatLimit,
             'seat_limit_map' => $seatLimitMap,
@@ -277,6 +297,9 @@ class PackagePricingService
             'ziarat_total' => 0.0,
             'price_map' => [],
             'flat_price' => null,
+            'profit_mode' => 'amount',
+            'profit_value' => 0.0,
+            'profit_map' => [],
             'has_pricing' => false,
             'flat_seats_limit' => null,
             'seat_limit_map' => [],

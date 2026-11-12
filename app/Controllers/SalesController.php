@@ -7,11 +7,13 @@ use App\Models\PackageModel;
 use App\Models\SaleItemModel;
 use App\Models\SalesCategoryModel;
 use App\Models\SalesModel;
+use App\Models\SupplierModel;
 use App\Services\SalesLedgerService;
+use App\Services\SupplierLedgerService;
 
 class SalesController extends BaseController
 {
-    private const SALE_TYPES = ['visa', 'ticket', 'hotel', 'transport', 'package'];
+    private const SALE_TYPES = ['visa', 'ticket', 'hotel', 'transport', 'package', 'general'];
 
     private $salesColumnExists = [];
     private $pilgrimDisplayCacheBySeason = [];
@@ -37,7 +39,7 @@ class SalesController extends BaseController
         if (! $this->validateData($filters, [
             'from_date' => 'permit_empty|valid_date[Y-m-d]',
             'to_date' => 'permit_empty|valid_date[Y-m-d]',
-            'component' => 'permit_empty|in_list[visa,ticket,hotel,transport,package]',
+            'component' => 'permit_empty|in_list[visa,ticket,hotel,transport,package,general]',
             'sales_category_id' => 'permit_empty|integer',
             'customer_type' => 'permit_empty|in_list[agent,walk_in]',
             'status' => 'permit_empty|in_list[posted,voided,pending]',
@@ -107,7 +109,6 @@ class SalesController extends BaseController
         unset($row);
 
         return view('portal/sales/index', [
-            'componentSummary' => $this->componentSummary($itemsBySale, $rows),
             'title' => 'HJMS ERP | Sale',
             'headerTitle' => 'Sale',
             'activePage' => 'sales',
@@ -267,6 +268,7 @@ class SalesController extends BaseController
 
             $this->replaceSaleItems($saleId, $payload['items']);
 
+            (new SupplierLedgerService($db))->syncSalePurchases($saleId);
             (new SalesLedgerService())->syncSaleLedger($saleId, $seasonId);
 
             $db->transComplete();
@@ -325,6 +327,7 @@ class SalesController extends BaseController
 
             $this->replaceSaleItems($saleId, $payload['items'], $existingItems);
 
+            (new SupplierLedgerService($db))->syncSalePurchases($saleId);
             (new SalesLedgerService())->syncSaleLedger($saleId, $seasonId);
 
             $db->transComplete();
@@ -366,6 +369,7 @@ class SalesController extends BaseController
             if ($db->tableExists('sale_items')) {
                 $db->table('sale_items')->where('sale_id', $saleId)->delete();
             }
+            (new SupplierLedgerService($db))->removeSalePurchases($saleId);
             (new SalesLedgerService())->syncSaleLedger($saleId, $seasonId);
 
             $db->transComplete();
@@ -446,6 +450,7 @@ class SalesController extends BaseController
             'pilgrims' => $this->fetchPilgrimRows($seasonId),
             'hotels' => $this->fetchHotelRows(),
             'transports' => $this->fetchTransportRows(),
+            'suppliers' => $this->fetchSupplierRows(),
             'packages' => $this->fetchPackageRows($seasonId),
             'success' => session()->getFlashdata('success'),
             'error' => session()->getFlashdata('error'),
@@ -508,6 +513,8 @@ class SalesController extends BaseController
                 'amount' => (float) $visaAmount,
                 'currency' => (string) $this->request->getPost('visa_currency'),
                 'exchange_rate' => (string) $this->request->getPost('visa_exchange_rate'),
+                'supplier_id' => (int) $this->request->getPost('visa_supplier_id'),
+                'purchase_amount' => (float) $this->request->getPost('visa_purchase_amount'),
                 'visa_type' => $visaType !== '' ? $visaType : null,
                 'visa_no' => $visaNo !== '' ? $visaNo : null,
                 'attachment' => $visaUpload !== '' ? $visaUpload : (string) ($existingIndex['visa:0']['attachment'] ?? ''),
@@ -525,6 +532,8 @@ class SalesController extends BaseController
                 'amount' => (float) $ticketAmount,
                 'currency' => (string) $this->request->getPost('ticket_currency'),
                 'exchange_rate' => (string) $this->request->getPost('ticket_exchange_rate'),
+                'supplier_id' => (int) $this->request->getPost('ticket_supplier_id'),
+                'purchase_amount' => (float) $this->request->getPost('ticket_purchase_amount'),
                 'pnr' => $ticketPnr !== '' ? $ticketPnr : null,
                 'sector' => $ticketSector !== '' ? $ticketSector : null,
                 'ticket_no' => $ticketNo !== '' ? $ticketNo : null,
@@ -539,18 +548,38 @@ class SalesController extends BaseController
         $arrivalDate = (string) $this->request->getPost('arrival_date');
         $packageAmount = (string) $this->request->getPost('package_amount');
         $packageUpload = $this->storeUpload('package_attachment');
-        if ($packageName !== '' || $packageDetails !== '' || $packageId > 0 || $departureDate !== '' || $arrivalDate !== '' || (float) $packageAmount > 0 || $packageUpload !== '') {
+        $packageSupplierId = (int) $this->request->getPost('package_supplier_id');
+        $packagePurchaseAmount = (float) $this->request->getPost('package_purchase_amount');
+        if ($packageName !== '' || $packageDetails !== '' || $packageId > 0 || $departureDate !== '' || $arrivalDate !== '' || (float) $packageAmount > 0 || $packageUpload !== '' || $packageSupplierId > 0 || $packagePurchaseAmount > 0) {
             $items[] = [
                 'item_type' => 'package',
                 'amount' => (float) $packageAmount,
                 'currency' => (string) $this->request->getPost('package_currency'),
                 'exchange_rate' => (string) $this->request->getPost('package_exchange_rate'),
+                'supplier_id' => $packageSupplierId,
+                'purchase_amount' => $packagePurchaseAmount,
                 'package_id' => $packageId > 0 ? $packageId : null,
                 'package_name' => $packageName !== '' ? $packageName : null,
                 'description' => $packageDetails !== '' ? $packageDetails : null,
                 'departure_date' => $departureDate !== '' ? $departureDate : null,
                 'arrival_date' => $arrivalDate !== '' ? $arrivalDate : null,
                 'attachment' => $packageUpload !== '' ? $packageUpload : (string) ($existingIndex['package:0']['attachment'] ?? ''),
+            ];
+        }
+
+        $generalDescription = trim((string) $this->request->getPost('general_description'));
+        $generalAmount = (float) $this->request->getPost('general_amount');
+        $generalSupplierId = (int) $this->request->getPost('general_supplier_id');
+        $generalPurchaseAmount = (float) $this->request->getPost('general_purchase_amount');
+        if ($generalDescription !== '' || $generalAmount > 0 || $generalSupplierId > 0 || $generalPurchaseAmount > 0) {
+            $items[] = [
+                'item_type' => 'general',
+                'amount' => $generalAmount,
+                'currency' => (string) $this->request->getPost('general_currency'),
+                'exchange_rate' => (string) $this->request->getPost('general_exchange_rate'),
+                'supplier_id' => $generalSupplierId,
+                'purchase_amount' => $generalPurchaseAmount,
+                'description' => $generalDescription !== '' ? $generalDescription : null,
             ];
         }
 
@@ -563,6 +592,8 @@ class SalesController extends BaseController
         $hotelAmounts = (array) $this->request->getPost('hotel_amount');
         $hotelCurrencies = (array) $this->request->getPost('hotel_currency');
         $hotelRates = (array) $this->request->getPost('hotel_exchange_rate');
+        $hotelSupplierIds = (array) $this->request->getPost('hotel_supplier_id');
+        $hotelPurchaseAmounts = (array) $this->request->getPost('hotel_purchase_amount');
 
         $hotelPosition = 0;
         foreach ($hotelNames as $index => $hotelName) {
@@ -581,6 +612,8 @@ class SalesController extends BaseController
                 'amount' => $amount,
                 'currency' => (string) ($hotelCurrencies[$index] ?? ''),
                 'exchange_rate' => (string) ($hotelRates[$index] ?? ''),
+                'supplier_id' => (int) ($hotelSupplierIds[$index] ?? 0),
+                'purchase_amount' => (float) ($hotelPurchaseAmounts[$index] ?? 0),
                 'hotel_name' => $hotelName !== '' ? $hotelName : null,
                 'check_in_date' => $checkIn !== '' ? $checkIn : null,
                 'check_out_date' => $checkOut !== '' ? $checkOut : null,
@@ -599,6 +632,8 @@ class SalesController extends BaseController
         $transportAmounts = (array) $this->request->getPost('transport_amount');
         $transportCurrencies = (array) $this->request->getPost('transport_currency');
         $transportRates = (array) $this->request->getPost('transport_exchange_rate');
+        $transportSupplierIds = (array) $this->request->getPost('transport_supplier_id');
+        $transportPurchaseAmounts = (array) $this->request->getPost('transport_purchase_amount');
         $transportUploads = array_values($this->storeUploadMultiple('transport_attachment'));
 
         $transportPosition = 0;
@@ -618,6 +653,8 @@ class SalesController extends BaseController
                 'amount' => $amount,
                 'currency' => (string) ($transportCurrencies[$index] ?? ''),
                 'exchange_rate' => (string) ($transportRates[$index] ?? ''),
+                'supplier_id' => (int) ($transportSupplierIds[$index] ?? 0),
+                'purchase_amount' => (float) ($transportPurchaseAmounts[$index] ?? 0),
                 'transport_id' => $transportId > 0 ? $transportId : null,
                 'transport_type' => $transportType !== '' ? $transportType : null,
                 'route' => $route !== '' ? $route : null,
@@ -652,7 +689,7 @@ class SalesController extends BaseController
         if (! $this->validateData($payload, [
             'invoice_no' => 'permit_empty|max_length[40]',
             'sale_date' => 'required|valid_date[Y-m-d]',
-            'sale_type' => 'required|in_list[visa,ticket,hotel,transport,package]',
+            'sale_type' => 'required|in_list[visa,ticket,hotel,transport,package,general]',
             'customer_type' => 'required|in_list[agent,walk_in]',
             'agent_id' => 'permit_empty|integer',
             'customer_name' => 'permit_empty|max_length[160]',
@@ -720,7 +757,7 @@ class SalesController extends BaseController
     private function validateItems(array &$items): array
     {
         if ($items === []) {
-            return ['Add at least one sale component: visa, ticket, hotel, transport or package.'];
+            return ['Add at least one sale component: visa, ticket, hotel, transport, package or general.'];
         }
 
         $errors = [];
@@ -742,6 +779,11 @@ class SalesController extends BaseController
             $item['exchange_rate'] = $rate;
             $item['amount'] = round((float) ($item['amount'] ?? 0), 2);
             $item['amount_pkr'] = round($item['amount'] * $rate, 2);
+
+            $supplierId = (int) ($item['supplier_id'] ?? 0);
+            $item['supplier_id'] = $supplierId > 0 ? $supplierId : null;
+            $item['purchase_amount'] = round((float) ($item['purchase_amount'] ?? 0), 2);
+            $item['purchase_amount_pkr'] = round($item['purchase_amount'] * $rate, 2);
 
             if ($type === 'visa') {
                 if ((string) ($item['visa_type'] ?? '') === '') {
@@ -769,6 +811,10 @@ class SalesController extends BaseController
             } elseif ($type === 'package') {
                 if ((string) ($item['package_name'] ?? '') === '') {
                     $errors[] = 'Package name is required for the package component.';
+                }
+            } elseif ($type === 'general') {
+                if ((string) ($item['description'] ?? '') === '') {
+                    $errors[] = 'Description is required for the general sale component.';
                 }
             }
         }
@@ -1082,6 +1128,17 @@ class SalesController extends BaseController
             ]];
         }
 
+        if ($saleType === 'general') {
+            return [[
+                'item_type' => 'general',
+                'amount' => $amount,
+                'currency' => 'PKR',
+                'exchange_rate' => 1.0,
+                'amount_pkr' => $amount,
+                'description' => (string) ($row['note'] ?? ''),
+            ]];
+        }
+
         return [[
             'item_type' => 'visa',
             'amount' => $amount,
@@ -1109,11 +1166,11 @@ class SalesController extends BaseController
     }
 
     /**
-     * @return array{visa: array, ticket: array, hotel: array, transport: array, package: array}
+     * @return array{visa: array, ticket: array, hotel: array, transport: array, package: array, general: array}
      */
     private function groupItems(array $items): array
     {
-        $grouped = ['visa' => [], 'ticket' => [], 'hotel' => [], 'transport' => [], 'package' => []];
+        $grouped = ['visa' => [], 'ticket' => [], 'hotel' => [], 'transport' => [], 'package' => [], 'general' => []];
 
         foreach ($items as $item) {
             $type = (string) ($item['item_type'] ?? '');
@@ -1128,46 +1185,8 @@ class SalesController extends BaseController
             'hotel' => $grouped['hotel'],
             'transport' => $grouped['transport'],
             'package' => $grouped['package'][0] ?? [],
+            'general' => $grouped['general'][0] ?? [],
         ];
-    }
-
-    /**
-     * Issued counts and PKR value per component type for the currently listed sales.
-     *
-     * @return array<string, array{count: int, total_pkr: float}>
-     */
-    private function componentSummary(array $itemsBySale, array $rows): array
-    {
-        $summary = [];
-        foreach (self::SALE_TYPES as $type) {
-            $summary[$type] = ['count' => 0, 'total_pkr' => 0.0];
-        }
-
-        foreach ($rows as $row) {
-            $items = $itemsBySale[(int) ($row['id'] ?? 0)] ?? [];
-
-            if ($items === []) {
-                $type = (string) ($row['sale_type'] ?? '');
-                if (isset($summary[$type])) {
-                    $summary[$type]['count']++;
-                    $summary[$type]['total_pkr'] += $this->saleAmountPkr($row);
-                }
-                continue;
-            }
-
-            foreach ($items as $item) {
-                $type = (string) ($item['item_type'] ?? '');
-                if (! isset($summary[$type])) {
-                    continue;
-                }
-
-                $amountPkr = (float) ($item['amount_pkr'] ?? 0);
-                $summary[$type]['count']++;
-                $summary[$type]['total_pkr'] += $amountPkr > 0 ? $amountPkr : (float) ($item['amount'] ?? 0);
-            }
-        }
-
-        return $summary;
     }
 
     private function componentCounts(array $saleRow, array $items): array
@@ -1387,6 +1406,25 @@ class SalesController extends BaseController
     }
 
     /**
+     * Active suppliers, used for the purchase price / supplier pickers.
+     */
+    private function fetchSupplierRows(): array
+    {
+        $db = db_connect();
+        if (! $db->tableExists('suppliers')) {
+            return [];
+        }
+
+        $query = (new SupplierModel())
+            ->select('id, supplier_code, supplier_name, supplier_type')
+            ->where('is_active', 1)
+            ->orderBy('supplier_name', 'ASC')
+            ->findAll();
+
+        return is_array($query) ? $query : [];
+    }
+
+    /**
      * Transport master records with their legs, used to prefill type and route.
      */
     private function fetchTransportRows(): array
@@ -1525,6 +1563,10 @@ class SalesController extends BaseController
             return ['title' => 'Package', 'invoicePrefix' => 'PS-'];
         }
 
+        if ($saleType === 'general') {
+            return ['title' => 'General', 'invoicePrefix' => 'GS-'];
+        }
+
         return ['title' => 'Visa', 'invoicePrefix' => 'VS-'];
     }
 
@@ -1536,6 +1578,7 @@ class SalesController extends BaseController
             'hotel' => 'Hotel',
             'transport' => 'Transport',
             'package' => 'Package',
+            'general' => 'General',
         ];
     }
 

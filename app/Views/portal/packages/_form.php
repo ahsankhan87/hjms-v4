@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Unified package form (create + edit).
  *
@@ -32,6 +33,11 @@ $incHotel = (int) old('include_hotel', (string) ($row['include_hotel'] ?? 1));
 $incTicket = (int) old('include_ticket', (string) ($row['include_ticket'] ?? 1));
 $incTransport = (int) old('include_transport', (string) ($row['include_transport'] ?? 1));
 $incZiarat = (int) old('include_ziarat', (string) ($row['include_ziarat'] ?? 0));
+
+$profitMode = (string) old('profit_mode', (string) ($row['profit_mode'] ?? 'amount'));
+$profitMode = in_array($profitMode, ['amount', 'percent'], true) ? $profitMode : 'amount';
+$profitValue = old('profit_value', (string) ((float) ($row['profit_value'] ?? 0) > 0 ? (float) $row['profit_value'] : ''));
+$selectedFlightTemplateId = (int) old('flight_id', (string) (int) ($flight['flight_id'] ?? 0));
 
 $inputClass = 'mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500';
 $labelClass = 'block text-[10px] font-bold uppercase tracking-wide text-slate-500';
@@ -70,9 +76,9 @@ $predefinedInstructionUr = "ضروری ہدایات
 
 8- زائرین کا ملک سے روانگی اور ہوٹل سے باہر جانے سے 3 دن پہلے کمپنی کے نمائندے سے شرائط و ضوابط کے لیے رابطہ کرنا لازم ہے اور تصدیق کرانا ضروری ہے۔";
 
-$predefinedMakkahContact = 'Niamat kiyani Phone No.+966 53 908 1421';
-$predefinedMadinaContact = 'M Irfan Phone No.00966568553058';
-$predefinedTransportContact = 'Sajid Nawaz Phone No.00966591195335';
+$predefinedMakkahContact = 'INAMULLAH JAN Phone No.00966556590014';
+$predefinedMadinaContact = 'MIRZA AZGHAR Phone No.00923007128830';
+$predefinedTransportContact = 'NABEEL Phone No.00966563899241';
 
 $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOptions, $inputClass, $labelClass, $tierLabels, $tierKeys): void {
     $currentHotelId = (int) ($stay['hotel_id'] ?? 0);
@@ -81,7 +87,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
     $formatCost = static function ($value): string {
         return (float) $value > 0 ? (string) (float) $value : '';
     };
-    ?>
+?>
     <div data-hotel-row class="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
         <div class="flex items-center gap-2">
             <span data-stay-label class="inline-flex shrink-0 items-center rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Stay</span>
@@ -144,7 +150,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
         <p data-cost-note class="mt-1 hidden text-[10px] font-medium leading-tight text-sky-700"></p>
         <input type="hidden" name="hotel_stay[<?= $index ?>][stay_id]" value="<?= esc((string) (int) ($stay['stay_id'] ?? 0)) ?>">
     </div>
-    <?php
+<?php
 };
 ?>
 
@@ -215,13 +221,49 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                                     <option value="">&mdash; enter flight details below &mdash;</option>
                                     <?php foreach ($flightTemplates as $template): ?>
                                         <?php
+                                        $templateId = (int) ($template['id'] ?? 0);
                                         $templateOutbound = trim((string) (($template['airline'] ?? '') . ' ' . ($template['flight_no'] ?? '')));
                                         $templateReturn = trim((string) (($template['return_airline'] ?? '') . ' ' . ($template['return_flight_no'] ?? '')));
                                         $templateToLocal = static function ($value): string {
                                             return trim((string) ($value ?? '')) === '' ? '' : date('Y-m-d\TH:i', strtotime((string) $value));
                                         };
+                                        $templateFormatDate = static function ($value): string {
+                                            $value = trim((string) ($value ?? ''));
+                                            if ($value === '') {
+                                                return '';
+                                            }
+                                            $ts = strtotime($value);
+
+                                            return $ts === false ? '' : date('d/m/Y H:i', $ts);
+                                        };
+                                        $templateOutboundDate = $templateFormatDate($template['departure_at'] ?? '');
+                                        $templateReturnDate = $templateFormatDate($template['return_departure_at'] ?? '');
+                                        $templateLabel = $templateOutbound !== '' ? $templateOutbound : 'Flight #' . (int) ($template['id'] ?? 0);
+                                        if ($templateOutboundDate !== '') {
+                                            $templateLabel .= ' · ' . $templateOutboundDate;
+                                        }
+                                        $templateReturnLabel = trim($templateReturn . ' ' . $templateReturnDate);
+                                        if ($templateReturnLabel !== '') {
+                                            $templateLabel .= ' · back: ' . $templateReturnLabel;
+                                        }
+                                        $templateNightsEnd = trim((string) ($template['return_arrival_at'] ?? ''));
+                                        if ($templateNightsEnd === '') {
+                                            $templateNightsEnd = trim((string) ($template['arrival_at'] ?? ''));
+                                        }
+                                        $templateNightsStart = trim((string) ($template['departure_at'] ?? ''));
+                                        if ($templateNightsStart !== '' && $templateNightsEnd !== '') {
+                                            $nightsStartTs = strtotime($templateNightsStart);
+                                            $nightsEndTs = strtotime($templateNightsEnd);
+                                            if ($nightsStartTs !== false && $nightsEndTs !== false && $nightsEndTs >= $nightsStartTs) {
+                                                $templateNights = (int) floor((strtotime(date('Y-m-d', $nightsEndTs)) - strtotime(date('Y-m-d', $nightsStartTs))) / 86400);
+                                                if ($templateNights > 0) {
+                                                    $templateLabel .= ' · ' . $templateNights . ' night' . ($templateNights === 1 ? '' : 's');
+                                                }
+                                            }
+                                        }
                                         ?>
-                                        <option value="<?= esc((string) (int) ($template['id'] ?? 0)) ?>"
+                                        <option value="<?= esc((string) $templateId) ?>"
+                                            <?= $selectedFlightTemplateId === $templateId ? 'selected' : '' ?>
                                             data-airline="<?= esc((string) ($template['airline'] ?? '')) ?>"
                                             data-flight-no="<?= esc((string) ($template['flight_no'] ?? '')) ?>"
                                             data-pnr="<?= esc((string) ($template['pnr'] ?? '')) ?>"
@@ -236,8 +278,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                                             data-return-arrival-airport="<?= esc((string) ($template['return_arrival_airport'] ?? '')) ?>"
                                             data-return-departure-at="<?= esc($templateToLocal($template['return_departure_at'] ?? '')) ?>"
                                             data-return-arrival-at="<?= esc($templateToLocal($template['return_arrival_at'] ?? '')) ?>"
-                                            data-fare="<?= esc((string) (float) ($template['fare'] ?? 0)) ?>"
-                                        ><?= esc($templateOutbound !== '' ? $templateOutbound : 'Flight #' . (int) ($template['id'] ?? 0)) ?> &middot; <?= esc((string) ($template['departure_at'] ?? '')) ?><?= $templateReturn !== '' ? ' &middot; back: ' . esc($templateReturn) : '' ?><?= (float) ($template['fare'] ?? 0) > 0 ? ' &middot; fare ' . esc(number_format((float) $template['fare'], 0)) . ' PKR' : '' ?></option>
+                                            data-fare="<?= esc((string) (float) ($template['fare'] ?? 0)) ?>"><?= esc($templateLabel) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -249,7 +290,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                     </div>
                     <p class="mt-1 text-[10px] text-slate-400">Only the ticket stays in PKR &mdash; every other package cost is in SAR. <span id="ticket-fare-note" class="hidden font-semibold text-emerald-600"></span></p>
 
-                    <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Outbound flight</p>
+                    <p class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Departure flight</p>
                     <div class="mt-1 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
                         <div>
                             <label class="<?= $labelClass ?>">Airline</label>
@@ -423,7 +464,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                 <span class="<?= $accordionIconClass ?>"><i class="fa-solid fa-tags"></i></span>
                 <span class="min-w-0 flex-1">
                     <span class="block text-sm font-semibold text-slate-800">Package details</span>
-                    <span class="block truncate text-[11px] text-slate-500">Code, seats, visa, exchange rate and notes</span>
+                    <span class="block truncate text-[11px] text-slate-500">Code, seats, visa, exchange rate, profit and notes</span>
                 </span>
                 <span id="chip-details" class="hidden shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 sm:inline-flex">&mdash;</span>
                 <i data-acc-chevron class="fa-solid fa-chevron-down shrink-0 text-[10px] text-slate-400 transition-transform"></i>
@@ -432,7 +473,8 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                 <div class="grid grid-cols-2 gap-1.5 lg:grid-cols-6">
                     <div>
                         <label class="<?= $labelClass ?>">Code <span class="text-rose-500">*</span></label>
-                        <input name="code" value="<?= esc(old('code', (string) ($row['code'] ?? ''))) ?>" required placeholder="UMR-APR-2026" class="<?= $inputClass ?>">
+                        <input name="code" value="<?= esc(old('code', (string) ($row['code'] ?? ''))) ?>" required placeholder="UMR-APR-2026" pattern="^\S+$" title="Package code cannot contain spaces." class="<?= $inputClass ?>">
+                        <p class="mt-0.5 text-[10px] text-slate-400">No spaces allowed. Use dash or underscore.</p>
                     </div>
                     <div class="col-span-1 lg:col-span-3">
                         <label class="<?= $labelClass ?>">Name <span class="text-rose-500">*</span></label>
@@ -473,7 +515,23 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                         <input name="notes" value="<?= esc(old('notes', (string) ($row['notes'] ?? ''))) ?>" class="<?= $inputClass ?>">
                     </div>
                 </div>
-                <p class="text-[10px] text-slate-400">Seats are sold once per package and used up by confirmed bookings. Hotel, transport, visa and ziarat are SAR and converted with the rate above; the ticket stays in PKR.</p>
+                <div class="grid grid-cols-2 gap-1.5 lg:grid-cols-6">
+                    <div>
+                        <label class="<?= $labelClass ?>">Profit type</label>
+                        <select name="profit_mode" id="profit-mode" class="<?= $inputClass ?>">
+                            <option value="amount" <?= $profitMode === 'amount' ? 'selected' : '' ?>>Fixed amount (PKR)</option>
+                            <option value="percent" <?= $profitMode === 'percent' ? 'selected' : '' ?>>Percentage (%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="<?= $labelClass ?>">Company profit <span data-profit-unit class="font-medium normal-case tracking-normal text-slate-400"><?= $profitMode === 'percent' ? '(%)' : '(PKR)' ?></span></label>
+                        <input type="number" step="0.01" min="0" name="profit_value" id="profit-value" value="<?= esc((string) $profitValue) ?>" placeholder="<?= $profitMode === 'percent' ? '10' : '25000' ?>" class="<?= $inputClass ?>">
+                    </div>
+                    <div class="col-span-2 lg:col-span-4">
+                        <p class="mt-4 text-[10px] text-slate-400">Profit per pilgrim, added to the package price like visa, transport or ziarat &mdash; either a fixed PKR amount or a percentage of the total cost.</p>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-400">Seats are sold once per package and used up by confirmed bookings. Hotel, transport, visa and ziarat are SAR and converted with the rate above; the ticket and the company profit stay in PKR.</p>
             </div>
         </section>
 
@@ -622,6 +680,10 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
         }
 
+        function formatDisplayDate(date) {
+            return pad(date.getDate()) + '-' + pad(date.getMonth() + 1) + '-' + date.getFullYear();
+        }
+
         function parseDate(value) {
             if (!value) {
                 return null;
@@ -662,7 +724,11 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             if (!start || !end || diffDays(start, end) < 1) {
                 return null;
             }
-            return { start: start, end: end, days: diffDays(start, end) };
+            return {
+                start: start,
+                end: end,
+                days: diffDays(start, end)
+            };
         }
 
         function rows() {
@@ -729,6 +795,18 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
         }
 
         /**
+         * Nights a hotel rate is multiplied by. The stay's own Nights field wins —
+         * the chained plan extends the last filled stay to the trip end, which would
+         * inflate a whole-stay cost while the other stays are still being filled in.
+         */
+        function rateNights(row) {
+            var nightsInput = rowField(row, 'nights');
+            var nights = nightsInput ? Math.max(0, parseInt(nightsInput.value || '0', 10)) : 0;
+
+            return nights > 0 ? nights : effectiveStayNights(row);
+        }
+
+        /**
          * Loads the hotel-module rate for a stay row and converts it to the
          * whole-stay cost that the package stores (rate per person per night × nights).
          */
@@ -737,7 +815,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             var note = row.querySelector('[data-rate-note]');
             var hotelId = select ? String(select.value || '') : '';
             var rates = hotelId !== '' ? (hotelRates[hotelId] || null) : null;
-            var nights = effectiveStayNights(row);
+            var nights = rateNights(row);
 
             if (!rates) {
                 if (note && hotelId !== '') {
@@ -795,6 +873,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
             if (applied.length > 0) {
                 row.dataset.ratesAuto = '1';
+                row.dataset.costManual = '';
             }
         }
 
@@ -829,25 +908,54 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             }
         }
 
+        function stayNightsValue(row) {
+            var nightsInput = rowField(row, 'nights');
+
+            return nightsInput ? Math.max(0, parseInt(nightsInput.value || '0', 10)) : 0;
+        }
+
         function syncCostSharing() {
             var seen = {};
 
-            rows().forEach(function(row, index) {
+            rows().forEach(function(row) {
                 var key = hotelKey(row);
                 if (key === '') {
                     setCostLock(row, false, '');
                     return;
                 }
 
+                // Hotel-module rates and manual overrides already follow this stay's own
+                // nights, so copying another stay's totals would make them wrong.
+                if (row.dataset.ratesAuto === '1' || row.dataset.costManual === '1') {
+                    setCostLock(row, false, '');
+                    if (!Object.prototype.hasOwnProperty.call(seen, key)) {
+                        seen[key] = row;
+                    }
+                    return;
+                }
+
                 if (Object.prototype.hasOwnProperty.call(seen, key)) {
                     var sourceRow = seen[key];
+                    var sourceNights = stayNightsValue(sourceRow);
+                    var targetNights = stayNightsValue(row);
+
                     row.querySelectorAll('[data-hotel-cost]').forEach(function(input) {
                         var name = input.getAttribute('name') || '';
                         var suffix = name.substring(name.lastIndexOf('['));
                         var sourceInput = sourceRow.querySelector('[data-hotel-cost][name$="' + suffix + '"]');
-                        if (sourceInput) {
-                            input.value = sourceInput.value;
+                        if (!sourceInput) {
+                            return;
                         }
+
+                        var sourceValue = parseFloat(String(sourceInput.value || '').replace(/,/g, ''));
+
+                        // Same hotel: carry the per-night rate over, then scale it to this stay.
+                        if (!Number.isFinite(sourceValue) || sourceNights <= 0 || targetNights <= 0 || sourceNights === targetNights) {
+                            input.value = sourceInput.value;
+                            return;
+                        }
+
+                        input.value = String(Math.round(sourceValue / sourceNights * targetNights * 100) / 100);
                     });
                     setCostLock(row, true, 'Stay ' + (sourceRow.dataset.stayNumber || ''));
                     return;
@@ -872,6 +980,44 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             });
         }
 
+        /**
+         * The last stay absorbs whatever nights are left over. Packages saved with
+         * fixed nights have no remainder row, so promote the last row when the user
+         * edits an earlier stay and nothing is left to auto-fill.
+         */
+        function ensureRemainderRow(editedRow) {
+            var all = rows();
+            if (all.length < 2) {
+                return;
+            }
+
+            var lastRow = all[all.length - 1];
+            if (lastRow === editedRow) {
+                return;
+            }
+
+            var hasAutoRow = all.some(function(row) {
+                var nightsInput = rowField(row, 'nights');
+
+                return nightsInput && nightsInput.dataset.auto === '1';
+            });
+
+            if (hasAutoRow) {
+                return;
+            }
+
+            var lastNights = rowField(lastRow, 'nights');
+            var lastAuto = lastRow.querySelector('[data-stay-auto]');
+
+            if (lastNights) {
+                lastNights.dataset.auto = '1';
+                lastNights.dataset.preferred = 'rest';
+            }
+            if (lastAuto) {
+                lastAuto.value = 'rest';
+            }
+        }
+
         function redistributeNightDefaults(window) {
             if (!window) {
                 return;
@@ -889,6 +1035,12 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             }, 0);
 
             var remaining = window.days - allocated;
+
+            // Over-allocated while the user is still typing: keep their numbers and
+            // let the balance message explain the overrun.
+            if (remaining < 0) {
+                return;
+            }
 
             all.forEach(function(row) {
                 var nightsInput = rowField(row, 'nights');
@@ -1002,9 +1154,9 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                     return;
                 }
 
-                dates.textContent = formatDate(entry.checkIn) + ' → ' + formatDate(entry.checkOut)
-                    + ' (' + entry.nights + ' night' + (entry.nights === 1 ? '' : 's')
-                    + (entry.extended ? ', extended to trip end' : '') + ')';
+                dates.textContent = formatDisplayDate(entry.checkIn) + ' → ' + formatDisplayDate(entry.checkOut) +
+                    ' (' + entry.nights + ' night' + (entry.nights === 1 ? '' : 's') +
+                    (entry.extended ? ', extended to trip end' : '') + ')';
             });
 
             if (!stayBalance) {
@@ -1105,13 +1257,22 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                     if (autoInput) {
                         autoInput.value = '0';
                     }
-                    refresh(false);
+
+                    // Editing an earlier stay re-fills the last stay with whatever nights are left.
+                    var allRows = rows();
+                    var isLastRow = allRows[allRows.length - 1] === row;
+                    if (!isLastRow) {
+                        ensureRemainderRow(row);
+                    }
+
+                    refresh(!isLastRow);
                 });
             }
 
             row.querySelectorAll('[data-hotel-cost]').forEach(function(input) {
                 input.addEventListener('input', function() {
                     row.dataset.ratesAuto = '';
+                    row.dataset.costManual = '1';
                     syncCostSharing();
                 });
             });
@@ -1247,7 +1408,13 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
         /* ---------- collapsible sections ---------- */
         var accSections = Array.prototype.slice.call(form.querySelectorAll('[data-acc]'));
         var accStorageKey = 'hjms:package-form:sections';
-        var accDefaults = { flight: true, hotels: true, transport: false, details: true, voucher: false };
+        var accDefaults = {
+            flight: true,
+            hotels: true,
+            transport: false,
+            details: true,
+            voucher: false
+        };
         var forceOpenSections = <?= (! empty($errors) || ! empty($error)) ? 'true' : 'false' ?>;
         var accStored = {};
 
@@ -1328,6 +1495,27 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
         });
 
         applyIncludeToggles();
+
+        /* ---------- profit type (fixed amount vs percentage) ---------- */
+        var profitModeSelect = document.getElementById('profit-mode');
+        var profitValueInput = document.getElementById('profit-value');
+        var profitUnit = document.querySelector('[data-profit-unit]');
+
+        function applyProfitMode() {
+            var isPercent = profitModeSelect && profitModeSelect.value === 'percent';
+
+            if (profitUnit) {
+                profitUnit.textContent = isPercent ? '(%)' : '(PKR)';
+            }
+            if (profitValueInput) {
+                profitValueInput.placeholder = isPercent ? '10' : '25000';
+            }
+        }
+
+        if (profitModeSelect) {
+            profitModeSelect.addEventListener('change', applyProfitMode);
+            applyProfitMode();
+        }
 
         /* ---------- live section chips ---------- */
         function setChip(id, text, tone) {
@@ -1474,7 +1662,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                 }
 
                 if (fareNote) {
-                    fareNote.textContent = fare > 0 ? 'Fare ' + fare.toLocaleString() + ' PKR loaded from the flight.' : '';
+                    fareNote.textContent = fare > 0 ? 'Ticket cost ' + fare.toLocaleString() + ' PKR loaded from the flight.' : '';
                     fareNote.classList.toggle('hidden', fare <= 0);
                 }
 

@@ -53,5 +53,7 @@ class PackageModel extends SeasonScopedModel
         'updated_at',
         'purchase_price_visa',
         'exchange_rate',
+        'profit_mode',
+        'profit_value',
     ];
 }

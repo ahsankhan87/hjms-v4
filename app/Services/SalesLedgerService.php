@@ -250,6 +250,8 @@ class SalesLedgerService
             $base = 'Transport sale receivable';
         } elseif ($saleType === 'package') {
             $base = 'Package sale receivable';
+        } elseif ($saleType === 'general') {
+            $base = 'General sale receivable';
         }
 
         $referenceNo = trim((string) ($sale['reference_no'] ?? ''));

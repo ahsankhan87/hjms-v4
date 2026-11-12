@@ -2,14 +2,15 @@
 
 <?php $this->section('main') ?>
 <?php
-$labels = ['visa' => 'Visa', 'ticket' => 'Ticket', 'hotel' => 'Hotel', 'transport' => 'Transport', 'package' => 'Package'];
-$icons = ['visa' => 'fa-passport', 'ticket' => 'fa-plane-departure', 'hotel' => 'fa-hotel', 'transport' => 'fa-bus', 'package' => 'fa-box-open'];
+$labels = ['visa' => 'Visa', 'ticket' => 'Ticket', 'hotel' => 'Hotel', 'transport' => 'Transport', 'package' => 'Package', 'general' => 'General'];
+$icons = ['visa' => 'fa-passport', 'ticket' => 'fa-plane-departure', 'hotel' => 'fa-hotel', 'transport' => 'fa-bus', 'package' => 'fa-box-open', 'general' => 'fa-file-invoice-dollar'];
 $tones = [
     'visa' => ['bg' => 'bg-sky-50', 'text' => 'text-sky-700', 'ring' => 'ring-sky-200', 'bar' => 'bg-sky-500'],
     'ticket' => ['bg' => 'bg-violet-50', 'text' => 'text-violet-700', 'ring' => 'ring-violet-200', 'bar' => 'bg-violet-500'],
     'hotel' => ['bg' => 'bg-amber-50', 'text' => 'text-amber-700', 'ring' => 'ring-amber-200', 'bar' => 'bg-amber-500'],
     'transport' => ['bg' => 'bg-rose-50', 'text' => 'text-rose-700', 'ring' => 'ring-rose-200', 'bar' => 'bg-rose-500'],
     'package' => ['bg' => 'bg-emerald-50', 'text' => 'text-emerald-700', 'ring' => 'ring-emerald-200', 'bar' => 'bg-emerald-500'],
+    'general' => ['bg' => 'bg-cyan-50', 'text' => 'text-cyan-700', 'ring' => 'ring-cyan-200', 'bar' => 'bg-cyan-500'],
 ];
 $statusStyles = [
     'posted' => 'bg-emerald-100 text-emerald-800 ring-emerald-200',
@@ -205,6 +206,8 @@ $field = static function (string $label, string $value, string $extra = ''): str
                                     <div class="col-span-2 sm:col-span-3"><?= $field('Package', (string) ($item['package_name'] ?? '')) ?></div>
                                     <?= $field('Departure', $date($item['departure_date'] ?? '')) ?>
                                     <?= $field('Arrival', $date($item['arrival_date'] ?? '')) ?>
+                                <?php elseif ($type === 'general'): ?>
+                                    <div class="col-span-2 sm:col-span-3"><?= $field('Particulars', (string) ($item['description'] ?? '')) ?></div>
                                 <?php endif; ?>
                             </dl>
 

@@ -47,6 +47,19 @@
 
                 <!-- Room Rates -->
                 <div class="space-y-3 border-t border-slate-100 pt-3">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Total Room Rate (SAR)</label>
+                        <input
+                            id="hotelTotalRoomRate"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="total_room_rate"
+                            value="<?= esc(old('total_room_rate')) ?>"
+                            placeholder="Enter total room rate"
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <p class="mt-1 text-xs text-slate-500">Auto-fills sharing/quint/quad/triple/double rates as total rate divided by 5/5/4/3/2.</p>
+                    </div>
                     <?= view('portal/hotels/_rates', ['rates' => old('rates') ?: []]) ?>
                 </div>
 
@@ -88,4 +101,47 @@
         </article>
     </section>
 </main>
+<script>
+    (function() {
+        var totalRateInput = document.getElementById('hotelTotalRoomRate');
+        if (!totalRateInput) {
+            return;
+        }
+
+        var divisorsByTier = {
+            sharing: 5,
+            quint: 5,
+            quad: 4,
+            triple: 3,
+            double: 2
+        };
+
+        function updateTierRates() {
+            var rawTotal = (totalRateInput.value || '').trim();
+            var totalRate = parseFloat(rawTotal);
+            var hasValidTotal = rawTotal !== '' && !isNaN(totalRate) && totalRate >= 0;
+
+            Object.keys(divisorsByTier).forEach(function(tier) {
+                var input = document.querySelector('input[name="rates[' + tier + ']"]');
+                if (!input) {
+                    return;
+                }
+
+                if (!hasValidTotal) {
+                    input.value = '';
+                    return;
+                }
+
+                var computedRate = totalRate / divisorsByTier[tier];
+                input.value = (Math.round(computedRate * 100) / 100).toFixed(2);
+            });
+        }
+
+        totalRateInput.addEventListener('input', updateTierRates);
+
+        if ((totalRateInput.value || '').trim() !== '') {
+            updateTierRates();
+        }
+    })();
+</script>
 <?php $this->endSection() ?>

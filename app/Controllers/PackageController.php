@@ -51,8 +51,11 @@ class PackageController extends BaseController
         }
 
         $autoInactivated = $this->autoDeactivateDepartedPackages();
+        $filters = $this->collectPackageListFiltersFromRequest();
         $model = new PackageModel();
         $rows = $model->where('is_active', 1)->orderBy('id', 'DESC')->findAll();
+        $allCards = $this->buildPackageCards($rows);
+        $cards = $this->filterPackageCards($allCards, $filters);
         $inactiveCount = (int) (new PackageModel())->where('is_active', 0)->countAllResults();
 
         $successMessage = session()->getFlashdata('success');
@@ -66,7 +69,9 @@ class PackageController extends BaseController
             'activePage'  => 'packages',
             'userEmail'   => (string) session('user_email'),
             'rows'        => $rows,
-            'cards'       => $this->buildPackageCards($rows),
+            'cards'       => $cards,
+            'allCards'    => $allCards,
+            'filters'     => $filters,
             'inactiveCount' => $inactiveCount,
             'canManagePackage' => ! $this->isAgentPackageReadOnlyUser(),
             'success'     => $successMessage,
@@ -84,12 +89,16 @@ class PackageController extends BaseController
             return redirect()->to('/seasons')->with('error', 'Please create and activate a season first.');
         }
 
+        $filters = $this->collectPackageListFiltersFromRequest();
         $model = new PackageModel();
         $rows = $model->where('is_active', 1)->orderBy('departure_date', 'ASC')->orderBy('id', 'ASC')->findAll();
+        $cards = $this->buildPackageCards($rows);
+        $cards = $this->filterPackageCards($cards, $filters);
 
         return view('portal/packages/print_list', [
-            'cards'   => $this->buildPackageCards($rows),
+            'cards'   => $cards,
             'company' => function_exists('main_company') ? main_company() : [],
+            'filters' => $filters,
         ]);
     }
 
@@ -345,6 +354,23 @@ class PackageController extends BaseController
                 }
             }
 
+            $calculatedDurationDays = max(0, (int) ($row['duration_days'] ?? 0));
+            $durationStart = trim((string) ($outboundFlight['departure_at'] ?? $departureDateTime));
+            $durationEnd = trim((string) ($returnFlight['arrival_at'] ?? $returnArrivalDateTime));
+            $durationStartTs = strtotime($durationStart);
+            $durationEndTs = strtotime($durationEnd);
+            if ($durationStartTs !== false && $durationEndTs !== false && $durationEndTs > $durationStartTs) {
+                $startDate = date('Y-m-d', $durationStartTs);
+                $endDate = date('Y-m-d', $durationEndTs);
+                $dayDiff = (int) floor((strtotime($endDate) - strtotime($startDate)) / 86400);
+                if ($dayDiff > 0) {
+                    $calculatedDurationDays = $dayDiff;
+                }
+            }
+
+            $departureAirport = trim((string) ($outboundFlight['departure_airport'] ?? ''));
+            $arrivalAirport = trim((string) ($outboundFlight['arrival_airport'] ?? ''));
+
             $resolvedAirlineLogo = $this->resolveAirlineLogo(
                 (string) ($row['airline_logo'] ?? ''),
                 $airlineName
@@ -439,6 +465,22 @@ class PackageController extends BaseController
             $transportTypes = array_values(array_unique($transportTypes));
             $transportNames = array_values(array_unique($transportNames));
 
+            $searchText = strtolower(implode(' ', array_filter([
+                (string) ($row['code'] ?? ''),
+                (string) ($row['name'] ?? ''),
+                (string) $airlineName,
+                (string) $routeLabel,
+                (string) ($departureAirport ?? ''),
+                (string) ($arrivalAirport ?? ''),
+                (string) ($outboundFlight['flight_no'] ?? ''),
+                (string) ($returnFlight['flight_no'] ?? ''),
+                implode(' / ', $transportTypes),
+                implode(', ', $transportNames),
+                implode(' ', array_map(static function (array $stay): string {
+                    return trim((string) ($stay['name'] ?? '') . ' ' . (string) ($stay['city'] ?? ''));
+                }, $hotelStays)),
+            ])));
+
             $cards[] = [
                 'id' => $packageId,
                 'code' => (string) ($row['code'] ?? ''),
@@ -454,9 +496,12 @@ class PackageController extends BaseController
                 'departure_datetime' => $departureDateTime,
                 'return_departure_datetime' => $returnDepartureDateTime,
                 'return_arrival_datetime' => $returnArrivalDateTime,
+                'departure_airport' => $departureAirport,
+                'arrival_airport' => $arrivalAirport,
                 'outbound_flight' => $outboundFlight,
                 'return_flight' => $returnFlight,
                 'duration_days' => (int) ($row['duration_days'] ?? 0),
+                'calculated_duration_days' => $calculatedDurationDays,
                 'available_seats' => $availableSeats,
                 'seat_capacity' => $seatCapacity,
                 'booked_seats' => $bookedSeats,
@@ -473,14 +518,99 @@ class PackageController extends BaseController
                 'include_transport' => (int) ($row['include_transport'] ?? 1),
                 'include_ziarat'    => (int) ($row['include_ziarat']    ?? 0),
                 'ziarat_cost'       => (float) ($row['ziarat_cost']     ?? 0),
+                'profit_mode'       => (string) ($row['profit_mode'] ?? 'amount'),
+                'profit_value'      => (float) ($row['profit_value'] ?? 0),
                 'visa_cost'         => (float) ($row['purchase_price_visa'] ?? 0),
                 'exchange_rate'     => (float) ($row['exchange_rate']   ?? 1),
                 'package_departure_date' => (string) ($row['departure_date'] ?? ''),
                 'package_arrival_date'   => (string) ($row['arrival_date']   ?? ''),
+                'search_text' => $searchText,
             ];
         }
 
         return $cards;
+    }
+
+    private function collectPackageListFiltersFromRequest(): array
+    {
+        $read = function (string $key): string {
+            return trim((string) $this->request->getGet($key));
+        };
+
+        $tab = strtolower($read('tab'));
+        if (! in_array($tab, ['all', 'ticket', 'hotel', 'transport'], true)) {
+            $tab = 'all';
+        }
+
+        $days = (int) $read('days');
+        if ($days < 1) {
+            $days = 0;
+        }
+
+        return [
+            'q' => strtolower($read('q')),
+            'departure' => strtolower($read('departure')),
+            'days' => $days,
+            'tab' => $tab,
+        ];
+    }
+
+    private function filterPackageCards(array $cards, array $filters): array
+    {
+        $q = (string) ($filters['q'] ?? '');
+        $departure = (string) ($filters['departure'] ?? '');
+        $days = (int) ($filters['days'] ?? 0);
+        $tab = (string) ($filters['tab'] ?? 'all');
+
+        $tabMatches = static function (array $card, string $tab): bool {
+            if ($tab === 'all') {
+                return true;
+            }
+
+            $flags = [
+                'ticket' => (int) ($card['include_ticket'] ?? 1) === 1,
+                'hotel' => (int) ($card['include_hotel'] ?? 1) === 1,
+                'transport' => (int) ($card['include_transport'] ?? 1) === 1,
+            ];
+
+            if (($flags[$tab] ?? false) !== true) {
+                return false;
+            }
+
+            foreach (['ticket', 'hotel', 'transport'] as $type) {
+                if ($type !== $tab && ($flags[$type] ?? false) === true) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
+
+        $filtered = [];
+        foreach ($cards as $card) {
+            $searchText = strtolower((string) ($card['search_text'] ?? ''));
+            if ($q !== '' && strpos($searchText, $q) === false) {
+                continue;
+            }
+
+            $departureAirport = strtolower((string) ($card['departure_airport'] ?? ''));
+            if ($departure !== '' && strpos($departureAirport, $departure) === false) {
+                continue;
+            }
+
+            $durationDays = (int) ($card['calculated_duration_days'] ?? $card['duration_days'] ?? 0);
+            if ($days > 0 && $durationDays !== $days) {
+                continue;
+            }
+
+            if (! $tabMatches($card, $tab)) {
+                continue;
+            }
+
+            $filtered[] = $card;
+        }
+
+        return $filtered;
     }
 
     private function autoDeactivateDepartedPackages(): int
@@ -612,6 +742,8 @@ class PackageController extends BaseController
             'package_type'              => $post('package_type'),
             'purchase_price_visa'       => $post('purchase_price_visa'),
             'exchange_rate'             => $post('exchange_rate'),
+            'profit_mode'               => $post('profit_mode'),
+            'profit_value'              => $post('profit_value'),
             'total_seats'               => $post('total_seats'),
             'include_ziarat'            => $post('include_ziarat'),
             'ziarat_cost'               => $post('ziarat_cost'),
@@ -630,11 +762,13 @@ class PackageController extends BaseController
         ];
 
         if (! $this->validateData($payload, [
-            'code'                      => 'required|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'code'                      => 'required|alpha_numeric_punct|regex_match[/^\S+$/]|min_length[2]|max_length[40]',
             'name'                      => 'required|min_length[3]|max_length[180]',
             'package_type'              => 'required|in_list[hajj,umrah]',
             'purchase_price_visa'       => 'permit_empty|decimal',
             'exchange_rate'             => 'permit_empty|decimal|greater_than[0]',
+            'profit_mode'               => 'permit_empty|in_list[amount,percent]',
+            'profit_value'              => 'permit_empty|decimal|greater_than_equal_to[0]',
             'total_seats'               => 'required|integer|greater_than[0]',
             'include_ziarat'            => 'permit_empty|in_list[0,1]',
             'ziarat_cost'               => 'permit_empty|decimal|greater_than_equal_to[0]',
@@ -651,6 +785,9 @@ class PackageController extends BaseController
             'transport_contact_en'      => 'permit_empty|max_length[255]',
             'notes'                     => 'permit_empty',
         ], [
+            'code' => [
+                'regex_match' => 'Package code cannot contain spaces. Please use dashes or underscores (e.g. UMR-APR-2026).',
+            ],
             'outbound_departure_at' => ['required' => 'Outbound departure date & time is required: it sets the first hotel check-in.'],
             'return_arrival_at'     => ['required' => 'Return arrival date & time is required: it sets the last hotel check-out.'],
         ])) {
@@ -719,6 +856,8 @@ class PackageController extends BaseController
             'package_type'               => $payload['package_type'],
             'purchase_price_visa'        => $payload['purchase_price_visa'] !== '' ? (float) $payload['purchase_price_visa'] : null,
             'exchange_rate'              => $payload['exchange_rate'] !== '' ? (float) $payload['exchange_rate'] : 1.0,
+            'profit_mode'                => ($payload['profit_mode'] ?? '') === 'percent' ? 'percent' : 'amount',
+            'profit_value'               => $payload['profit_value'] !== '' ? (float) $payload['profit_value'] : 0.0,
             'duration_days'              => $durationDays,
             'departure_date'             => $outboundDeparture,
             'arrival_date'               => $returnArrival,
@@ -826,14 +965,17 @@ class PackageController extends BaseController
         $isEdit = $packageId > 0;
 
         if (! $isEdit) {
+            $defaultCode = $this->suggestNextPackageCode($this->activeSeasonId());
             $row = [
                 'id'                        => 0,
-                'code'                      => '',
+                'code'                      => $defaultCode,
                 'name'                      => '',
                 'package_type'              => 'umrah',
                 'duration_days'             => '',
                 'purchase_price_visa'       => '',
                 'exchange_rate'             => '',
+                'profit_mode'               => 'amount',
+                'profit_value'              => '',
                 'total_seats'               => '',
                 'departure_date'            => '',
                 'arrival_date'              => '',
@@ -1005,6 +1147,44 @@ class PackageController extends BaseController
             'error'           => session()->getFlashdata('error'),
             'errors'          => session()->getFlashdata('errors') ?: [],
         ];
+    }
+
+    private function suggestNextPackageCode(?int $seasonId): string
+    {
+        $year = date('Y');
+        $prefix = 'UMR-' . $year . '-';
+
+        $db = db_connect();
+        $query = $db->table('packages')->select('code');
+
+        if ($seasonId !== null && $seasonId > 0 && $db->fieldExists('season_id', 'packages')) {
+            $query->where('season_id', $seasonId);
+        }
+
+        $rows = $query
+            ->like('code', $prefix, 'after')
+            ->get()
+            ->getResultArray();
+
+        $maxNumber = 0;
+        foreach ($rows as $row) {
+            $code = trim((string) ($row['code'] ?? ''));
+            if (strpos($code, $prefix) !== 0) {
+                continue;
+            }
+
+            $suffix = substr($code, strlen($prefix));
+            if (! ctype_digit($suffix)) {
+                continue;
+            }
+
+            $number = (int) $suffix;
+            if ($number > $maxNumber) {
+                $maxNumber = $number;
+            }
+        }
+
+        return $prefix . str_pad((string) ($maxNumber + 1), 4, '0', STR_PAD_LEFT);
     }
 
     private function defaultHotelStayRow(string $city, string $nights, ?string $auto = null): array
@@ -1448,7 +1628,7 @@ class PackageController extends BaseController
         ];
 
         if (! $this->validateData($payload, [
-            'code'          => 'required|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'code'          => 'required|alpha_numeric_punct|regex_match[/^\S+$/]|min_length[2]|max_length[40]',
             'name'          => 'required|min_length[3]|max_length[180]',
             'package_type'  => 'required|in_list[hajj,umrah]',
             'purchase_price_visa' => 'permit_empty|decimal',
@@ -1465,6 +1645,10 @@ class PackageController extends BaseController
             'transport_contact' => 'permit_empty|max_length[255]',
             'transport_contact_en' => 'permit_empty|max_length[255]',
             'notes'         => 'permit_empty',
+        ], [
+            'code' => [
+                'regex_match' => 'Package code cannot contain spaces. Please use dashes or underscores (e.g. UMR-APR-2026).',
+            ],
         ])) {
             return redirect()->to('/packages/add')->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -1566,7 +1750,7 @@ class PackageController extends BaseController
         }
 
         if (! $this->validateData($payload, [
-            'code'          => 'permit_empty|alpha_numeric_punct|min_length[2]|max_length[40]',
+            'code'          => 'permit_empty|alpha_numeric_punct|regex_match[/^\S+$/]|min_length[2]|max_length[40]',
             'name'          => 'permit_empty|min_length[3]|max_length[180]',
             'package_type'  => 'permit_empty|in_list[hajj,umrah]',
             'purchase_price_visa' => 'permit_empty|decimal',
@@ -1587,6 +1771,10 @@ class PackageController extends BaseController
             'include_hotel'     => 'permit_empty|in_list[0,1]',
             'include_ticket'    => 'permit_empty|in_list[0,1]',
             'include_transport' => 'permit_empty|in_list[0,1]',
+        ], [
+            'code' => [
+                'regex_match' => 'Package code cannot contain spaces. Please use dashes or underscores (e.g. UMR-APR-2026).',
+            ],
         ])) {
             return redirect()->to('/packages/' . $packageId . '/edit')->withInput()->with('errors', $this->validator->getErrors());
         }

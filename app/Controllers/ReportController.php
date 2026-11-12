@@ -941,7 +941,7 @@ class ReportController extends BaseController
      */
     public function saleComponents(): string
     {
-        $componentTypes = ['visa' => 'Visa', 'ticket' => 'Ticket', 'hotel' => 'Hotel', 'transport' => 'Transport', 'package' => 'Package'];
+        $componentTypes = ['visa' => 'Visa', 'ticket' => 'Ticket', 'hotel' => 'Hotel', 'transport' => 'Transport', 'package' => 'Package', 'general' => 'General'];
 
         $filters = [
             'from_date' => (string) $this->request->getGet('from_date'),
@@ -953,7 +953,7 @@ class ReportController extends BaseController
         if (! $this->validateData($filters, [
             'from_date' => 'permit_empty|valid_date[Y-m-d]',
             'to_date'   => 'permit_empty|valid_date[Y-m-d]',
-            'component' => 'permit_empty|in_list[visa,ticket,hotel,transport,package]',
+            'component' => 'permit_empty|in_list[visa,ticket,hotel,transport,package,general]',
         ])) {
             $filterErrors = $this->validator->getErrors();
             $filters = ['from_date' => '', 'to_date' => '', 'component' => ''];

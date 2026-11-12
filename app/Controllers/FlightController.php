@@ -17,7 +17,8 @@ class FlightController extends BaseController
             ->select('f.*, COUNT(pf.id) AS package_links')
             ->join('package_flights pf', 'pf.flight_id = f.id', 'left')
             ->groupBy('f.id')
-            ->orderBy('f.departure_at', 'DESC');
+            ->orderBy('f.departure_at', 'ASC')
+            ->orderBy('f.id', 'ASC');
 
         if ($pnr !== '') {
             $builder->like('f.pnr', $pnr);
@@ -136,7 +137,7 @@ class FlightController extends BaseController
             $model = new FlightModel();
             $model->insert($this->buildCombinedFlightData($outboundPayload, $outboundFileData, $returnPayload, $returnFileData, true));
 
-            return redirect()->to('/flights')->with('success', 'Outbound and return flight details saved successfully.');
+            return redirect()->to('/flights')->with('success', 'Departure and arrival flight details saved successfully.');
         } catch (\Throwable $e) {
             return redirect()->to('/flights/add')->withInput()->with('error', $e->getMessage());
         }
@@ -226,8 +227,8 @@ class FlightController extends BaseController
         $payload = [
             'flight_id'    => (int) $this->request->getPost('flight_id'),
             'package_id'   => (int) $this->request->getPost('package_id'),
-            'departure_at' => $this->normalizeDateTimeInput((string) $this->request->getPost('departure_at')),
-            'arrival_at'   => $this->normalizeDateTimeInput((string) $this->request->getPost('arrival_at')),
+            'departure_at' => $this->extractDateTimeInput('departure_at'),
+            'arrival_at'   => $this->extractDateTimeInput('arrival_at'),
         ];
 
         if (! $this->validateData($payload, [
@@ -293,8 +294,8 @@ class FlightController extends BaseController
             'pnr'               => (string) $this->request->getPost('pnr'),
             'departure_airport' => (string) $this->request->getPost('departure_airport'),
             'arrival_airport'   => (string) $this->request->getPost('arrival_airport'),
-            'departure_at'      => $this->normalizeDateTimeInput((string) $this->request->getPost('departure_at')),
-            'arrival_at'        => $this->normalizeDateTimeInput((string) $this->request->getPost('arrival_at')),
+            'departure_at'      => $this->extractDateTimeInput('departure_at'),
+            'arrival_at'        => $this->extractDateTimeInput('arrival_at'),
         ];
     }
 
@@ -306,10 +307,26 @@ class FlightController extends BaseController
             'pnr'               => (string) $this->request->getPost($prefix . 'pnr'),
             'departure_airport' => (string) $this->request->getPost($prefix . 'departure_airport'),
             'arrival_airport'   => (string) $this->request->getPost($prefix . 'arrival_airport'),
-            'departure_at'      => $this->normalizeDateTimeInput((string) $this->request->getPost($prefix . 'departure_at')),
-            'arrival_at'        => $this->normalizeDateTimeInput((string) $this->request->getPost($prefix . 'arrival_at')),
+            'departure_at'      => $this->extractDateTimeInput($prefix . 'departure_at'),
+            'arrival_at'        => $this->extractDateTimeInput($prefix . 'arrival_at'),
             'fare'              => trim((string) $this->request->getPost($prefix . 'fare')),
         ];
+    }
+
+    /**
+     * Builds a datetime value from the split 24-hour date/time inputs,
+     * falling back to a single "Y-m-d H:i" field when the split inputs are absent.
+     */
+    private function extractDateTimeInput(string $key): string
+    {
+        $date = trim((string) $this->request->getPost($key . '_date'));
+        $time = trim((string) $this->request->getPost($key . '_time'));
+
+        if ($date !== '' && $time !== '') {
+            return $this->normalizeDateTimeInput($date . ' ' . $time);
+        }
+
+        return $this->normalizeDateTimeInput((string) $this->request->getPost($key));
     }
 
     private function normalizeDateTimeInput(string $value): string

@@ -215,6 +215,7 @@
             $optionalPrintCards = [
                 ['label' => 'Hotels', 'value' => (float) ($summary['hotelSaleTotal'] ?? 0), 'tone' => 'tone-amber', 'hint' => 'Hotel receivable'],
                 ['label' => 'Visas', 'value' => (float) ($summary['visaSaleTotal'] ?? 0), 'tone' => 'tone-amber', 'hint' => 'Visa receivable'],
+                ['label' => 'Transport', 'value' => (float) ($summary['transportSaleTotal'] ?? 0), 'tone' => 'tone-amber', 'hint' => 'Transport receivable'],
                 ['label' => 'Booking', 'value' => (float) ($summary['bookingSaleTotal'] ?? 0), 'tone' => 'tone-amber', 'hint' => 'Booking receivable'],
             ];
 
@@ -333,6 +334,39 @@
                     <tr class="total-row">
                         <td colspan="3" class="right">Total</td>
                         <td class="right"><?= esc(number_format((float) ($tableTotals['visaSales'] ?? 0), 2)) ?></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="card">
+            <h3>Transport Sale</h3>
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date</th>
+                        <th>Pax</th>
+                        <th class="right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($transportSales)): foreach ($transportSales as $row): ?>
+                            <tr>
+                                <td><?= esc((string) ($row['invoice_no'] ?? ('TS' . (int) ($row['id'] ?? 0)))) ?></td>
+                                <td><?= esc((string) ($row['sale_date'] ?? '')) ?></td>
+                                <td><?= esc((string) ($row['pax_name'] ?? '-')) ?></td>
+                                <td class="right"><?= esc(number_format((float) ($row['amount'] ?? 0), 2)) ?></td>
+                            </tr>
+                        <?php endforeach;
+                    else: ?>
+                        <tr>
+                            <td colspan="4">No Transport Sale Found.</td>
+                        </tr>
+                    <?php endif; ?>
+                    <tr class="total-row">
+                        <td colspan="3" class="right">Total</td>
+                        <td class="right"><?= esc(number_format((float) ($tableTotals['transportSales'] ?? 0), 2)) ?></td>
                     </tr>
                 </tbody>
             </table>

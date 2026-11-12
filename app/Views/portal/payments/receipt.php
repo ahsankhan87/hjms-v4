@@ -121,6 +121,15 @@
                 padding: 0;
             }
 
+            th {
+                color: #000;
+
+            }
+
+            .section-title {
+                color: #000;
+            }
+
             .actions {
                 display: none;
             }

@@ -176,6 +176,7 @@ class AgentController extends BaseController
             'ticketSales'    => $detailData['ticketSales'],
             'hotelSales'     => $detailData['hotelSales'],
             'visaSales'      => $detailData['visaSales'],
+            'transportSales' => $detailData['transportSales'],
             'generalSales'   => $detailData['generalSales'],
             'vouchers'       => $detailData['vouchers'],
             'creditNotes'    => $detailData['creditNotes'],
@@ -213,6 +214,7 @@ class AgentController extends BaseController
             'ticketSales'  => $detailData['ticketSales'],
             'hotelSales'   => $detailData['hotelSales'],
             'visaSales'    => $detailData['visaSales'],
+            'transportSales' => $detailData['transportSales'],
             'generalSales' => $detailData['generalSales'],
             'vouchers'     => $detailData['vouchers'],
             'creditNotes'  => $detailData['creditNotes'],
@@ -423,6 +425,8 @@ class AgentController extends BaseController
             ->orderBy('s.sale_date', 'ASC')
             ->orderBy('s.id', 'ASC');
 
+        $this->excludeItemBackedSales($ticketSalesQuery);
+
         if ($seasonId !== null && $this->tableHasColumn('sales', 'season_id')) {
             $ticketSalesQuery->where('s.season_id', $seasonId);
         }
@@ -436,6 +440,7 @@ class AgentController extends BaseController
             $ticketSalesQuery->where('DATE(s.sale_date) <=', $toDate);
         }
         $ticketSales = $ticketSalesQuery->get()->getResultArray();
+        $ticketSales = $this->mergeComponentSales($ticketSales, 'ticket', $agentId, $seasonId, $fromDate, $toDate);
         $ticketSales = $this->normalizePaxDisplayRows($ticketSales, $seasonId);
         $ticketSaleTotal = 0.0;
         foreach ($ticketSales as $row) {
@@ -450,6 +455,8 @@ class AgentController extends BaseController
             ->orderBy('s.sale_date', 'ASC')
             ->orderBy('s.id', 'ASC');
 
+        $this->excludeItemBackedSales($hotelSalesQuery);
+
         if ($seasonId !== null && $this->tableHasColumn('sales', 'season_id')) {
             $hotelSalesQuery->where('s.season_id', $seasonId);
         }
@@ -463,6 +470,7 @@ class AgentController extends BaseController
             $hotelSalesQuery->where('DATE(s.sale_date) <=', $toDate);
         }
         $hotelSales = $hotelSalesQuery->get()->getResultArray();
+        $hotelSales = $this->mergeComponentSales($hotelSales, 'hotel', $agentId, $seasonId, $fromDate, $toDate);
         $hotelSales = $this->normalizePaxDisplayRows($hotelSales, $seasonId);
         $hotelSaleTotal = 0.0;
         foreach ($hotelSales as $row) {
@@ -478,6 +486,8 @@ class AgentController extends BaseController
             ->orderBy('s.sale_date', 'ASC')
             ->orderBy('s.id', 'ASC');
 
+        $this->excludeItemBackedSales($visaSalesQuery);
+
         if ($seasonId !== null && $this->tableHasColumn('sales', 'season_id')) {
             $visaSalesQuery->where('s.season_id', $seasonId);
         }
@@ -491,10 +501,18 @@ class AgentController extends BaseController
             $visaSalesQuery->where('DATE(s.sale_date) <=', $toDate);
         }
         $visaSales = $visaSalesQuery->get()->getResultArray();
+        $visaSales = $this->mergeComponentSales($visaSales, 'visa', $agentId, $seasonId, $fromDate, $toDate);
         $visaSales = $this->normalizePaxDisplayRows($visaSales, $seasonId);
         $visaSaleTotal = 0.0;
         foreach ($visaSales as $row) {
             $visaSaleTotal += (float) ($row['amount'] ?? 0);
+        }
+
+        $transportSales = $this->saleItemOtherSalesRows($agentId, $seasonId, $fromDate, $toDate);
+        $transportSales = $this->normalizePaxDisplayRows($transportSales, $seasonId);
+        $transportSaleTotal = 0.0;
+        foreach ($transportSales as $row) {
+            $transportSaleTotal += (float) ($row['amount'] ?? 0);
         }
 
         $generalSalesQuery = $db->table('bookings b')
@@ -679,6 +697,7 @@ class AgentController extends BaseController
                 'ticketSaleTotal' => $ticketSaleTotal,
                 'hotelSaleTotal' => $hotelSaleTotal,
                 'visaSaleTotal' => $visaSaleTotal,
+                'transportSaleTotal' => $transportSaleTotal,
                 'bookingSaleTotal' => $bookingSaleTotal,
                 'creditNoteTotal' => $creditNoteTotal,
                 'voucherTotal' => $voucherTotal,
@@ -687,6 +706,7 @@ class AgentController extends BaseController
                 'ticketSales' => $ticketSaleTotal,
                 'hotelSales' => $hotelSaleTotal,
                 'visaSales' => $visaSaleTotal,
+                'transportSales' => $transportSaleTotal,
                 'generalSales' => $bookingSaleTotal,
                 'vouchers' => $voucherTotal,
                 'creditNotes' => $creditNoteTotal,
@@ -698,6 +718,7 @@ class AgentController extends BaseController
             'ticketSales' => $ticketSales,
             'hotelSales' => $hotelSales,
             'visaSales' => $visaSales,
+            'transportSales' => $transportSales,
             'generalSales' => $generalSales,
             'vouchers' => $vouchers,
             'creditNotes' => $creditNotes,
@@ -720,9 +741,164 @@ class AgentController extends BaseController
         return $value;
     }
 
-    private function tableHasColumn(string $table, string $column): bool
+    /**
+     * Unified sales store their components in sale_items, so the flat sale_type
+     * column alone would hide them. Skip those sales in the legacy queries and
+     * read them per component instead.
+     */
+    private function excludeItemBackedSales($query): void
     {
-        if (! isset($this->tableColumnsCache[$table])) {
+        if (! $this->saleItemsTableExists()) {
+            return;
+        }
+
+        $query->where('NOT EXISTS (SELECT 1 FROM sale_items si WHERE si.sale_id = s.id)', null, false);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>> $legacyRows
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeComponentSales(array $legacyRows, string $itemType, int $agentId, $seasonId, string $fromDate, string $toDate): array
+    {
+        $itemRows = $this->saleItemSalesRows($itemType, $agentId, $seasonId, $fromDate, $toDate);
+
+        if ($itemRows === []) {
+            return $legacyRows;
+        }
+
+        $rows = array_merge($legacyRows, $itemRows);
+
+        usort($rows, static function (array $a, array $b): int {
+            $dateA = (string) ($a['sale_date'] ?? '');
+            $dateB = (string) ($b['sale_date'] ?? '');
+            if ($dateA !== $dateB) {
+                return strcmp($dateA, $dateB);
+            }
+
+            return ((int) ($a['id'] ?? 0)) <=> ((int) ($b['id'] ?? 0));
+        });
+
+        return $rows;
+    }
+
+    /**
+     * One row per sale component (ticket / hotel / visa) for agent sales.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function saleItemSalesRows(string $itemType, int $agentId, $seasonId, string $fromDate, string $toDate): array
+    {
+        if (! $this->saleItemsTableExists()) {
+            return [];
+        }
+
+        $extraSelect = [];
+        if ($itemType === 'ticket') {
+            $extraSelect = ['i.sector', 'i.pnr', 'i.ticket_no'];
+        } elseif ($itemType === 'hotel') {
+            $extraSelect = [
+                'i.hotel_name',
+                'i.check_in_date AS checkin_date',
+                'i.check_out_date AS checkout_date',
+                'i.no_of_nights',
+                'i.room_type AS room_name',
+                'i.room_qty',
+            ];
+        } elseif ($itemType === 'visa') {
+            $extraSelect = ['i.visa_type'];
+        }
+
+        $columns = array_merge([
+            's.id',
+            's.invoice_no',
+            's.sale_date',
+            's.pax_name',
+            's.pilgrim_id',
+            's.pilgrim_ids',
+            's.reference_no',
+            's.note',
+            'sc.name AS category_name',
+            'i.amount_pkr AS amount',
+        ], $extraSelect);
+
+        $query = db_connect()->table('sale_items i')
+            ->select(implode(', ', $columns))
+            ->join('sales s', 's.id = i.sale_id', 'inner')
+            ->join('sales_categories sc', 'sc.id = s.sales_category_id', 'left')
+            ->where('i.item_type', $itemType)
+            ->where('s.agent_id', $agentId)
+            ->where('s.customer_type', 'agent')
+            ->orderBy('s.sale_date', 'ASC')
+            ->orderBy('s.id', 'ASC');
+
+        if ($seasonId !== null && $this->tableHasColumn('sales', 'season_id')) {
+            $query->where('s.season_id', $seasonId);
+        }
+        if ($this->tableHasColumn('sales', 'status')) {
+            $query->where('s.status !=', 'voided');
+        }
+        if ($fromDate !== '') {
+            $query->where('DATE(s.sale_date) >=', $fromDate);
+        }
+        if ($toDate !== '') {
+            $query->where('DATE(s.sale_date) <=', $toDate);
+        }
+
+        $rows = $query->get()->getResultArray();
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * Transport and package components of agent sales, so no sale amount is
+     * missing from the ledger detail tables.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function saleItemOtherSalesRows(int $agentId, $seasonId, string $fromDate, string $toDate): array
+    {
+        if (! $this->saleItemsTableExists()) {
+            return [];
+        }
+
+        $query = db_connect()->table('sale_items i')
+            ->select('s.id, s.invoice_no, s.sale_date, s.pax_name, s.pilgrim_id, s.pilgrim_ids, s.reference_no, s.note, i.item_type, i.transport_type, i.route, i.package_name, i.amount_pkr AS amount')
+            ->join('sales s', 's.id = i.sale_id', 'inner')
+            ->whereIn('i.item_type', ['transport', 'package'])
+            ->where('s.agent_id', $agentId)
+            ->where('s.customer_type', 'agent')
+            ->orderBy('s.sale_date', 'ASC')
+            ->orderBy('s.id', 'ASC');
+
+        if ($seasonId !== null && $this->tableHasColumn('sales', 'season_id')) {
+            $query->where('s.season_id', $seasonId);
+        }
+        if ($this->tableHasColumn('sales', 'status')) {
+            $query->where('s.status !=', 'voided');
+        }
+        if ($fromDate !== '') {
+            $query->where('DATE(s.sale_date) >=', $fromDate);
+        }
+        if ($toDate !== '') {
+            $query->where('DATE(s.sale_date) <=', $toDate);
+        }
+
+        $rows = $query->get()->getResultArray();
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    private function saleItemsTableExists(): bool
+    {        try {
+            return db_connect()->tableExists('sale_items');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function tableHasColumn(string $table, string $column): bool
+    {        if (! isset($this->tableColumnsCache[$table])) {
             try {
                 $this->tableColumnsCache[$table] = db_connect()->getFieldNames($table);
             } catch (\Throwable $e) {

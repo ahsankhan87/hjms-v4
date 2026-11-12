@@ -423,11 +423,9 @@ foreach ($cards as $cardRow) {
 
                     <div class="pkg-body">
                         <div class="pkg-left">
-                            <?php if (!(int) ($card['include_ticket'] ?? 1)): ?>
-                                <div class="line"><span class="tag out">Flight</span><span class="val muted">Ticket not included — self arranged</span></div>
-                            <?php else: ?>
+                            <?php if ((int) ($card['include_ticket'] ?? 1)): ?>
                                 <div class="line">
-                                    <span class="tag out">Out</span>
+                                    <span class="tag out">Departure</span>
                                     <span class="val">
                                         <b><?= esc(trim((string) (($outbound['airline'] ?? '') . ' ' . ($outbound['flight_no'] ?? ''))) ?: 'TBA') ?></b>
                                         <?php if (trim((string) (($outbound['departure_airport'] ?? '') . ($outbound['arrival_airport'] ?? ''))) !== ''): ?>
@@ -437,7 +435,7 @@ foreach ($cards as $cardRow) {
                                     </span>
                                 </div>
                                 <div class="line">
-                                    <span class="tag ret">Ret</span>
+                                    <span class="tag ret">Arrival</span>
                                     <span class="val">
                                         <b><?= esc(trim((string) (($return['airline'] ?? '') . ' ' . ($return['flight_no'] ?? ''))) ?: 'TBA') ?></b>
                                         <?php if (trim((string) (($return['departure_airport'] ?? '') . ($return['arrival_airport'] ?? ''))) !== ''): ?>
@@ -448,8 +446,11 @@ foreach ($cards as $cardRow) {
                                 </div>
                             <?php endif; ?>
 
-                            <?php if ($hotelStays === []): ?>
-                                <div class="line"><span class="tag hotel">Hotel</span><span class="val muted"><?= (int) ($card['include_hotel'] ?? 1) ? 'No hotel linked yet' : 'Hotel not included — self arranged' ?></span></div>
+                            <?php if (! (int) ($card['include_hotel'] ?? 1)): ?>
+                                <?php // Hotel is not part of this package — nothing to show. 
+                                ?>
+                            <?php elseif ($hotelStays === []): ?>
+                                <div class="line"><span class="tag hotel">Hotel</span><span class="val muted">No hotel linked yet</span></div>
                             <?php else: ?>
                                 <?php foreach (array_slice($hotelStays, 0, 6) as $stay): ?>
                                     <?php $distance = (int) ($stay['distance_m'] ?? 0); ?>
@@ -463,7 +464,7 @@ foreach ($cards as $cardRow) {
                                 <?php endforeach; ?>
                             <?php endif; ?>
 
-                            <?php if ($transportTypes !== '' || $transportNames !== ''): ?>
+                            <?php if ((int) ($card['include_transport'] ?? 1) && ($transportTypes !== '' || $transportNames !== '')): ?>
                                 <div class="line">
                                     <span class="tag bus">Trans</span>
                                     <span class="val">

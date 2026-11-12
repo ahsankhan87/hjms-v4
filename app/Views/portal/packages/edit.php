@@ -46,7 +46,7 @@ $summaryFlatPrice = $pricingSummary['flat_price'] ?? null;
     $summaryHotelSar = $summaryHotelTotals === [] ? 0.0 : min(array_map('floatval', $summaryHotelTotals));
     $summaryHotelSarMax = $summaryHotelTotals === [] ? 0.0 : max(array_map('floatval', $summaryHotelTotals));
     ?>
-    <div class="mt-2 grid gap-2 text-[11px] text-slate-600 md:grid-cols-6">
+    <div class="mt-2 grid gap-2 text-[11px] text-slate-600 md:grid-cols-4 xl:grid-cols-7">
         <div class="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5">Flight (PKR): <?= esc(number_format((float) ($pricingSummary['flight_total'] ?? 0), 2)) ?></div>
         <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">
             Hotels (SAR): <?= esc(number_format($summaryHotelSar, 2)) ?><?= $summaryHotelSarMax > $summaryHotelSar ? ' – ' . esc(number_format($summaryHotelSarMax, 2)) : '' ?>
@@ -56,6 +56,15 @@ $summaryFlatPrice = $pricingSummary['flat_price'] ?? null;
             Ziarat (SAR): <?= (int) ($row['include_ziarat'] ?? 0) === 1 ? esc(number_format((float) ($pricingSummary['ziarat_total_sar'] ?? 0), 2)) : 'Not included' ?>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white px-3 py-1.5">Visa (SAR): <?= esc(number_format((float) ($pricingSummary['visa_total_sar'] ?? 0), 2)) ?></div>
+        <div class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5">
+            <?php $profitMode = (string) ($pricingSummary['profit_mode'] ?? 'amount'); ?>
+            <?php $profitValue = (float) ($pricingSummary['profit_value'] ?? 0); ?>
+            <?php if ($profitMode === 'percent'): ?>
+                Profit (%): <?= esc(rtrim(rtrim(number_format($profitValue, 2, '.', ''), '0'), '.')) ?>%
+            <?php else: ?>
+                Profit (PKR): <?= esc(number_format($profitValue, 2)) ?>
+            <?php endif; ?>
+        </div>
         <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-800">SAR → PKR: <?= esc(rtrim(rtrim(number_format($summaryRate, 4, '.', ''), '0'), '.')) ?></div>
     </div>
 </section>

@@ -8,6 +8,7 @@ $componentLabels = [
     'hotel' => 'Hotel',
     'transport' => 'Transport',
     'package' => 'Package',
+    'general' => 'General',
 ];
 $componentIcons = [
     'visa' => 'fa-passport',
@@ -15,6 +16,7 @@ $componentIcons = [
     'hotel' => 'fa-hotel',
     'transport' => 'fa-bus',
     'package' => 'fa-box-open',
+    'general' => 'fa-file-invoice-dollar',
 ];
 $creditNotePaths = [
     'visa' => '/sales/credit-notes/add',
@@ -32,7 +34,7 @@ $creditNotePaths = [
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
                 <h3 class="text-sm font-semibold text-slate-800">Sale</h3>
-                <p class="text-xs text-slate-500">Visa, ticket, hotel, transport and package sales in one entry.</p>
+                <p class="text-xs text-slate-500">Visa, ticket, hotel, transport, package and general sales in one entry.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="<?= site_url('/reports/sale-components') ?>" class="btn btn-md btn-secondary"><i class="fa-solid fa-chart-simple"></i><span>Components Report</span></a>
@@ -42,19 +44,6 @@ $creditNotePaths = [
             </div>
         </div>
     </article>
-
-    <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <?php foreach (($componentSummary ?? []) as $type => $summary): ?>
-            <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    <i class="fa-solid <?= esc($componentIcons[$type] ?? 'fa-circle') ?> text-emerald-600"></i>
-                    <span><?= esc($componentLabels[$type] ?? ucfirst((string) $type)) ?> Issued</span>
-                </div>
-                <p class="mt-1 text-lg font-semibold text-slate-900"><?= esc((string) ($summary['count'] ?? 0)) ?></p>
-                <p class="text-[11px] text-slate-500">PKR <?= esc(number_format((float) ($summary['total_pkr'] ?? 0), 2)) ?></p>
-            </article>
-        <?php endforeach; ?>
-    </section>
 
     <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <form method="get" action="<?= site_url('/sales') ?>" class="grid gap-3 md:grid-cols-6">
@@ -181,17 +170,31 @@ $creditNotePaths = [
                                 </div>
                             </td>
                             <td class="px-3 py-2">
-                                <div class="flex items-center gap-2">
-                                    <?php if (isset($creditNotePaths[$rowType]) && (string) ($row['customer_type'] ?? '') === 'agent' && (int) ($row['agent_id'] ?? 0) > 0 && (string) ($row['status'] ?? 'posted') !== 'voided'): ?>
-                                        <a href="<?= site_url($creditNotePaths[$rowType] . '?sale_id=' . (int) $row['id']) ?>" class="icon-btn" title="Create Credit Note"><i class="fa-solid fa-file-circle-plus"></i></a>
-                                    <?php endif; ?>
-                                    <a href="<?= site_url('/sales/' . (int) $row['id']) ?>" class="icon-btn" title="View Sale"><i class="fa-solid fa-eye"></i></a>
-                                    <a href="<?= site_url('/sales/' . (int) $row['id'] . '/edit') ?>" class="icon-btn" title="Edit Sale"><i class="fa-solid fa-pen"></i></a>
-                                    <form method="post" action="<?= site_url('/sales/delete') ?>" class="inline">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="sale_id" value="<?= esc((string) $row['id']) ?>">
-                                        <button type="submit" class="icon-btn icon-btn-danger" onclick="return confirm('Delete this sale?')" title="Delete Sale"><i class="fa-solid fa-trash"></i></button>
-                                    </form>
+                                <?php $canCreditNote = isset($creditNotePaths[$rowType]) && (string) ($row['customer_type'] ?? '') === 'agent' && (int) ($row['agent_id'] ?? 0) > 0 && (string) ($row['status'] ?? 'posted') !== 'voided'; ?>
+                                <div class="relative inline-block text-left">
+                                    <button type="button" data-actions-toggle class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] text-slate-500 transition hover:border-emerald-300 hover:text-emerald-700" title="Actions" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                                    </button>
+                                    <div data-actions-menu class="fixed z-50 hidden w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                                        <?php if ($canCreditNote): ?>
+                                            <a href="<?= site_url($creditNotePaths[$rowType] . '?sale_id=' . (int) $row['id']) ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                                                <i class="fa-solid fa-file-circle-plus w-3 text-sky-600"></i>Create credit note
+                                            </a>
+                                        <?php endif; ?>
+                                        <a href="<?= site_url('/sales/' . (int) $row['id']) ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-eye w-3 text-slate-500"></i>View sale
+                                        </a>
+                                        <a href="<?= site_url('/sales/' . (int) $row['id'] . '/edit') ?>" class="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50">
+                                            <i class="fa-solid fa-pen w-3 text-emerald-600"></i>Edit sale
+                                        </a>
+                                        <form method="post" action="<?= site_url('/sales/delete') ?>" onsubmit="return confirm('Delete this sale?');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="sale_id" value="<?= esc((string) $row['id']) ?>">
+                                            <button type="submit" class="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-rose-600 hover:bg-rose-50">
+                                                <i class="fa-solid fa-trash w-3"></i>Delete sale
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -260,6 +263,81 @@ $creditNotePaths = [
                 }
             }
         });
+    }());
+
+    /* ---------- row action dropdown ---------- */
+    (function() {
+        var menus = function() {
+            return Array.prototype.slice.call(document.querySelectorAll('[data-actions-menu]'));
+        };
+
+        function closeAll(except) {
+            menus().forEach(function(menu) {
+                if (menu !== except) {
+                    menu.classList.add('hidden');
+                    var toggle = menu.parentElement.querySelector('[data-actions-toggle]');
+                    if (toggle) {
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            });
+        }
+
+        function openMenu(button, menu) {
+            menu.classList.remove('hidden');
+            button.setAttribute('aria-expanded', 'true');
+
+            var rect = button.getBoundingClientRect();
+            var width = menu.offsetWidth || 176;
+            var height = menu.offsetHeight || 0;
+            var left = Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8);
+            var top = rect.bottom + 4;
+
+            if (top + height > window.innerHeight - 8) {
+                top = Math.max(8, rect.top - height - 4);
+            }
+
+            menu.style.left = left + 'px';
+            menu.style.top = top + 'px';
+        }
+
+        document.addEventListener('click', function(event) {
+            var button = event.target.closest ? event.target.closest('[data-actions-toggle]') : null;
+            if (!button) {
+                if (!event.target.closest || !event.target.closest('[data-actions-menu]')) {
+                    closeAll(null);
+                }
+                return;
+            }
+
+            var menu = button.parentElement.querySelector('[data-actions-menu]');
+            if (!menu) {
+                return;
+            }
+
+            var willOpen = menu.classList.contains('hidden');
+            closeAll(menu);
+
+            if (willOpen) {
+                openMenu(button, menu);
+            } else {
+                menu.classList.add('hidden');
+                button.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeAll(null);
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            closeAll(null);
+        });
+        document.addEventListener('scroll', function() {
+            closeAll(null);
+        }, true);
     }());
 </script>
 <?php $this->endSection() ?>

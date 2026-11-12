@@ -9,16 +9,18 @@
  * @var array  $hotels
  * @var array  $transports
  * @var array  $packages
+ * @var array  $suppliers
  */
 
 $row = $row ?? [];
-$saleItems = $saleItems ?? ['visa' => [], 'ticket' => [], 'hotel' => [], 'transport' => [], 'package' => []];
+$saleItems = $saleItems ?? ['visa' => [], 'ticket' => [], 'hotel' => [], 'transport' => [], 'package' => [], 'general' => []];
 $isEdit = ! empty($row);
 $formAction = $isEdit ? site_url('/sales/update') : site_url('/sales');
 
 $visaItem = $saleItems['visa'] ?? [];
 $ticketItem = $saleItems['ticket'] ?? [];
 $packageItem = $saleItems['package'] ?? [];
+$generalItem = $saleItems['general'] ?? [];
 
 $visaTypes = \App\Config\VisaOptions::TYPES;
 
@@ -66,6 +68,8 @@ $buildHotelRows = static function () use ($saleItems): array {
                 'amount' => (string) old('hotel_amount.' . $index),
                 'currency' => (string) old('hotel_currency.' . $index, 'PKR'),
                 'exchange_rate' => (string) old('hotel_exchange_rate.' . $index, '1'),
+                'supplier_id' => (string) old('hotel_supplier_id.' . $index),
+                'purchase_amount' => (string) old('hotel_purchase_amount.' . $index),
                 'attachment' => '',
             ];
         }
@@ -90,6 +94,8 @@ $buildTransportRows = static function () use ($saleItems): array {
                 'amount' => (string) old('transport_amount.' . $index),
                 'currency' => (string) old('transport_currency.' . $index, 'PKR'),
                 'exchange_rate' => (string) old('transport_exchange_rate.' . $index, '1'),
+                'supplier_id' => (string) old('transport_supplier_id.' . $index),
+                'purchase_amount' => (string) old('transport_purchase_amount.' . $index),
                 'is_ziarat' => (string) old('transport_ziarat.' . $index, '0'),
                 'attachment' => '',
             ];
@@ -132,7 +138,7 @@ foreach ($transports as $transport) {
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
                 <h3 class="text-sm font-semibold text-slate-800"><?= $isEdit ? 'Edit Sale' : 'New Sale Entry' ?></h3>
-                <p class="text-xs text-slate-500">One entry can carry visa, ticket, hotel, transport and package for the same pilgrim group.</p>
+                <p class="text-xs text-slate-500">One entry can carry visa, ticket, hotel, transport, package and general sale components for the same pilgrim group.</p>
             </div>
             <?php if ($isEdit): ?>
                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"><?= esc((string) ($row['invoice_no'] ?? '')) ?></span>
@@ -302,6 +308,16 @@ foreach ($transports as $transport) {
                 <?php $this->setData(['amountFields' => $amountFields]); ?>
                 <?= $this->include('portal/sales/_amount_fields') ?>
             </div>
+            <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <?php $this->setData(['purchaseFields' => [
+                    'supplierName' => 'visa_supplier_id',
+                    'purchaseName' => 'visa_purchase_amount',
+                    'supplierValue' => (int) $itemValue('visa_supplier_id', $visaItem, 'supplier_id', 0),
+                    'purchaseValue' => (string) $itemValue('visa_purchase_amount', $visaItem, 'purchase_amount'),
+                    'suppliers' => $suppliers ?? [],
+                ]]); ?>
+                <?= $this->include('portal/sales/_purchase_fields') ?>
+            </div>
         </article>
 
         <article class="rounded-xl border border-slate-200 bg-white p-4" data-amount-group>
@@ -342,6 +358,16 @@ foreach ($transports as $transport) {
                         <a href="<?= esc(asset_upload_url((string) $ticketItem['attachment'], 'sales')) ?>" target="_blank" class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><i class="fa-solid fa-file"></i> Current</a>
                     <?php endif; ?>
                 </div>
+            </div>
+            <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <?php $this->setData(['purchaseFields' => [
+                    'supplierName' => 'ticket_supplier_id',
+                    'purchaseName' => 'ticket_purchase_amount',
+                    'supplierValue' => (int) $itemValue('ticket_supplier_id', $ticketItem, 'supplier_id', 0),
+                    'purchaseValue' => (string) $itemValue('ticket_purchase_amount', $ticketItem, 'purchase_amount'),
+                    'suppliers' => $suppliers ?? [],
+                ]]); ?>
+                <?= $this->include('portal/sales/_purchase_fields') ?>
             </div>
         </article>
 
@@ -402,10 +428,29 @@ foreach ($transports as $transport) {
                                 </button>
                             </div>
                         </div>
+                        <div class="mt-3 grid gap-3 md:grid-cols-3">
+                            <?php $this->setData(['purchaseFields' => [
+                                'supplierName' => 'hotel_supplier_id[]',
+                                'purchaseName' => 'hotel_purchase_amount[]',
+                                'supplierValue' => (int) ($hotelRow['supplier_id'] ?? 0),
+                                'purchaseValue' => (string) ($hotelRow['purchase_amount'] ?? ''),
+                                'suppliers' => $suppliers ?? [],
+                            ]]); ?>
+                            <?= $this->include('portal/sales/_purchase_fields') ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
         </article>
+
+        <template id="supplier-options-template">
+            <option value="">Not purchased / no supplier</option>
+            <?php foreach (($suppliers ?? []) as $supplier): ?>
+                <option value="<?= esc((string) (int) ($supplier['id'] ?? 0)) ?>">
+                    <?= esc((string) ($supplier['supplier_name'] ?? '')) ?><?= trim((string) ($supplier['supplier_type'] ?? '')) !== '' ? ' — ' . esc(ucfirst((string) $supplier['supplier_type'])) : '' ?>
+                </option>
+            <?php endforeach; ?>
+        </template>
 
         <template id="transport-master-template">
             <option value="">Free text</option>
@@ -488,6 +533,16 @@ foreach ($transports as $transport) {
                                 </button>
                             </div>
                         </div>
+                        <div class="mt-3 grid gap-3 md:grid-cols-3">
+                            <?php $this->setData(['purchaseFields' => [
+                                'supplierName' => 'transport_supplier_id[]',
+                                'purchaseName' => 'transport_purchase_amount[]',
+                                'supplierValue' => (int) ($transportRow['supplier_id'] ?? 0),
+                                'purchaseValue' => (string) ($transportRow['purchase_amount'] ?? ''),
+                                'suppliers' => $suppliers ?? [],
+                            ]]); ?>
+                            <?= $this->include('portal/sales/_purchase_fields') ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -551,9 +606,55 @@ foreach ($transports as $transport) {
                 <?php $this->setData(['amountFields' => $amountFields]); ?>
                 <?= $this->include('portal/sales/_amount_fields') ?>
             </div>
+            <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <?php $this->setData(['purchaseFields' => [
+                    'supplierName' => 'package_supplier_id',
+                    'purchaseName' => 'package_purchase_amount',
+                    'supplierValue' => (int) $itemValue('package_supplier_id', $packageItem, 'supplier_id', 0),
+                    'purchaseValue' => (string) $itemValue('package_purchase_amount', $packageItem, 'purchase_amount'),
+                    'suppliers' => $suppliers ?? [],
+                ]]); ?>
+                <?= $this->include('portal/sales/_purchase_fields') ?>
+            </div>
             <div class="mt-3">
                 <label class="mb-1 block text-xs font-medium text-slate-600">Package Detail</label>
                 <textarea id="package-details" name="package_details" rows="2" placeholder="Inclusions, dates, hotel names" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc((string) $itemValue('package_details', $packageItem, 'description')) ?></textarea>
+            </div>
+        </article>
+
+        <article class="rounded-xl border border-slate-200 bg-white p-4" data-amount-group>
+            <div class="mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice-dollar text-emerald-600"></i>
+                <h4 class="text-sm font-semibold text-slate-800">Other / General Sale</h4>
+                <span class="text-xs text-slate-400">Leave blank if not required</span>
+            </div>
+            <div class="grid gap-3 md:grid-cols-1">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-slate-600">Description</label>
+                    <textarea name="general_description" rows="2" placeholder="Write particulars for general sale" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><?= esc((string) $itemValue('general_description', $generalItem, 'description')) ?></textarea>
+                </div>
+            </div>
+            <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <?php $amountFields = [
+                    'currencyName' => 'general_currency',
+                    'rateName' => 'general_exchange_rate',
+                    'amountName' => 'general_amount',
+                    'currencyValue' => (string) $itemValue('general_currency', $generalItem, 'currency', 'PKR'),
+                    'rateValue' => (string) $itemValue('general_exchange_rate', $generalItem, 'exchange_rate', '1'),
+                    'amountValue' => (string) $itemValue('general_amount', $generalItem, 'amount'),
+                ]; ?>
+                <?php $this->setData(['amountFields' => $amountFields]); ?>
+                <?= $this->include('portal/sales/_amount_fields') ?>
+            </div>
+            <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <?php $this->setData(['purchaseFields' => [
+                    'supplierName' => 'general_supplier_id',
+                    'purchaseName' => 'general_purchase_amount',
+                    'supplierValue' => (int) $itemValue('general_supplier_id', $generalItem, 'supplier_id', 0),
+                    'purchaseValue' => (string) $itemValue('general_purchase_amount', $generalItem, 'purchase_amount'),
+                    'suppliers' => $suppliers ?? [],
+                ]]); ?>
+                <?= $this->include('portal/sales/_purchase_fields') ?>
             </div>
         </article>
 
@@ -706,6 +807,12 @@ foreach ($transports as $transport) {
             return '<option value="PKR">PKR</option><option value="SAR">SAR</option>';
         }
 
+        function supplierOptionsHtml() {
+            var template = document.getElementById('supplier-options-template');
+
+            return template ? template.innerHTML : '<option value="">Not purchased / no supplier</option>';
+        }
+
         function hotelRowHtml() {
             return '<div class="hotel-row rounded-xl border border-slate-200 bg-slate-50/60 p-3" data-amount-group>'
                 + '<div class="grid gap-3 md:grid-cols-4">'
@@ -721,6 +828,10 @@ foreach ($transports as $transport) {
                 + '<div><label class="mb-1 block text-xs font-medium text-slate-600">Exchange Rate</label><input name="hotel_exchange_rate[]" type="number" step="0.0001" min="0" value="1" placeholder="1" class="js-rate w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"></div>'
                 + '<div><label class="mb-1 block text-xs font-medium text-slate-600">Amount</label><input type="number" step="0.01" min="0" name="hotel_amount[]" data-amount placeholder="0.00" class="js-amount w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><p class="js-pkr-preview mt-1 text-[11px] text-slate-500"></p></div>'
                 + '<div class="flex items-end"><button type="button" class="remove-hotel-row inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"><i class="fa-solid fa-trash"></i> Remove</button></div>'
+                + '</div>'
+                + '<div class="mt-3 grid gap-3 md:grid-cols-3">'
+                + '<div><label class="mb-1 block text-xs font-medium text-slate-600">Supplier</label><select name="hotel_supplier_id[]" class="js-supplier w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">' + supplierOptionsHtml() + '</select></div>'
+                + '<div><label class="mb-1 block text-xs font-medium text-slate-600">Purchase Price</label><input type="number" step="0.01" min="0" name="hotel_purchase_amount[]" placeholder="0.00" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><p class="mt-1 text-[11px] text-slate-400">Same currency as the sale amount</p></div>'
                 + '</div></div>';
         }
 
@@ -745,6 +856,10 @@ foreach ($transports as $transport) {
                 + '<div><label class="mb-1 block text-xs font-medium text-slate-600">Amount</label><input type="number" step="0.01" min="0" name="transport_amount[' + position + ']" data-amount placeholder="0.00" class="js-amount w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><p class="js-pkr-preview mt-1 text-[11px] text-slate-500"></p></div>'
                 + '<div class="flex items-end"><label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" name="transport_ziarat[' + position + ']" value="1" class="transport-ziarat h-4 w-4 rounded border-slate-300"> Ziarat</label></div>'
                 + '<div class="flex items-end"><button type="button" class="remove-transport-row inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"><i class="fa-solid fa-trash"></i> Remove</button></div>'
+                + '</div>'
+                + '<div class="mt-3 grid gap-3 md:grid-cols-3">'
+                + '<div><label class="mb-1 block text-xs font-medium text-slate-600">Supplier</label><select name="transport_supplier_id[' + position + ']" class="js-supplier w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">' + supplierOptionsHtml() + '</select></div>'
+                + '<div><label class="mb-1 block text-xs font-medium text-slate-600">Purchase Price</label><input type="number" step="0.01" min="0" name="transport_purchase_amount[' + position + ']" placeholder="0.00" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><p class="mt-1 text-[11px] text-slate-400">Same currency as the sale amount</p></div>'
                 + '</div></div>';
         }
 

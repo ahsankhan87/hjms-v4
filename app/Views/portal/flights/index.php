@@ -21,12 +21,34 @@
 
             return date('d M Y H:i', $timestamp);
         };
+
+        $totalNights = static function (array $row): ?int {
+            $startRaw = trim((string) ($row['departure_at'] ?? ''));
+            $endRaw   = trim((string) ($row['return_arrival_at'] ?? ''));
+
+            if ($endRaw === '') {
+                $endRaw = trim((string) ($row['arrival_at'] ?? ''));
+            }
+
+            if ($startRaw === '' || $endRaw === '') {
+                return null;
+            }
+
+            $start = strtotime($startRaw);
+            $end   = strtotime($endRaw);
+
+            if ($start === false || $end === false || $end < $start) {
+                return null;
+            }
+
+            return (int) floor((strtotime(date('Y-m-d', $end)) - strtotime(date('Y-m-d', $start))) / 86400);
+        };
         ?>
         <article class="rounded-xl border border-slate-200 bg-white px-4 py-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-800">Flights</h3>
-                    <p class="text-xs text-slate-500">Manage departures, tickets, and package links.</p>
+                    <p class="text-xs text-slate-500">Manage departures, fares, and package links.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <a href="<?= site_url('/flights/add') ?>" class="btn btn-md btn-primary">
@@ -43,11 +65,11 @@
             <table class="list-table">
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>
-                        <th class="px-3 py-2 text-left">ID</th>
-                        <th class="px-3 py-2 text-left">Outbound</th>
-                        <th class="px-3 py-2 text-left">Return</th>
+                        <th class="px-3 py-2 text-left">S.No</th>
+                        <th class="px-3 py-2 text-left">Departure</th>
+                        <th class="px-3 py-2 text-left">Arrival</th>
                         <th class="px-3 py-2 text-left">Fare (PKR)</th>
-                        <th class="px-3 py-2 text-left">Tickets</th>
+                        <th class="px-3 py-2 text-left">Total Nights</th>
                         <th class="px-3 py-2 text-left">Pkg Links</th>
                         <th class="px-3 py-2 text-left">Actions</th>
                     </tr>
@@ -58,25 +80,29 @@
                             <td colspan="7" class="px-3 py-6 text-center text-slate-500">No flights found.</td>
                         </tr>
                     <?php else: ?>
+                        <?php $serial = 0; ?>
                         <?php foreach ($rows as $row): ?>
                             <tr class="border-t border-slate-100">
-                                <td class="px-3 py-2 font-medium">#<?= esc($row['id']) ?></td>
+                                <td class="px-3 py-2 font-medium"><?= ++$serial ?></td>
                                 <td class="px-3 py-2">
                                     <div class="text-xs font-semibold text-slate-700"><?= esc(trim((string) (($row['airline'] ?? '') . ' ' . ($row['flight_no'] ?? '')))) ?></div>
                                     <div class="text-xs text-slate-500"><?= esc(trim((string) (($row['departure_airport'] ?? '') . ' -> ' . ($row['arrival_airport'] ?? '')), ' ->')) ?: '-' ?></div>
-                                    <div class="text-xs text-slate-500">PNR: <?= esc((string) ($row['pnr'] ?? '-')) ?></div>
-                                    <div class="text-xs text-slate-500"><?= esc($compactDateTime($row['departure_at'] ?? '')) ?> to <?= esc($compactDateTime($row['arrival_at'] ?? '')) ?></div>
+                                    <!-- <div class="text-xs text-slate-500">PNR: <?= esc((string) ($row['pnr'] ?? '-')) ?></div> -->
+                                    <div class="text-xs text-slate-500"><?= esc($compactDateTime($row['departure_at'] ?? '')) ?></div>
                                 </td>
                                 <td class="px-3 py-2">
                                     <div class="text-xs font-semibold text-slate-700"><?= esc(trim((string) (($row['return_airline'] ?? '') . ' ' . ($row['return_flight_no'] ?? '')))) ?: '-' ?></div>
                                     <div class="text-xs text-slate-500"><?= esc(trim((string) (($row['return_departure_airport'] ?? '') . ' -> ' . ($row['return_arrival_airport'] ?? '')), ' ->')) ?: '-' ?></div>
-                                    <div class="text-xs text-slate-500">PNR: <?= esc((string) (($row['return_pnr'] ?? '') !== '' ? $row['return_pnr'] : '-')) ?></div>
-                                    <div class="text-xs text-slate-500"><?= esc($compactDateTime($row['return_departure_at'] ?? '')) ?> to <?= esc($compactDateTime($row['return_arrival_at'] ?? '')) ?></div>
+                                    <!-- <div class="text-xs text-slate-500">PNR: <?= esc((string) (($row['return_pnr'] ?? '') !== '' ? $row['return_pnr'] : '-')) ?></div> -->
+                                    <div class="text-xs text-slate-500"><?= esc($compactDateTime($row['return_departure_at'] ?? '')) ?></div>
                                 </td>
                                 <td class="px-3 py-2 text-xs font-semibold text-slate-700"><?= (float) ($row['fare'] ?? 0) > 0 ? esc(number_format((float) $row['fare'], 2)) : '-' ?></td>
                                 <td class="px-3 py-2">
-                                    <div class="text-xs text-slate-700">Outbound: <?= esc((string) (($row['ticket_file_name'] ?? '') !== '' ? $row['ticket_file_name'] : '-')) ?></div>
-                                    <div class="text-xs text-slate-700">Return: <?= esc((string) (($row['return_ticket_file_name'] ?? '') !== '' ? $row['return_ticket_file_name'] : '-')) ?></div>
+                                    <?php $nights = $totalNights($row); ?>
+                                    <div class="text-xs font-semibold text-slate-700"><?= $nights === null ? '-' : esc($nights . ' night' . ($nights === 1 ? '' : 's')) ?></div>
+                                    <?php if (!trim((string) ($row['return_arrival_at'] ?? ''))): ?>
+                                        <div class="text-xs text-slate-500">No return leg</div>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="px-3 py-2"><?= esc((int) ($row['package_links'] ?? 0)) ?></td>
                                 <td class="px-3 py-2">

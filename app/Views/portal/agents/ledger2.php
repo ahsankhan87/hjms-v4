@@ -2,9 +2,9 @@
 
 <?php $this->section('main') ?>
 <main class="space-y-4">
-    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700\"><?= esc($success) ?></div><?php endif; ?>
-    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700\"><?= esc($error) ?></div><?php endif; ?>
-    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700\"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
+    <?php if (!empty($success)): ?><div class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"><?= esc($success) ?></div><?php endif; ?>
+    <?php if (!empty($error)): ?><div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"><?= esc($error) ?></div><?php endif; ?>
+    <?php if (!empty($errors)): ?><div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"><?php foreach ($errors as $err): ?><div><?= esc($err) ?></div><?php endforeach; ?></div><?php endif; ?>
 
     <section class="space-y-3">
         <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -91,6 +91,12 @@
                     'value' => (float) ($summary['bookingSaleTotal'] ?? 0),
                     'tone' => 'amber',
                     'hint' => 'Booking receivable',
+                ],
+                [
+                    'label' => 'Transport',
+                    'value' => (float) ($summary['transportSaleTotal'] ?? 0),
+                    'tone' => 'amber',
+                    'hint' => 'Transport receivable',
                 ],
             ];
 
@@ -280,6 +286,52 @@
                         <tr>
                             <td colspan="8" class="px-3 py-2 text-right font-semibold">Total</td>
                             <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['visaSales'] ?? 0), 2)) ?></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </article>
+
+        <article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 class="mb-3 text-xl font-semibold text-slate-900">Transport Sale</h3>
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100 text-slate-700">
+                        <tr>
+                            <th class="px-3 py-2 text-left font-semibold">Invoice #</th>
+                            <th class="px-3 py-2 text-left font-semibold">Inv Date</th>
+                            <th class="px-3 py-2 text-left font-semibold">Type</th>
+                            <th class="px-3 py-2 text-left font-semibold">Detail</th>
+                            <th class="px-3 py-2 text-left font-semibold">Pax Name</th>
+                            <th class="px-3 py-2 text-left font-semibold">Reference Number</th>
+                            <th class="px-3 py-2 text-left font-semibold">Remarks</th>
+                            <th class="px-3 py-2 text-right font-semibold">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        <?php if (!empty($transportSales)): foreach ($transportSales as $row): ?>
+                                <?php $rowItemType = strtolower((string) ($row['item_type'] ?? 'transport')); ?>
+                                <tr class="odd:bg-white even:bg-slate-50/60">
+                                    <td class="px-3 py-2"><?= esc((string) ($row['invoice_no'] ?? ('TS' . (int) ($row['id'] ?? 0)))) ?></td>
+                                    <td class="px-3 py-2"><?= esc((string) ($row['sale_date'] ?? '')) ?></td>
+                                    <td class="px-3 py-2"><?= esc($rowItemType === 'package' ? 'Package' : ucfirst((string) (($row['transport_type'] ?? '') !== '' ? $row['transport_type'] : 'transport'))) ?></td>
+                                    <td class="px-3 py-2"><?= esc((string) (($row['route'] ?? '') !== '' ? $row['route'] : ($row['package_name'] ?? '-')) ?: '-') ?></td>
+                                    <td class="px-3 py-2"><?= esc((string) ($row['pax_name'] ?? '-')) ?></td>
+                                    <td class="px-3 py-2"><?= esc((string) ($row['reference_no'] ?? '-')) ?></td>
+                                    <td class="px-3 py-2"><?= esc((string) ($row['note'] ?? '-')) ?></td>
+                                    <td class="px-3 py-2 text-right font-semibold"><?= esc(number_format((float) ($row['amount'] ?? 0), 2)) ?></td>
+                                </tr>
+                            <?php endforeach;
+                        else: ?>
+                            <tr>
+                                <td colspan="8" class="px-3 py-6 text-center text-slate-500">No Transport Sale Found.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                    <tfoot class="bg-slate-100 text-slate-800">
+                        <tr>
+                            <td colspan="7" class="px-3 py-2 text-right font-semibold">Total</td>
+                            <td class="px-3 py-2 text-right font-bold"><?= esc(number_format((float) ($tableTotals['transportSales'] ?? 0), 2)) ?></td>
                         </tr>
                     </tfoot>
                 </table>

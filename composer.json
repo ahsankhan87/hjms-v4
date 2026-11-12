@@ -13,6 +13,7 @@
         "php": "^8.2",
         "ext-intl": "*",
         "ext-mbstring": "*",
+        "chillerlan/php-qrcode": "^6.0",
         "laminas/laminas-escaper": "^2.18",
         "psr/log": "^3.0",
         "shuchkin/simplexls": "^1.0",

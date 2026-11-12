@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?php if (!empty($publicView)): ?>
+        <meta name="robots" content="noindex, nofollow">
+    <?php endif; ?>
     <title><?= esc($title ?? 'Final Voucher') ?></title>
     <link rel="stylesheet" href="<?= base_url('assets/fontawesome-free-7.0.0-web/css/all.min.css') ?>">
     <style>
@@ -89,6 +92,7 @@
         .meta {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             border-top: 1px solid #cbd5e1;
             border-bottom: 1px solid #cbd5e1;
             padding: 7px 12px;
@@ -96,6 +100,32 @@
             color: #113d77;
             font-weight: 700;
             background: #f8fafc;
+        }
+
+        .meta-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+        }
+
+        .meta-qr {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+            font-size: 8px;
+            font-weight: 400;
+            color: #475569;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+
+        .meta-qr img {
+            display: block;
+            width: 64px;
+            height: 64px;
+            background: #fff;
         }
 
         .section-title {
@@ -387,7 +417,9 @@
     $transportContact = trim((string) ($booking['transport_contact'] ?? ''));
     ?>
     <div class="actions">
-        <a class="btn secondary" href="<?= site_url('/bookings') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        <?php if (empty($publicView)): ?>
+            <a class="btn secondary" href="<?= site_url('/bookings') ?>"><i class="fa-solid fa-arrow-left"></i> Back</a>
+        <?php endif; ?>
         <button type="button" class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Voucher</button>
         <button type="button" class="btn" onclick="window.print()"><i class="fa-solid fa-file-pdf"></i> Save as PDF</button>
     </div>
@@ -419,8 +451,16 @@
         </header>
 
         <div class="meta">
-            <div>Voucher No: <?= esc($voucherNo) ?></div>
-            <div>Voucher Date: <?= esc($voucherDate) ?></div>
+            <div class="meta-info">
+                <div>Voucher No: <?= esc($voucherNo) ?></div>
+                <div>Voucher Date: <?= esc($voucherDate) ?></div>
+            </div>
+            <?php if (!empty($qrDataUri)): ?>
+                <div class="meta-qr">
+                    <img src="<?= esc($qrDataUri) ?>" alt="Voucher QR code">
+                    <span>Scan to<br>view</span>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="content">
@@ -463,9 +503,8 @@
                     </tr>
                 </tbody>
             </table>
-
-            <?php if (!empty($outboundFlight)): ?>
-                <div class="section-title">Flight To KSA</div>
+            <?php if (($includeTicket ?? true) && !empty($outboundFlight)): ?>
+                <div class="section-title">Departure</div>
                 <table>
                     <thead>
                         <tr>
@@ -492,19 +531,10 @@
                         </tr>
                     </tbody>
                 </table>
-            <?php elseif (!($includeTicket ?? true)): ?>
-                <div class="section-title">Flight To KSA</div>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td colspan="8" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
-                        </tr>
-                    </tbody>
-                </table>
             <?php endif; ?>
 
-            <?php if (!empty($returnFlight)): ?>
-                <div class="section-title">Return Flight From KSA</div>
+            <?php if (($includeTicket ?? true) && !empty($returnFlight)): ?>
+                <div class="section-title">Arrival</div>
                 <table>
                     <thead>
                         <tr>
@@ -531,18 +561,9 @@
                         </tr>
                     </tbody>
                 </table>
-            <?php elseif (!($includeTicket ?? true)): ?>
-                <div class="section-title">Return Flight From KSA</div>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td colspan="8" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
-                        </tr>
-                    </tbody>
-                </table>
             <?php endif; ?>
 
-            <?php if (!empty($hotelRows)): ?>
+            <?php if (($includeHotel ?? true) && !empty($hotelRows)): ?>
                 <div class="section-title">Accommodation Detail</div>
                 <table class="hotel-table">
                     <thead>
@@ -587,29 +608,14 @@
                                 <td><?= esc((string) ($hotel['check_in_date'] ?? '')) ?></td>
                                 <td><?= esc((string) ($hotel['check_out_date'] ?? '')) ?></td>
                                 <td><?= esc($nights) ?></td>
-                                <td>
-                                    <?php if ((int) ($booking['include_hotel'] ?? 1) !== 1): ?>
-                                        <?= esc('Package price') ?>
-                                    <?php else: ?>
-                                        <?= esc(ucfirst((string) ($booking['pricing_tier'] ?? ''))) ?>
-                                    <?php endif; ?>
-                                </td>
+                                <td><?= esc(ucfirst((string) ($booking['pricing_tier'] ?? ''))) ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-            <?php elseif (!($includeHotel ?? true)): ?>
-                <div class="section-title">Accommodation Detail</div>
-                <table class="hotel-table">
-                    <tbody>
-                        <tr>
-                            <td colspan="7" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
-                        </tr>
-                    </tbody>
-                </table>
             <?php endif; ?>
 
-            <?php if (!empty($transportRows)): ?>
+            <?php if (($includeTransport ?? true) && !empty($transportRows)): ?>
                 <div class="section-title">Transportation Detail</div>
                 <table>
                     <thead>
@@ -637,15 +643,6 @@
                                 <td><?= esc($ziaratLabel) ?></td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php elseif (!($includeTransport ?? true)): ?>
-                <div class="section-title">Transportation Detail</div>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td colspan="5" style="text-align:center;padding:8px;font-style:italic;color:#888;">Self-arranged</td>
-                        </tr>
                     </tbody>
                 </table>
             <?php endif; ?>
