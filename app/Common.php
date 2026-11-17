@@ -345,6 +345,10 @@ if (! function_exists('asset_upload_dir')) {
 if (! function_exists('asset_upload_url')) {
     /**
      * Resolve a stored upload value (bare filename or relative path) to a public URL.
+     *
+     * Absolute URLs that point at this app's own assets/uploads folder are rebuilt
+     * from base_url(), so records saved before the app moved to another folder,
+     * host, or port still resolve to the current location.
      */
     function asset_upload_url($stored, string $subdir = ''): string
     {
@@ -353,7 +357,28 @@ if (! function_exists('asset_upload_url')) {
             return '';
         }
 
-        if (preg_match('#^https?://#i', $stored) === 1 || str_starts_with($stored, 'data:')) {
+        if (str_starts_with($stored, 'data:')) {
+            return $stored;
+        }
+
+        if (preg_match('#^https?://#i', $stored) === 1) {
+            $urlPath = ltrim(str_replace('\\', '/', (string) parse_url($stored, PHP_URL_PATH)), '/');
+            $assetsPos = strpos($urlPath, 'assets/uploads/');
+            if ($assetsPos === false) {
+                return $stored;
+            }
+
+            $relative = substr($urlPath, $assetsPos);
+            $urlHost = strtolower((string) parse_url($stored, PHP_URL_HOST));
+            $requestHost = strtolower((string) service('request')->getUri()->getHost());
+            $isLocalHost = $urlHost === ''
+                || in_array($urlHost, ['localhost', '127.0.0.1', '::1'], true)
+                || $urlHost === $requestHost;
+
+            if ($isLocalHost || is_file(rtrim((string) FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative))) {
+                return base_url($relative);
+            }
+
             return $stored;
         }
 

@@ -31,7 +31,7 @@ $filters = $filters ?? [];
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <?php foreach ($rows as $row): ?>
                 <?php
-                $img = trim((string) ($row['image_url'] ?? ''));
+                $img = asset_upload_url((string) ($row['image_url'] ?? ''), 'hotels');
                 if ($img === '') {
                     $img = base_url('assets/uploads/madina-logo.png');
                 }

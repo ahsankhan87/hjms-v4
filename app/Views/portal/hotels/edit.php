@@ -47,7 +47,7 @@
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Media &amp; Links</p>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Cover Image URL</label>
-                        <input name="image_url" value="<?= esc(old('image_url', (string) ($row['image_url'] ?? ''))) ?>" placeholder="https://..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <input name="image_url" value="<?= esc(old('image_url', asset_upload_url((string) ($row['image_url'] ?? ''), 'hotels'))) ?>" placeholder="https://..." class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     </div>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Upload More Hotel Images</label>
@@ -59,9 +59,10 @@
                             <label class="mb-1 block text-xs font-medium text-slate-600">Current Gallery</label>
                             <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                 <?php foreach ($galleryImages as $galleryImage): ?>
+                                    <?php $galleryImageSrc = asset_upload_url($galleryImage, 'hotels'); ?>
                                     <div class="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                                        <button type="button" class="gallery-preview-btn block w-full" data-image-src="<?= esc($galleryImage) ?>">
-                                            <img src="<?= esc($galleryImage) ?>" alt="Hotel image" class="h-20 w-full object-cover">
+                                        <button type="button" class="gallery-preview-btn block w-full" data-image-src="<?= esc($galleryImageSrc) ?>">
+                                            <img src="<?= esc($galleryImageSrc) ?>" alt="Hotel image" class="h-20 w-full object-cover">
                                         </button>
                                         <div class="p-1">
                                             <button type="button" class="w-full rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100 gallery-delete-btn" data-image-url="<?= esc($galleryImage) ?>">Delete Image</button>

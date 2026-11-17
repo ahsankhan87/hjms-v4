@@ -93,13 +93,14 @@
         <article class="rounded-xl border border-slate-200 bg-white p-4">
             <h4 class="text-sm font-semibold text-slate-800">Gallery</h4>
             <?php
-            $coverImage = trim((string) ($row['image_url'] ?? ''));
+            $coverImage = asset_upload_url((string) ($row['image_url'] ?? ''), 'hotels');
             $allImages = [];
             if ($coverImage !== '') {
                 $allImages[] = $coverImage;
             }
             foreach (($galleryImages ?? []) as $galleryImage) {
-                if (!in_array($galleryImage, $allImages, true)) {
+                $galleryImage = asset_upload_url($galleryImage, 'hotels');
+                if ($galleryImage !== '' && ! in_array($galleryImage, $allImages, true)) {
                     $allImages[] = $galleryImage;
                 }
             }

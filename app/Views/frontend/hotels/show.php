@@ -4,7 +4,7 @@
 <?php
 $hotel = is_array($hotel ?? null) ? $hotel : [];
 $rooms = is_array($rooms ?? null) ? $rooms : [];
-$img = trim((string) ($hotel['image_url'] ?? ''));
+$img = asset_upload_url((string) ($hotel['image_url'] ?? ''), 'hotels');
 if ($img === '') {
     $img = base_url('assets/uploads/madina-logo.png');
 }

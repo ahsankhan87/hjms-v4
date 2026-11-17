@@ -60,7 +60,7 @@
                                 <td class="px-3 py-2 align-top">
                                     <div class="flex items-start gap-3">
                                         <?php if (!empty($row['image_url'])): ?>
-                                            <img src="<?= esc((string) $row['image_url']) ?>" alt="Hotel" class="h-12 w-12 rounded-lg border border-slate-200 object-cover">
+                                            <img src="<?= esc(asset_upload_url((string) $row['image_url'], 'hotels')) ?>" alt="Hotel" class="h-12 w-12 rounded-lg border border-slate-200 object-cover">
                                         <?php else: ?>
                                             <div class="flex h-12 w-12 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">H</div>
                                         <?php endif; ?>

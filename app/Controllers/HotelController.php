@@ -545,21 +545,7 @@ class HotelController extends BaseController
 
     private function deleteHotelImageFile(string $imageUrl): void
     {
-        $appBase = rtrim((string) base_url(), '/');
-        $assetPrefix = $appBase . '/assets/uploads/hotels/';
-        if (! str_starts_with($imageUrl, $assetPrefix)) {
-            return;
-        }
-
-        $fileName = basename((string) parse_url($imageUrl, PHP_URL_PATH));
-        if ($fileName === '') {
-            return;
-        }
-
-        $filePath = rtrim((string) FCPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'hotels' . DIRECTORY_SEPARATOR . $fileName;
-        if (is_file($filePath)) {
-            @unlink($filePath);
-        }
+        asset_upload_remove($imageUrl, 'hotels');
     }
 
     private function handleHotelImageUploads(): array
@@ -610,7 +596,7 @@ class HotelController extends BaseController
             $newName = 'hotel-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $extension;
             $file->move($uploadDir, $newName, true);
 
-            $uploaded[] = base_url('assets/uploads/hotels/' . $newName);
+            $uploaded[] = 'assets/uploads/hotels/' . $newName;
         }
 
         return ['images' => $uploaded];

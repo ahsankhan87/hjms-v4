@@ -217,7 +217,7 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                         <?php if (!empty($flightTemplates)): ?>
                             <div class="min-w-[12rem] flex-1">
                                 <label class="<?= $labelClass ?>">Load from Flight Management <span class="font-medium normal-case tracking-normal text-slate-400">(optional)</span></label>
-                                <select id="flight-template-select" class="<?= $inputClass ?>">
+                                <select id="flight-template-select" class="hidden" aria-hidden="true" tabindex="-1">
                                     <option value="">&mdash; enter flight details below &mdash;</option>
                                     <?php foreach ($flightTemplates as $template): ?>
                                         <?php
@@ -236,20 +236,43 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
                                             return $ts === false ? '' : date('d/m/Y H:i', $ts);
                                         };
+                                        $templateAirportCode = static function ($value): string {
+                                            $value = trim((string) ($value ?? ''));
+                                            if ($value === '') {
+                                                return '';
+                                            }
+
+                                            if (preg_match('/\(([A-Z]{3})\)/', $value, $matches) === 1) {
+                                                return strtoupper((string) ($matches[1] ?? ''));
+                                            }
+
+                                            if (preg_match('/\b([A-Z]{3})\b/', strtoupper($value), $matches) === 1) {
+                                                return strtoupper((string) ($matches[1] ?? ''));
+                                            }
+
+                                            return strtoupper(substr($value, 0, 3));
+                                        };
                                         $templateOutboundDate = $templateFormatDate($template['departure_at'] ?? '');
                                         $templateReturnDate = $templateFormatDate($template['return_departure_at'] ?? '');
-                                        $templateLabel = $templateOutbound !== '' ? $templateOutbound : 'Flight #' . (int) ($template['id'] ?? 0);
-                                        if ($templateOutboundDate !== '') {
-                                            $templateLabel .= ' · ' . $templateOutboundDate;
-                                        }
-                                        $templateReturnLabel = trim($templateReturn . ' ' . $templateReturnDate);
-                                        if ($templateReturnLabel !== '') {
-                                            $templateLabel .= ' · back: ' . $templateReturnLabel;
-                                        }
+                                        $templateOutboundFrom = $templateAirportCode($template['departure_airport'] ?? '');
+                                        $templateOutboundTo = $templateAirportCode($template['arrival_airport'] ?? '');
+                                        $templateReturnFrom = $templateAirportCode($template['return_departure_airport'] ?? '');
+                                        $templateReturnTo = $templateAirportCode($template['return_arrival_airport'] ?? '');
+                                        $templateOutboundRoute = trim($templateOutboundFrom . ($templateOutboundTo !== '' ? '-' . $templateOutboundTo : ''));
+                                        $templateReturnRoute = trim($templateReturnFrom . ($templateReturnTo !== '' ? '-' . $templateReturnTo : ''));
+                                        $templateSector = implode('-', array_values(array_filter([
+                                            $templateOutboundFrom,
+                                            $templateOutboundTo,
+                                            $templateReturnFrom,
+                                            $templateReturnTo,
+                                        ], static fn($code): bool => $code !== '')));
+                                        $templateTitle = $templateOutbound !== '' ? $templateOutbound : 'Flight #' . (int) ($template['id'] ?? 0);
+                                        $templateLabel = $templateTitle;
                                         $templateNightsEnd = trim((string) ($template['return_arrival_at'] ?? ''));
                                         if ($templateNightsEnd === '') {
                                             $templateNightsEnd = trim((string) ($template['arrival_at'] ?? ''));
                                         }
+                                        $templateNights = 0;
                                         $templateNightsStart = trim((string) ($template['departure_at'] ?? ''));
                                         if ($templateNightsStart !== '' && $templateNightsEnd !== '') {
                                             $nightsStartTs = strtotime($templateNightsStart);
@@ -261,6 +284,8 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                                                 }
                                             }
                                         }
+                                        $templateSummaryOutbound = trim($templateOutbound . ($templateOutboundDate !== '' ? ' · ' . $templateOutboundDate : ''));
+                                        $templateSummaryReturn = trim($templateReturn . ($templateReturnDate !== '' ? ' · ' . $templateReturnDate : ''));
                                         ?>
                                         <option value="<?= esc((string) $templateId) ?>"
                                             <?= $selectedFlightTemplateId === $templateId ? 'selected' : '' ?>
@@ -278,9 +303,35 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
                                             data-return-arrival-airport="<?= esc((string) ($template['return_arrival_airport'] ?? '')) ?>"
                                             data-return-departure-at="<?= esc($templateToLocal($template['return_departure_at'] ?? '')) ?>"
                                             data-return-arrival-at="<?= esc($templateToLocal($template['return_arrival_at'] ?? '')) ?>"
+                                            data-sector="<?= esc($templateSector) ?>"
+                                            data-title="<?= esc($templateTitle) ?>"
+                                            data-outbound-date="<?= esc($templateOutboundDate) ?>"
+                                            data-return-date="<?= esc($templateReturnDate) ?>"
+                                            data-outbound-route="<?= esc($templateOutboundRoute) ?>"
+                                            data-return-route="<?= esc($templateReturnRoute) ?>"
+                                            data-summary-outbound="<?= esc($templateSummaryOutbound) ?>"
+                                            data-summary-return="<?= esc($templateSummaryReturn) ?>"
+                                            data-nights="<?= esc((string) $templateNights) ?>"
                                             data-fare="<?= esc((string) (float) ($template['fare'] ?? 0)) ?>"><?= esc($templateLabel) ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div id="flight-template-picker" class="relative mt-1">
+                                    <button type="button" id="flight-template-trigger" class="group w-full rounded-xl border border-slate-300 bg-gradient-to-b from-white to-slate-50 px-3 py-2.5 text-left text-sm text-slate-700 shadow-sm transition hover:border-emerald-300 hover:shadow focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                                        <span class="flex items-start justify-between gap-2">
+                                            <span class="min-w-0">
+                                                <span id="flight-template-trigger-title" class="block truncate font-semibold text-slate-800">Select flight template</span>
+                                                <span id="flight-template-trigger-subtitle" class="mt-0.5 block truncate text-[11px] text-slate-500">Search and choose a managed flight</span>
+                                            </span>
+                                            <span class="mt-0.5 text-slate-400 transition group-hover:text-emerald-600"><i class="fa-solid fa-chevron-down text-[10px]"></i></span>
+                                        </span>
+                                    </button>
+                                    <div id="flight-template-panel" class="absolute z-20 mt-1 hidden w-full rounded-xl border border-slate-200 bg-white shadow-xl">
+                                        <div class="border-b border-slate-100 p-2">
+                                            <input type="search" id="flight-template-search" placeholder="Search airline, sector, airport, flight no..." class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                        </div>
+                                        <div id="flight-template-options" class="max-h-64 space-y-1 overflow-auto p-2"></div>
+                                    </div>
+                                </div>
                             </div>
                         <?php endif; ?>
                         <div class="w-full sm:w-40">
@@ -1609,6 +1660,13 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
         });
 
         var flightTemplateSelect = document.getElementById('flight-template-select');
+        var flightTemplatePicker = document.getElementById('flight-template-picker');
+        var flightTemplateTrigger = document.getElementById('flight-template-trigger');
+        var flightTemplateTriggerTitle = document.getElementById('flight-template-trigger-title');
+        var flightTemplateTriggerSubtitle = document.getElementById('flight-template-trigger-subtitle');
+        var flightTemplatePanel = document.getElementById('flight-template-panel');
+        var flightTemplateSearch = document.getElementById('flight-template-search');
+        var flightTemplateOptions = document.getElementById('flight-template-options');
         var flightIdInput = document.getElementById('flight-id');
         var flightSourceInput = document.getElementById('flight-source');
         var ticketCostInput = document.getElementById('ticket-cost');
@@ -1619,9 +1677,208 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
             'return_departure_airport', 'return_arrival_airport', 'return_departure_at'
         ];
 
+        function flightTemplateOptionLabel(option) {
+            var title = String((option && option.dataset ? option.dataset.title : '') || '').trim();
+            if (title !== '') {
+                return title;
+            }
+
+            return String(option && option.textContent ? option.textContent : '').trim();
+        }
+
+        function updateFlightTemplateTrigger(option) {
+            if (!flightTemplateTriggerTitle || !flightTemplateTriggerSubtitle) {
+                return;
+            }
+
+            if (!option || !option.value) {
+                flightTemplateTriggerTitle.textContent = 'Select flight template';
+                flightTemplateTriggerSubtitle.textContent = 'Search and choose a managed flight';
+                return;
+            }
+
+            var sector = String(option.dataset.sector || '').trim();
+            var outboundDate = String(option.dataset.outboundDate || '').trim();
+            var nights = numberOrZero(option.dataset.nights);
+            flightTemplateTriggerTitle.textContent = flightTemplateOptionLabel(option);
+            var subtitleParts = [];
+            if (sector !== '') {
+                subtitleParts.push(sector);
+            }
+            if (outboundDate !== '') {
+                subtitleParts.push(outboundDate);
+            }
+            if (nights > 0) {
+                subtitleParts.push(nights + ' night' + (nights === 1 ? '' : 's'));
+            }
+            flightTemplateTriggerSubtitle.textContent = subtitleParts.length ? subtitleParts.join(' · ') : 'Managed flight selected';
+        }
+
+        function closeFlightTemplatePanel() {
+            if (!flightTemplatePanel) {
+                return;
+            }
+            flightTemplatePanel.classList.add('hidden');
+        }
+
+        function renderFlightTemplateOptions() {
+            if (!flightTemplateSelect || !flightTemplateOptions) {
+                return;
+            }
+
+            var query = flightTemplateSearch ? String(flightTemplateSearch.value || '').toLowerCase().trim() : '';
+            var selectedValue = String(flightTemplateSelect.value || '');
+            flightTemplateOptions.innerHTML = '';
+
+            var options = Array.prototype.slice.call(flightTemplateSelect.options);
+            var visibleCount = 0;
+
+            options.forEach(function(option) {
+                var optionValue = String(option.value || '');
+                var label = flightTemplateOptionLabel(option);
+                var sector = String(option.dataset.sector || '').trim();
+                var outbound = String(option.dataset.summaryOutbound || '').trim();
+                var inbound = String(option.dataset.summaryReturn || '').trim();
+                var outboundRoute = String(option.dataset.outboundRoute || '').trim();
+                var returnRoute = String(option.dataset.returnRoute || '').trim();
+                var outboundDate = String(option.dataset.outboundDate || '').trim();
+                var nights = numberOrZero(option.dataset.nights);
+                var meta = [
+                    label,
+                    sector,
+                    outbound,
+                    inbound,
+                    outboundRoute,
+                    returnRoute,
+                    outboundDate,
+                    option.dataset.departureAirport || '',
+                    option.dataset.arrivalAirport || '',
+                    option.dataset.returnDepartureAirport || '',
+                    option.dataset.returnArrivalAirport || ''
+                ].join(' ').toLowerCase();
+
+                if (query !== '' && meta.indexOf(query) === -1) {
+                    return;
+                }
+
+                visibleCount += 1;
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'w-full rounded-xl border px-2.5 py-2 text-left transition ' + (optionValue === selectedValue ? 'border-emerald-300 bg-emerald-50/70 shadow-sm' : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/40');
+                button.setAttribute('data-flight-template-value', optionValue);
+
+                var title = document.createElement('div');
+                title.className = 'truncate text-xs font-semibold text-slate-800';
+                title.textContent = label;
+                button.appendChild(title);
+
+                if (optionValue === '') {
+                    var emptyText = document.createElement('div');
+                    emptyText.className = 'mt-0.5 text-[10px] text-slate-500';
+                    emptyText.textContent = 'Keep manual flight entry';
+                    button.appendChild(emptyText);
+                } else {
+                    var sub = document.createElement('div');
+                    sub.className = 'mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-600';
+
+                    if (sector !== '') {
+                        var sectorSpan = document.createElement('span');
+                        sectorSpan.className = 'rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700';
+                        sectorSpan.textContent = sector;
+                        sub.appendChild(sectorSpan);
+                    }
+                    if (outboundDate !== '') {
+                        var dateSpan = document.createElement('span');
+                        dateSpan.textContent = outboundDate;
+                        sub.appendChild(dateSpan);
+                    }
+                    if (nights > 0) {
+                        var nightsSpan = document.createElement('span');
+                        nightsSpan.textContent = nights + ' night' + (nights === 1 ? '' : 's');
+                        sub.appendChild(nightsSpan);
+                    }
+
+                    if (sub.childNodes.length) {
+                        button.appendChild(sub);
+                    }
+
+                    var detail = document.createElement('div');
+                    detail.className = 'mt-1 grid gap-0.5 text-[10px] text-slate-500 sm:grid-cols-2';
+                    if (outbound !== '') {
+                        var outLine = document.createElement('div');
+                        outLine.className = 'truncate';
+                        outLine.textContent = 'Out: ' + outbound;
+                        detail.appendChild(outLine);
+                    }
+                    if (inbound !== '') {
+                        var inLine = document.createElement('div');
+                        inLine.className = 'truncate';
+                        inLine.textContent = 'Back: ' + inbound;
+                        detail.appendChild(inLine);
+                    }
+                    if (detail.childNodes.length) {
+                        button.appendChild(detail);
+                    }
+                }
+
+                button.addEventListener('click', function() {
+                    flightTemplateSelect.value = optionValue;
+                    flightTemplateSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    closeFlightTemplatePanel();
+                });
+
+                flightTemplateOptions.appendChild(button);
+            });
+
+            if (visibleCount === 0) {
+                var empty = document.createElement('div');
+                empty.className = 'rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2.5 py-2 text-[11px] text-slate-500';
+                empty.textContent = 'No flights matched your search.';
+                flightTemplateOptions.appendChild(empty);
+            }
+        }
+
         if (flightTemplateSelect) {
+            if (flightTemplateTrigger && flightTemplatePanel) {
+                flightTemplateTrigger.addEventListener('click', function() {
+                    var willOpen = flightTemplatePanel.classList.contains('hidden');
+                    if (willOpen) {
+                        renderFlightTemplateOptions();
+                        flightTemplatePanel.classList.remove('hidden');
+                        if (flightTemplateSearch) {
+                            setTimeout(function() {
+                                flightTemplateSearch.focus();
+                            }, 0);
+                        }
+                    } else {
+                        closeFlightTemplatePanel();
+                    }
+                });
+            }
+
+            if (flightTemplateSearch) {
+                flightTemplateSearch.addEventListener('input', renderFlightTemplateOptions);
+            }
+
+            document.addEventListener('click', function(event) {
+                if (!flightTemplatePicker || !flightTemplatePanel || flightTemplatePanel.classList.contains('hidden')) {
+                    return;
+                }
+                if (!flightTemplatePicker.contains(event.target)) {
+                    closeFlightTemplatePanel();
+                }
+            });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeFlightTemplatePanel();
+                }
+            });
+
             flightTemplateSelect.addEventListener('change', function() {
                 var option = flightTemplateSelect.options[flightTemplateSelect.selectedIndex];
+                updateFlightTemplateTrigger(option);
+                renderFlightTemplateOptions();
                 if (!option || !option.value) {
                     if (flightIdInput) {
                         flightIdInput.value = '0';
@@ -1668,6 +1925,9 @@ $renderHotelRow = static function (array $stay, int|string $index) use ($hotelOp
 
                 refresh(true);
             });
+
+            updateFlightTemplateTrigger(flightTemplateSelect.options[flightTemplateSelect.selectedIndex] || null);
+            renderFlightTemplateOptions();
         }
 
         flightFieldNames.forEach(function(name) {
